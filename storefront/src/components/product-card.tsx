@@ -10,9 +10,10 @@ import { useCart } from "@/lib/cart-store";
 import { useWishlist } from "@/lib/wishlist-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { cn, discountPercent, formatPrice } from "@/lib/utils";
-import { t } from "@/lib/dict";
+import { useI18n } from "@/components/i18n-provider";
 
 export function ProductCard({ p }: { p: Product }) {
+  const { t } = useI18n();
   const [added, setAdded] = useState(false);
   const add = useCart((s) => s.add);
   const wishItems = useWishlist((s) => s.items);
@@ -52,7 +53,7 @@ export function ProductCard({ p }: { p: Product }) {
         <button
           type="button"
           onClick={() => toggleWish(p)}
-          aria-label="إضافة إلى المفضلة"
+          aria-label={t.wishlist}
           aria-pressed={wished}
           className="absolute end-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-line bg-white/90 text-ink-600 backdrop-blur transition-colors hover:text-coral"
         >
@@ -110,7 +111,7 @@ export function ProductCard({ p }: { p: Product }) {
           className="btn btn-primary mt-1 w-full text-sm disabled:cursor-not-allowed disabled:opacity-40"
         >
           {added ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
-          {added ? "تمت الإضافة" : t.addToCart}
+          {added ? t.added : t.addToCart}
         </button>
       </div>
     </div>

@@ -6,14 +6,16 @@ import { ProductGrid } from "@/components/product-grid";
 import { SectionHeading } from "@/components/section-heading";
 import { getCategories, getHomepage } from "@/lib/api";
 import { bannerTone } from "@/lib/utils";
-import { t } from "@/lib/dict";
+import { getDict } from "@/lib/i18n";
+import { getLocale } from "@/lib/locale";
 
 export default async function HomePage() {
-  const [categories, home] = await Promise.all([getCategories(), getHomepage()]);
+  const [categories, home, locale] = await Promise.all([getCategories(), getHomepage(), getLocale()]);
+  const t = getDict(locale);
 
   return (
     <div className="container-ovira space-y-12 py-6">
-      <Hero hero={home.hero[0] ?? null} deal={home.deal} />
+      <Hero hero={home.hero[0] ?? null} deal={home.deal} t={t} />
 
       <section className="animate-fade-up">
         <SectionHeading title={t.allCategories} href="/categories" />

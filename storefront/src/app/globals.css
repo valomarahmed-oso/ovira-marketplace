@@ -16,6 +16,38 @@
   --coral-050: #ffede8;
   --mint: #12b886;
   --gold: #f5b301;
+  --blue-hover: #dcebff;
+}
+
+.dark {
+  --ovira-blue: #2f9bff;
+  --ovira-blue-600: #6cb6ff;
+  --ovira-blue-050: #15263f;
+  --ink: #e8eefb;
+  --ink-600: #aab8cf;
+  --ink-400: #7e8ca4;
+  --line: #243349;
+  --canvas: #0a121f;
+  --surface: #111c2e;
+  --coral: #ff6f4d;
+  --coral-050: #2e1a16;
+  --mint: #2ad19b;
+  --gold: #f5c542;
+  --blue-hover: #1c3252;
+  color-scheme: dark;
+}
+
+/* Form controls hardcode bg-white; keep them readable in dark. */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: var(--surface) !important;
+  color: var(--ink);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--ink-400);
 }
 
 @layer base {
@@ -88,7 +120,7 @@
   }
 
   .btn-ghost:hover {
-    background-color: #dcebff;
+    background-color: var(--blue-hover);
   }
 
   .card {

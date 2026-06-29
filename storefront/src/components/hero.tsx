@@ -2,11 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ShieldCheck, Store, Timer, Truck } from "lucide-react";
 import type { Banner, Product } from "@/lib/api";
+import type { Dict } from "@/lib/i18n";
 import { OviraBars } from "@/components/ovira-bars";
 import { cn, formatPrice, discountPercent } from "@/lib/utils";
-import { t } from "@/lib/dict";
 
-export function Hero({ hero, deal }: { hero: Banner | null; deal: Product | null }) {
+export function Hero({ hero, deal, t }: { hero: Banner | null; deal: Product | null; t: Dict }) {
   const title = hero?.title ?? "تسوّق أذكى، من بائعين تثق فيهم.";
   const subtitle =
     hero?.subtitle ?? "آلاف المنتجات، أسعار تنافسية، وشحن سريع لكل مصر — كل ده في مكان واحد.";
@@ -34,7 +34,7 @@ export function Hero({ hero, deal }: { hero: Banner | null; deal: Product | null
         <div className="relative max-w-xl">
           <div className="mb-5 flex items-center gap-2 text-sm text-white/85">
             <OviraBars tone="white" />
-            <span>ماركت بليس متعدد البائعين</span>
+            <span>{t.heroBadge}</span>
           </div>
           <h1 className="text-3xl font-medium leading-snug md:text-5xl md:leading-[1.15]">{title}</h1>
           <p className="mt-4 text-base text-white/85 md:text-lg">{subtitle}</p>
@@ -67,12 +67,12 @@ export function Hero({ hero, deal }: { hero: Banner | null; deal: Product | null
         </div>
       </div>
 
-      {deal && <DealCard deal={deal} />}
+      {deal && <DealCard deal={deal} t={t} />}
     </section>
   );
 }
 
-function DealCard({ deal }: { deal: Product }) {
+function DealCard({ deal, t }: { deal: Product; t: Dict }) {
   const off = discountPercent(deal.price, deal.compare_at_price);
   return (
     <Link
@@ -82,7 +82,7 @@ function DealCard({ deal }: { deal: Product }) {
       <div className="flex items-center justify-between bg-coral-50 px-5 py-3">
         <span className="flex items-center gap-2 font-medium text-coral">
           <Timer className="h-4 w-4" />
-          عرض اليوم
+          {t.dealOfDay}
         </span>
         {off > 0 && <span className="font-tech text-sm font-medium text-coral">-{off}%</span>}
       </div>

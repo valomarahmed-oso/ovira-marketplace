@@ -3,17 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Bell, ChevronDown, Globe, Heart, MapPin, Menu, Search, ShoppingCart, User } from "lucide-react";
+import { Bell, Heart, MapPin, Menu, Search, ShoppingCart, User } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { PrefsToggle } from "@/components/prefs-toggle";
 import { cartCount, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
 import { useWishlist } from "@/lib/wishlist-store";
 import { useNotifications } from "@/lib/notifications-store";
 import { useHydrated } from "@/lib/use-hydrated";
-import { t } from "@/lib/dict";
+import { useI18n } from "@/components/i18n-provider";
 
 export function Header() {
   const router = useRouter();
+  const { t } = useI18n();
   const [q, setQ] = useState("");
   const items = useCart((s) => s.items);
   const user = useAuth((s) => s.user);
@@ -38,21 +40,17 @@ export function Header() {
             <MapPin className="h-3.5 w-3.5 text-blue-600" />
             {t.deliverTo} <strong className="font-medium text-ink">{t.egypt}</strong>
           </span>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Link href="/sell" className="hidden items-center gap-1 hover:text-blue-600 sm:flex">
               {t.becomeVendor}
             </Link>
-            <button type="button" className="flex items-center gap-1 hover:text-blue-600">
-              <Globe className="h-3.5 w-3.5" />
-              العربية
-              <ChevronDown className="h-3 w-3" />
-            </button>
+            <PrefsToggle />
           </div>
         </div>
       </div>
 
       <div className="container-ovira flex h-16 items-center gap-3 md:gap-6">
-        <button type="button" aria-label="القائمة" className="grid h-10 w-10 place-items-center rounded-xl border border-line lg:hidden">
+        <button type="button" aria-label={t.menu} className="grid h-10 w-10 place-items-center rounded-xl border border-line lg:hidden">
           <Menu className="h-5 w-5" />
         </button>
 
@@ -65,7 +63,7 @@ export function Header() {
             onChange={(e) => setQ(e.target.value)}
             placeholder={t.searchPlaceholder}
             aria-label={t.searchPlaceholder}
-            className="h-11 w-full rounded-xl border border-line bg-canvas pe-12 ps-4 text-sm text-ink outline-none transition-colors focus:border-blue focus:bg-white"
+            className="h-11 w-full rounded-xl border border-line bg-canvas pe-12 ps-4 text-sm text-ink outline-none transition-colors focus:border-blue focus:bg-surface"
           />
         </form>
 
@@ -74,7 +72,7 @@ export function Header() {
             <User className="h-5 w-5 text-blue-600" />
             <span className="hidden lg:inline">{accountLabel}</span>
           </Link>
-          <Link href="/account/notifications" aria-label="الإشعارات" className="relative grid h-10 w-10 place-items-center rounded-xl hover:bg-blue-50">
+          <Link href="/account/notifications" aria-label={t.notifications} className="relative grid h-10 w-10 place-items-center rounded-xl hover:bg-blue-50">
             <Bell className="h-5 w-5 text-blue-600" />
             {unread > 0 && (
               <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-coral px-1 font-tech text-[10px] text-white">
@@ -82,7 +80,7 @@ export function Header() {
               </span>
             )}
           </Link>
-          <Link href="/wishlist" aria-label="المفضلة" className="relative grid h-10 w-10 place-items-center rounded-xl hover:bg-blue-50">
+          <Link href="/wishlist" aria-label={t.wishlist} className="relative grid h-10 w-10 place-items-center rounded-xl hover:bg-blue-50">
             <Heart className="h-5 w-5 text-blue-600" />
             {wishCount > 0 && (
               <span className="absolute -end-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-coral px-1 font-tech text-[10px] text-white">
@@ -111,7 +109,7 @@ export function Header() {
           onChange={(e) => setQ(e.target.value)}
           placeholder={t.searchPlaceholder}
           aria-label={t.searchPlaceholder}
-          className="h-11 w-full rounded-xl border border-line bg-canvas pe-12 ps-4 text-sm outline-none focus:border-blue focus:bg-white"
+          className="h-11 w-full rounded-xl border border-line bg-canvas pe-12 ps-4 text-sm outline-none focus:border-blue focus:bg-surface"
         />
       </form>
     </header>

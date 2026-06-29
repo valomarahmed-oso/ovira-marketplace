@@ -1,26 +1,5 @@
-export const t = {
-  brand: "أوفيرا",
-  tagline: "كل اللي محتاجه، من بائعين تثق فيهم",
-  searchPlaceholder: "دوّر على منتجات، ماركات، وبائعين…",
-  deliverTo: "التوصيل إلى",
-  egypt: "مصر",
-  account: "حسابي",
-  signIn: "تسجيل الدخول",
-  cart: "السلة",
-  becomeVendor: "ابدأ البيع",
-  allCategories: "كل الأقسام",
-  shopNow: "تسوّق دلوقتي",
-  newArrivals: "وصل حديثًا",
-  bestSellers: "الأكثر مبيعًا",
-  viewAll: "عرض الكل",
-  addToCart: "أضف للسلة",
-  inStock: "متوفر",
-  outOfStock: "غير متوفر",
-  off: "خصم",
-  freeShipping: "شحن مجاني",
-  securePayment: "دفع آمن",
-  easyReturns: "إرجاع سهل",
-  support: "دعم على مدار الساعة",
-  footerAbout: "أوفيرا ماركت بليس — منصة متعددة البائعين مبنية على ERPNext.",
-  rights: "جميع الحقوق محفوظة",
-};
+import { getDict } from "@/lib/i18n";
+
+// Legacy default dictionary (Arabic). Components that haven't migrated to the
+// locale-aware `useI18n()` / `getDict()` still import `t` from here.
+export const t = getDict("ar");

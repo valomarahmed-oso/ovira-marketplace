@@ -6,24 +6,26 @@ import { Bell, Heart, LogIn, LogOut, MapPin, Package, Store } from "lucide-react
 import { useAuth } from "@/lib/auth-store";
 import { signOutServer } from "@/lib/auth";
 import { useHydrated } from "@/lib/use-hydrated";
-
-const links = [
-  { href: "/account/orders", icon: Package, title: "طلباتي", note: "تتبّع ومراجعة طلباتك" },
-  { href: "/wishlist", icon: Heart, title: "المفضلة", note: "المنتجات اللي حفظتها" },
-  { href: "/account/addresses", icon: MapPin, title: "العناوين", note: "عناوين التوصيل" },
-  { href: "/account/notifications", icon: Bell, title: "الإشعارات", note: "تنبيهات الطلبات والعروض" },
-];
+import { useI18n } from "@/components/i18n-provider";
 
 export default function AccountPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const user = useAuth((s) => s.user);
   const signOut = useAuth((s) => s.signOut);
   const hydrated = useHydrated();
 
+  const links = [
+    { href: "/account/orders", icon: Package, title: t.myOrders, note: t.myOrdersNote },
+    { href: "/wishlist", icon: Heart, title: t.wishlist, note: t.wishlistNote },
+    { href: "/account/addresses", icon: MapPin, title: t.addresses, note: t.addressesNote },
+    { href: "/account/notifications", icon: Bell, title: t.notifications, note: t.notificationsNote },
+  ];
+
   if (!hydrated) {
     return (
       <div className="container-ovira py-10">
-        <div className="card p-10 text-center text-ink-400">جارٍ التحميل…</div>
+        <div className="card p-10 text-center text-ink-400">{t.loading}</div>
       </div>
     );
   }
@@ -35,11 +37,11 @@ export default function AccountPage() {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-50">
             <LogIn className="h-7 w-7 text-blue-600" />
           </div>
-          <h1 className="text-xl font-medium text-ink">سجّل دخولك</h1>
-          <p className="text-sm text-ink-400">ادخل لحسابك عشان تتابع طلباتك وعناوينك.</p>
+          <h1 className="text-xl font-medium text-ink">{t.signInPrompt}</h1>
+          <p className="text-sm text-ink-400">{t.signInPromptSub}</p>
           <div className="flex justify-center gap-2">
-            <Link href="/login" className="btn btn-primary">تسجيل الدخول</Link>
-            <Link href="/register" className="btn btn-ghost">إنشاء حساب</Link>
+            <Link href="/login" className="btn btn-primary">{t.loginTitle}</Link>
+            <Link href="/register" className="btn btn-ghost">{t.createAccount}</Link>
           </div>
         </div>
       </div>
@@ -65,7 +67,7 @@ export default function AccountPage() {
           }}
           className="btn btn-ghost ms-auto"
         >
-          <LogOut className="h-4 w-4" /> خروج
+          <LogOut className="h-4 w-4" /> {t.logout}
         </button>
       </div>
 
@@ -78,8 +80,8 @@ export default function AccountPage() {
             <Store className="h-5 w-5 text-blue-600" />
           </span>
           <div>
-            <div className="font-medium text-ink">لوحة البائع</div>
-            <div className="text-sm text-ink-400">أدِر متجرك ومنتجاتك وطلباتك</div>
+            <div className="font-medium text-ink">{t.vendorDashboard}</div>
+            <div className="text-sm text-ink-400">{t.vendorDashboardSub}</div>
           </div>
         </Link>
       )}

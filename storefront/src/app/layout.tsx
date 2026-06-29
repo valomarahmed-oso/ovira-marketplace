@@ -5,6 +5,8 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { PwaRegister } from "@/components/pwa-register";
 import { SessionSync } from "@/components/session-sync";
+import { I18nProvider } from "@/components/i18n-provider";
+import { getLocale, getTheme } from "@/lib/locale";
 
 const readex = Readex_Pro({
   subsets: ["arabic", "latin"],
@@ -36,15 +38,24 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const [locale, theme] = await Promise.all([getLocale(), getTheme()]);
+  const dir = locale === "ar" ? "rtl" : "ltr";
+
   return (
-    <html lang="ar" dir="rtl" className={`${readex.variable} ${grotesk.variable}`}>
+    <html
+      lang={locale}
+      dir={dir}
+      className={`${readex.variable} ${grotesk.variable}${theme === "dark" ? " dark" : ""}`}
+    >
       <body className="min-h-screen">
-        <PwaRegister />
-        <SessionSync />
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        <I18nProvider locale={locale}>
+          <PwaRegister />
+          <SessionSync />
+          <Header />
+          <main>{children}</main>
+          <Footer />
+        </I18nProvider>
       </body>
     </html>
   );

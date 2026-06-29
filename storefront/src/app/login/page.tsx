@@ -7,9 +7,11 @@ import { AlertCircle, Lock, LogIn, Mail } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/lib/auth-store";
 import { signIn } from "@/lib/auth";
+import { useI18n } from "@/components/i18n-provider";
 
 function LoginForm() {
   const router = useRouter();
+  const { t } = useI18n();
   const params = useSearchParams();
   const next = params.get("next");
   const setUser = useAuth((s) => s.setUser);
@@ -43,8 +45,8 @@ function LoginForm() {
       <div className="card w-full max-w-md space-y-6 p-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <Logo withWordmark={false} />
-          <h1 className="text-2xl font-medium text-ink">تسجيل الدخول</h1>
-          <p className="text-sm text-ink-400">أهلاً بيك تاني في أوفيرا</p>
+          <h1 className="text-2xl font-medium text-ink">{t.loginTitle}</h1>
+          <p className="text-sm text-ink-400">{t.loginSub}</p>
         </div>
 
         {error && (
@@ -59,7 +61,7 @@ function LoginForm() {
             <input
               type="email"
               required
-              placeholder="البريد الإلكتروني"
+              placeholder={t.email}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={field}
@@ -70,7 +72,7 @@ function LoginForm() {
             <input
               type="password"
               required
-              placeholder="كلمة المرور"
+              placeholder={t.password}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={field}
@@ -78,17 +80,17 @@ function LoginForm() {
             <Lock className={icon} />
           </div>
           <button type="submit" disabled={busy} className="btn btn-primary w-full disabled:opacity-50">
-            <LogIn className="h-5 w-5" /> {busy ? "جارٍ الدخول…" : "دخول"}
+            <LogIn className="h-5 w-5" /> {busy ? t.loggingIn : t.enter}
           </button>
         </form>
 
         <p className="text-center text-sm text-ink-400">
-          ليس لديك حساب؟{" "}
+          {t.noAccount}{" "}
           <Link
             href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"}
             className="font-medium text-blue-600 hover:underline"
           >
-            أنشئ حساب
+            {t.createAccount}
           </Link>
         </p>
       </div>

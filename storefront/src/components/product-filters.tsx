@@ -5,12 +5,7 @@ import { useState, useTransition } from "react";
 import { Loader2, SlidersHorizontal, X } from "lucide-react";
 import type { Facets } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
-
-const SORTS = [
-  { value: "latest", label: "الأحدث" },
-  { value: "price_asc", label: "السعر: من الأقل" },
-  { value: "price_desc", label: "السعر: من الأعلى" },
-];
+import { useI18n } from "@/components/i18n-provider";
 
 export function ProductFilters({
   facets,
@@ -21,6 +16,12 @@ export function ProductFilters({
   total: number;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
+  const sorts = [
+    { value: "latest", label: t.sortLatest },
+    { value: "price_asc", label: t.sortPriceAsc },
+    { value: "price_desc", label: t.sortPriceDesc },
+  ];
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -71,17 +72,17 @@ export function ProductFilters({
       <aside className="card h-fit space-y-6 p-5">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-2 font-medium text-ink">
-            <SlidersHorizontal className="h-4 w-4 text-blue-600" /> تصفية
+            <SlidersHorizontal className="h-4 w-4 text-blue-600" /> {t.filterTitle}
           </span>
           {hasFilters && (
             <button type="button" onClick={clearAll} className="flex items-center gap-1 text-xs text-ink-400 hover:text-coral">
-              <X className="h-3.5 w-3.5" /> مسح
+              <X className="h-3.5 w-3.5" /> {t.clear}
             </button>
           )}
         </div>
 
         <div className="space-y-3">
-          <div className="text-sm font-medium text-ink">نطاق السعر</div>
+          <div className="text-sm font-medium text-ink">{t.priceRange}</div>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -90,7 +91,7 @@ export function ProductFilters({
               value={min}
               onChange={(e) => setMin(e.target.value)}
               className="h-10 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none focus:border-blue"
-              aria-label="أقل سعر"
+              aria-label={t.minPrice}
             />
             <span className="text-ink-400">—</span>
             <input
@@ -100,17 +101,17 @@ export function ProductFilters({
               value={max}
               onChange={(e) => setMax(e.target.value)}
               className="h-10 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none focus:border-blue"
-              aria-label="أعلى سعر"
+              aria-label={t.maxPrice}
             />
           </div>
           <div className="font-tech text-xs text-ink-400">
-            من {formatPrice(facets.price_min)} إلى {formatPrice(facets.price_max)}
+            {t.from} {formatPrice(facets.price_min)} {t.to} {formatPrice(facets.price_max)}
           </div>
         </div>
 
         {facets.brands.length > 0 && (
           <div className="space-y-2">
-            <div className="text-sm font-medium text-ink">الماركة</div>
+            <div className="text-sm font-medium text-ink">{t.brandLabel}</div>
             <div className="max-h-56 space-y-2 overflow-y-auto pe-1">
               {facets.brands.map((b) => (
                 <label key={b} className="flex cursor-pointer items-center gap-2 text-sm text-ink-600">
@@ -124,25 +125,25 @@ export function ProductFilters({
 
         <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-600">
           <input type="checkbox" checked={inStock} onChange={(e) => setInStock(e.target.checked)} className="accent-blue" />
-          المتوفر فقط
+          {t.inStockOnly}
         </label>
 
         <button type="button" onClick={() => apply()} disabled={pending} className="btn btn-primary w-full text-sm disabled:opacity-60">
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} تطبيق
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} {t.apply}
         </button>
       </aside>
 
       <div>
         <div className="mb-4 flex items-center justify-between gap-3">
-          <span className="text-sm text-ink-400">{total} منتج</span>
+          <span className="text-sm text-ink-400">{total} {t.productsWord}</span>
           <label className="flex items-center gap-2 text-sm">
-            <span className="text-ink-400">ترتيب:</span>
+            <span className="text-ink-400">{t.sortBy}</span>
             <select
               value={sort}
               onChange={(e) => apply({ sort: e.target.value })}
               className="rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-blue"
             >
-              {SORTS.map((s) => (
+              {sorts.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>

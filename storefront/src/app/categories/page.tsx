@@ -2,7 +2,8 @@ import Link from "next/link";
 import { icons, Tag } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { getCategories } from "@/lib/api";
-import { t } from "@/lib/dict";
+import { getDict } from "@/lib/i18n";
+import { getLocale } from "@/lib/locale";
 
 export const metadata = { title: "كل الأقسام | أوفيرا" };
 
@@ -16,14 +17,15 @@ function iconFor(name?: string) {
 }
 
 export default async function CategoriesPage() {
-  const categories = await getCategories();
+  const [categories, locale] = await Promise.all([getCategories(), getLocale()]);
+  const t = getDict(locale);
 
   return (
     <div className="container-ovira space-y-6 py-6">
       <Breadcrumb items={[{ label: t.brand, href: "/" }, { label: t.allCategories }]} />
       <div>
         <h1 className="text-2xl font-medium text-ink md:text-3xl">{t.allCategories}</h1>
-        <p className="mt-1 text-sm text-ink-400">تصفّح كل أقسام أوفيرا واكتشف منتجات بائعين موثوقين</p>
+        <p className="mt-1 text-sm text-ink-400">{t.allCategoriesSub}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

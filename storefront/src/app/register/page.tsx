@@ -7,9 +7,11 @@ import { AlertCircle, Lock, Mail, Phone, UserPlus, User } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/lib/auth-store";
 import { signUp } from "@/lib/auth";
+import { useI18n } from "@/components/i18n-provider";
 
 function RegisterForm() {
   const router = useRouter();
+  const { t } = useI18n();
   const params = useSearchParams();
   const next = params.get("next");
   const setUser = useAuth((s) => s.setUser);
@@ -42,8 +44,8 @@ function RegisterForm() {
       <div className="card w-full max-w-md space-y-6 p-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <Logo withWordmark={false} />
-          <h1 className="text-2xl font-medium text-ink">إنشاء حساب</h1>
-          <p className="text-sm text-ink-400">انضم لأوفيرا في خطوة واحدة</p>
+          <h1 className="text-2xl font-medium text-ink">{t.registerTitle}</h1>
+          <p className="text-sm text-ink-400">{t.registerSub}</p>
         </div>
 
         {error && (
@@ -55,33 +57,33 @@ function RegisterForm() {
 
         <form onSubmit={submit} className="space-y-3">
           <div className={wrap}>
-            <input required placeholder="الاسم بالكامل" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={field} />
+            <input required placeholder={t.fullName} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={field} />
             <User className={icon} />
           </div>
           <div className={wrap}>
-            <input type="email" required placeholder="البريد الإلكتروني" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={field} />
+            <input type="email" required placeholder={t.email} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={field} />
             <Mail className={icon} />
           </div>
           <div className={wrap}>
-            <input inputMode="tel" placeholder="رقم الموبايل" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={field} />
+            <input inputMode="tel" placeholder={t.phone} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={field} />
             <Phone className={icon} />
           </div>
           <div className={wrap}>
-            <input type="password" required minLength={6} placeholder="كلمة المرور" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={field} />
+            <input type="password" required minLength={6} placeholder={t.password} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={field} />
             <Lock className={icon} />
           </div>
           <button type="submit" disabled={busy} className="btn btn-primary w-full disabled:opacity-50">
-            <UserPlus className="h-5 w-5" /> {busy ? "جارٍ الإنشاء…" : "إنشاء الحساب"}
+            <UserPlus className="h-5 w-5" /> {busy ? t.creating : t.createAccountBtn}
           </button>
         </form>
 
         <p className="text-center text-sm text-ink-400">
-          لديك حساب بالفعل؟{" "}
+          {t.haveAccount}{" "}
           <Link
             href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
             className="font-medium text-blue-600 hover:underline"
           >
-            سجّل دخولك
+            {t.signInLink}
           </Link>
         </p>
       </div>

@@ -1,23 +1,59 @@
+"use client";
+
 import Link from "next/link";
 import { CreditCard, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { t } from "@/lib/dict";
-
-const trust = [
-  { icon: Truck, label: t.freeShipping, note: "للطلبات فوق ٥٠٠ ج.م" },
-  { icon: ShieldCheck, label: t.securePayment, note: "بياناتك محمية" },
-  { icon: RotateCcw, label: t.easyReturns, note: "خلال ١٤ يوم" },
-  { icon: CreditCard, label: "دفع عند الاستلام", note: "متاح في كل المحافظات" },
-];
-
-const columns = [
-  { title: "تسوّق", links: ["كل الأقسام", "العروض", "الأكثر مبيعًا", "وصل حديثًا"] },
-  { title: "حسابي", links: ["تتبّع طلبي", "المفضلة", "الإرجاع", "المساعدة"] },
-  { title: "البائعون", links: ["ابدأ البيع", "لوحة البائع", "سياسة البيع", "العمولات"] },
-  { title: "أوفيرا", links: ["من نحن", "الوظائف", "الشروط والأحكام", "الخصوصية"] },
-];
+import { useI18n } from "@/components/i18n-provider";
 
 export function Footer() {
+  const { t } = useI18n();
+
+  const trust = [
+    { icon: Truck, label: t.freeShipping, note: t.freeShippingNote, href: "/products" },
+    { icon: ShieldCheck, label: t.securePayment, note: t.securePaymentNote, href: "/products" },
+    { icon: RotateCcw, label: t.easyReturns, note: t.easyReturnsNote, href: "/products" },
+    { icon: CreditCard, label: t.codPayment, note: t.codNote, href: "/products" },
+  ];
+
+  const columns = [
+    {
+      title: t.footShop,
+      links: [
+        { label: t.allCategories, href: "/categories" },
+        { label: t.deals, href: "/products?sort=price_asc" },
+        { label: t.bestSellers, href: "/products" },
+        { label: t.newArrivals, href: "/products" },
+      ],
+    },
+    {
+      title: t.footAccount,
+      links: [
+        { label: t.footTrackOrder, href: "/account/orders" },
+        { label: t.wishlist, href: "/wishlist" },
+        { label: t.footReturns, href: "/account/orders" },
+        { label: t.footHelp, href: "/account" },
+      ],
+    },
+    {
+      title: t.footVendors,
+      links: [
+        { label: t.becomeVendor, href: "/sell" },
+        { label: t.footVendorDashboard, href: "/vendor" },
+        { label: t.footSellingPolicy, href: "/sell" },
+        { label: t.footCommissions, href: "/sell" },
+      ],
+    },
+    {
+      title: t.footOvira,
+      links: [
+        { label: t.footAbout, href: "#" },
+        { label: t.footCareers, href: "#" },
+        { label: t.footTerms, href: "#" },
+        { label: t.footPrivacy, href: "#" },
+      ],
+    },
+  ];
+
   return (
     <footer className="mt-16 border-t border-line bg-surface">
       <div className="container-ovira grid grid-cols-2 gap-4 py-8 md:grid-cols-4">
@@ -45,9 +81,9 @@ export function Footer() {
               <h3 className="mb-3 text-sm font-medium text-ink">{col.title}</h3>
               <ul className="space-y-2">
                 {col.links.map((link) => (
-                  <li key={link}>
-                    <Link href="#" className="text-sm text-ink-400 transition-colors hover:text-blue-600">
-                      {link}
+                  <li key={link.label}>
+                    <Link href={link.href} className="text-sm text-ink-400 transition-colors hover:text-blue-600">
+                      {link.label}
                     </Link>
                   </li>
                 ))}
@@ -60,7 +96,7 @@ export function Footer() {
       <div className="border-t border-line">
         <div className="container-ovira flex flex-col items-center justify-between gap-2 py-5 text-xs text-ink-400 md:flex-row">
           <span>© {new Date().getFullYear()} {t.brand} — {t.rights}</span>
-          <span className="font-tech">مبني على ERPNext · Next.js</span>
+          <span className="font-tech">{t.builtOn}</span>
         </div>
       </div>
     </footer>
