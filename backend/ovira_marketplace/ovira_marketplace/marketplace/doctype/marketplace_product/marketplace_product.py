@@ -90,11 +90,10 @@ class MarketplaceProduct(Document):
     def refresh_stock(self):
         if not self.item:
             return
-        rows = frappe.get_all(
-            "Bin", filters={"item_code": self.item}, fields=["sum(actual_qty) as qty"]
+        quantities = frappe.get_all(
+            "Bin", filters={"item_code": self.item}, pluck="actual_qty"
         )
-        qty = (rows[0].qty if rows and rows[0].qty else 0) or 0
-        self.db_set("stock_qty", qty)
+        self.db_set("stock_qty", sum(q or 0 for q in quantities))
 
 
 def _website_item_available():
