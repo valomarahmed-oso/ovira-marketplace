@@ -14,7 +14,8 @@
   "auto_approve_vendors",
   "auto_approve_products",
   "integration_section",
-  "sync_website_item"
+  "sync_website_item",
+  "sales_tax_template"
  ],
  "fields": [
   {
@@ -82,6 +83,13 @@
    "fieldname": "sync_website_item",
    "fieldtype": "Check",
    "label": "Sync to webshop Website Item"
+  },
+  {
+   "description": "Sales Taxes and Charges Template applied to every vendor Sales Order (e.g. inclusive Egypt VAT). Leave blank to use the company default.",
+   "fieldname": "sales_tax_template",
+   "fieldtype": "Link",
+   "label": "Sales tax template",
+   "options": "Sales Taxes and Charges Template"
   }
  ],
  "index_web_pages_for_search": 1,

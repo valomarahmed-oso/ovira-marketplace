@@ -56,11 +56,32 @@ class MarketplaceOrder(Document):
         if not so.get("items"):
             return None
 
+        _apply_sales_taxes(so, settings)
         so.flags.ignore_permissions = True
         so.insert()
+        so.submit()
         return so.name
 
     @staticmethod
     def _commission_rate(vendor, settings):
         override = frappe.db.get_value("Marketplace Vendor", vendor, "commission_rate")
         return flt(override) or flt(settings.default_commission_rate)
+
+
+def _apply_sales_taxes(so, settings):
+    """Attach the configured Sales Taxes and Charges Template (e.g. inclusive
+    Egypt VAT) to the Sales Order, falling back to the company default."""
+    template = settings.get("sales_tax_template") or frappe.db.get_value(
+        "Sales Taxes and Charges Template",
+        {"company": so.company, "is_default": 1},
+        "name",
+    )
+    if not template:
+        return
+
+    from erpnext.controllers.accounts_controller import get_taxes_and_charges
+
+    so.taxes_and_charges = template
+    so.set("taxes", [])
+    for tax in get_taxes_and_charges("Sales Taxes and Charges Template", template):
+        so.append("taxes", tax)
