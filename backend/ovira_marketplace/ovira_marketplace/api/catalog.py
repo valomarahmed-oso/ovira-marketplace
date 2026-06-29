@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import cint, flt
 
 PRODUCT_LIST_FIELDS = [
     "name",
@@ -14,18 +15,32 @@ PRODUCT_LIST_FIELDS = [
     "stock_qty",
 ]
 
+SORT_MAP = {
+    "price_asc": "price asc",
+    "price_desc": "price desc",
+    "latest": "creation desc",
+}
+
 
 @frappe.whitelist(allow_guest=True)
-def list_products(category=None, vendor=None, search=None, limit=20, start=0):
-    """Public catalog listing — approved, published products only."""
-    filters = {"approval_status": "Approved", "published": 1}
-    if category:
-        # Accept either a category slug (storefront URLs) or a docname.
-        docname = frappe.db.get_value("Marketplace Category", {"slug": category}, "name")
-        filters["category"] = docname or category
-    if vendor:
-        filters["vendor"] = vendor
+def list_products(
+    category=None,
+    vendor=None,
+    search=None,
+    brand=None,
+    min_price=None,
+    max_price=None,
+    in_stock=None,
+    sort=None,
+    limit=24,
+    start=0,
+):
+    """Public, faceted catalog listing — approved, published products only.
 
+    All filtering runs in ERPNext so it spans the whole catalog (not just the
+    current page). `brand` may be a single value or a comma-separated list.
+    """
+    filters = _catalog_filters(category, vendor, brand, min_price, max_price, in_stock)
     or_filters = {"title": ["like", f"%{search}%"]} if search else None
 
     products = frappe.get_all(
@@ -33,13 +48,68 @@ def list_products(category=None, vendor=None, search=None, limit=20, start=0):
         filters=filters,
         or_filters=or_filters,
         fields=PRODUCT_LIST_FIELDS,
-        limit_page_length=frappe.utils.cint(limit),
-        limit_start=frappe.utils.cint(start),
-        order_by="modified desc",
+        limit_page_length=cint(limit),
+        limit_start=cint(start),
+        order_by=SORT_MAP.get(sort, "creation desc"),
         ignore_permissions=True,
     )
     _attach_card_fields(products)
     return products
+
+
+@frappe.whitelist(allow_guest=True)
+def catalog_facets(category=None, search=None):
+    """Available filter facets (brands + price range) for a category/search,
+    so the storefront sidebar reflects the whole catalog, not one page."""
+    filters = _catalog_filters(category)
+    or_filters = {"title": ["like", f"%{search}%"]} if search else None
+
+    brand_codes = frappe.get_all(
+        "Marketplace Product",
+        filters=filters,
+        or_filters=or_filters,
+        pluck="brand",
+        ignore_permissions=True,
+    )
+    brands = sorted({b for b in brand_codes if b})
+
+    prices = frappe.get_all(
+        "Marketplace Product",
+        filters=filters,
+        or_filters=or_filters,
+        pluck="price",
+        ignore_permissions=True,
+    )
+    prices = [flt(p) for p in prices if p is not None]
+
+    return {
+        "brands": brands,
+        "price_min": int(min(prices)) if prices else 0,
+        "price_max": int(round(max(prices))) if prices else 0,
+    }
+
+
+def _catalog_filters(
+    category=None, vendor=None, brand=None, min_price=None, max_price=None, in_stock=None
+):
+    filters = [["approval_status", "=", "Approved"], ["published", "=", 1]]
+    if category:
+        # Accept either a category slug (storefront URLs) or a docname.
+        docname = frappe.db.get_value("Marketplace Category", {"slug": category}, "name")
+        filters.append(["category", "=", docname or category])
+    if vendor:
+        filters.append(["vendor", "=", vendor])
+    if brand:
+        brands = [b.strip() for b in str(brand).split(",") if b.strip()]
+        if brands:
+            filters.append(["brand", "in", brands])
+    if min_price not in (None, ""):
+        filters.append(["price", ">=", flt(min_price)])
+    if max_price not in (None, ""):
+        filters.append(["price", "<=", flt(max_price)])
+    if cint(in_stock):
+        filters.append(["stock_qty", ">", 0])
+    return filters
 
 
 def _attach_card_fields(products):

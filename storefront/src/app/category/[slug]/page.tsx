@@ -1,13 +1,24 @@
 import { Breadcrumb } from "@/components/breadcrumb";
-import { CategoryView } from "@/components/category-view";
-import { getCategories, getProducts } from "@/lib/api";
+import { ProductFilters } from "@/components/product-filters";
+import { ProductGrid } from "@/components/product-grid";
+import { getCategories, getFacets, getProducts, searchParamsToQuery } from "@/lib/api";
 import { t } from "@/lib/dict";
 
-export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+type SP = Record<string, string | string[] | undefined>;
+
+export default async function CategoryPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<SP>;
+}) {
   const { slug } = await params;
-  const [categories, products] = await Promise.all([
+  const query = searchParamsToQuery(await searchParams);
+  const [categories, facets, products] = await Promise.all([
     getCategories(),
-    getProducts({ category: slug, limit: 24 }),
+    getFacets({ category: slug }),
+    getProducts({ ...query, category: slug, limit: 48 }),
   ]);
   const name = categories.find((c) => c.slug === slug)?.category_name ?? slug;
 
@@ -24,7 +35,13 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         <h1 className="text-2xl font-medium text-ink md:text-3xl">{name}</h1>
         <p className="mt-1 text-sm text-ink-400">اكتشف أفضل المنتجات في {name} من بائعين موثوقين</p>
       </div>
-      <CategoryView products={products} />
+      <ProductFilters facets={facets} total={products.length}>
+        {products.length ? (
+          <ProductGrid products={products} />
+        ) : (
+          <div className="card p-10 text-center text-ink-400">لا توجد منتجات مطابقة للتصفية</div>
+        )}
+      </ProductFilters>
     </div>
   );
 }

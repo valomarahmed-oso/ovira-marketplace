@@ -45,22 +45,84 @@ async function callMethod<T>(method: string, params: Record<string, string> = {}
   }
 }
 
-export async function getProducts(params: { category?: string; search?: string; limit?: number } = {}) {
-  const live = await callMethod<Product[]>("ovira_marketplace.api.catalog.list_products", {
-    ...(params.category ? { category: params.category } : {}),
-    ...(params.search ? { search: params.search } : {}),
-    limit: String(params.limit ?? 12),
-  });
-  if (live && live.length) return live;
+export type ProductQuery = {
+  category?: string;
+  search?: string;
+  brand?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  sort?: string;
+  limit?: number;
+};
 
+export type Facets = { brands: string[]; price_min: number; price_max: number };
+
+export async function getProducts(params: ProductQuery = {}): Promise<Product[]> {
+  const qs: Record<string, string> = { limit: String(params.limit ?? 24) };
+  if (params.category) qs.category = params.category;
+  if (params.search) qs.search = params.search;
+  if (params.brand) qs.brand = params.brand;
+  if (params.minPrice != null) qs.min_price = String(params.minPrice);
+  if (params.maxPrice != null) qs.max_price = String(params.maxPrice);
+  if (params.inStock) qs.in_stock = "1";
+  if (params.sort) qs.sort = params.sort;
+
+  const live = await callMethod<Product[]>("ovira_marketplace.api.catalog.list_products", qs);
+  if (live !== null) return live;
+  return mockProducts(params);
+}
+
+export async function getFacets(params: { category?: string; search?: string } = {}): Promise<Facets> {
+  const qs: Record<string, string> = {};
+  if (params.category) qs.category = params.category;
+  if (params.search) qs.search = params.search;
+  const live = await callMethod<Facets>("ovira_marketplace.api.catalog.catalog_facets", qs);
+  if (live) return live;
+
+  const list = mockProducts({ category: params.category, search: params.search, limit: 999 });
+  const prices = list.map((p) => p.price);
+  return {
+    brands: Array.from(new Set(list.map((p) => p.brand).filter(Boolean))) as string[],
+    price_min: prices.length ? Math.floor(Math.min(...prices)) : 0,
+    price_max: prices.length ? Math.ceil(Math.max(...prices)) : 0,
+  };
+}
+
+/** Turn a Next.js route searchParams object into a ProductQuery. */
+export function searchParamsToQuery(
+  sp: Record<string, string | string[] | undefined>,
+): ProductQuery {
+  const get = (k: string) => {
+    const v = sp[k];
+    return Array.isArray(v) ? v[0] : v;
+  };
+  return {
+    brand: get("brand") || undefined,
+    minPrice: get("min") ? Number(get("min")) : undefined,
+    maxPrice: get("max") ? Number(get("max")) : undefined,
+    inStock: get("stock") === "1",
+    sort: get("sort") || undefined,
+  };
+}
+
+/** Client-side filtering of the mock catalog — dev/offline only. */
+function mockProducts(params: ProductQuery): Product[] {
   let list = MOCK_PRODUCTS;
   if (params.category) {
     const cat = MOCK_CATEGORIES.find((c) => c.slug === params.category);
     if (cat) list = list.filter((p) => p.category === cat.category_name);
   }
-  if (params.search) {
-    list = list.filter((p) => p.title.includes(params.search!));
+  if (params.search) list = list.filter((p) => p.title.includes(params.search!));
+  if (params.brand) {
+    const brands = params.brand.split(",");
+    list = list.filter((p) => p.brand && brands.includes(p.brand));
   }
+  if (params.minPrice != null) list = list.filter((p) => p.price >= params.minPrice!);
+  if (params.maxPrice != null) list = list.filter((p) => p.price <= params.maxPrice!);
+  if (params.inStock) list = list.filter((p) => p.stock_qty > 0);
+  if (params.sort === "price_asc") list = [...list].sort((a, b) => a.price - b.price);
+  if (params.sort === "price_desc") list = [...list].sort((a, b) => b.price - a.price);
   return list.slice(0, params.limit ?? list.length);
 }
 

@@ -30,6 +30,27 @@ def _img(seed):
     return f"https://picsum.photos/seed/ovira-{seed}/800/800"
 
 
+# product slug -> brand, so the storefront brand facet has something to show.
+BRANDS = {
+    "wireless-anc-headphones": "Aurex",
+    "amoled-smartwatch": "Pulse",
+    "gan-charger-65w": "Voltix",
+    "rgb-mechanical-keyboard": "Keyon",
+    "anti-theft-backpack": "Nomad",
+    "polarized-sunglasses": "Solaris",
+    "leather-classic-watch": "Tempo",
+    "home-espresso-machine": "Brewly",
+    "dimmable-led-desk-lamp": "Lumio",
+    "cordless-vacuum": "Vacmax",
+    "vitamin-c-skincare-set": "Lumea",
+    "ionic-hair-dryer": "Aurex",
+    "mens-running-shoes": "Strade",
+    "adjustable-dumbbell": "IronFit",
+    "speed-rubik-cube": "Cubex",
+    "rc-offroad-car": "RoadX",
+}
+
+
 # (category slug, vendor index, title, slug, price, compare_at, image seed)
 PRODUCTS = [
     ("electronics", 0, "سماعة بلوتوث لاسلكية بعزل الضوضاء", "wireless-anc-headphones", 1899, 2499, "headphones"),
@@ -108,16 +129,30 @@ def _ensure_vendor(spec):
     return doc.name
 
 
+def _ensure_brand(name):
+    if not name:
+        return None
+    if not frappe.db.exists("Brand", name):
+        doc = frappe.new_doc("Brand")
+        doc.brand = name
+        doc.insert(ignore_permissions=True)
+    return name
+
+
 def _ensure_product(vendor, category, title, slug, price, compare_at, image):
+    brand = _ensure_brand(BRANDS.get(slug))
     existing = frappe.db.get_value("Marketplace Product", {"slug": slug}, "name")
     if existing:
         _ensure_media(existing, image, title)
+        if brand and not frappe.db.get_value("Marketplace Product", existing, "brand"):
+            frappe.db.set_value("Marketplace Product", existing, "brand", brand)
         return existing
     doc = frappe.new_doc("Marketplace Product")
     doc.title = title
     doc.slug = slug
     doc.vendor = vendor
     doc.category = category
+    doc.brand = brand
     doc.price = price
     doc.compare_at_price = compare_at
     doc.currency = "EGP"
