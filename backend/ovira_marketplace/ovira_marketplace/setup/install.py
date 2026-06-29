@@ -15,9 +15,22 @@ def before_install():
 
 
 def after_install():
-    """Run once when the app is installed into a site."""
+    """Run once when the app is installed into a site.
+
+    NOTE: in Frappe v16 `after_install` runs BEFORE this app's DocTypes are
+    synced into the site DB, so anything that needs "Marketplace Settings"
+    must wait for `after_migrate` (which runs right after the schema sync).
+    """
     _create_roles()
-    _init_settings()
+    _seed_settings_if_ready()
+    frappe.db.commit()
+
+
+def after_migrate():
+    """Runs after every `bench migrate` once the DocTypes exist. Idempotent —
+    safe to run on every migrate; seeds settings only on first run."""
+    _create_roles()
+    _seed_settings_if_ready()
     frappe.db.commit()
 
 
@@ -31,8 +44,13 @@ def _create_roles():
         role.insert(ignore_permissions=True)
 
 
-def _init_settings():
-    """Seed Marketplace Settings with sensible defaults from the site."""
+def _seed_settings_if_ready():
+    """Seed Marketplace Settings with sensible defaults from the site.
+
+    Returns early if the DocType has not been synced yet (during install-app)
+    or if settings were already configured."""
+    if not frappe.db.exists("DocType", "Marketplace Settings"):
+        return
     settings = frappe.get_single("Marketplace Settings")
     if settings.operator_company:
         return

@@ -12,6 +12,10 @@ required_apps = ["erpnext"]
 before_install = "ovira_marketplace.setup.install.before_install"
 after_install = "ovira_marketplace.setup.install.after_install"
 
+# Seed/repair settings after the schema sync (DocTypes don't exist yet at
+# after_install time on a fresh install). Idempotent.
+after_migrate = "ovira_marketplace.setup.install.after_migrate"
+
 # ---------------------------------------------------------------------------
 # Fixtures (roles, custom fields, default settings) shipped with the app
 # ---------------------------------------------------------------------------
