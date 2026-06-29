@@ -56,7 +56,7 @@ class MarketplaceProduct(Document):
         installed) and pull current stock. Safe to call on every save."""
         if not self.item:
             self.db_set("item", self._create_item())
-        if not self.website_item and _website_item_available():
+        if not self.website_item and _website_item_available() and get_settings().sync_website_item:
             self.db_set("website_item", self._create_website_item())
         self.refresh_stock()
 

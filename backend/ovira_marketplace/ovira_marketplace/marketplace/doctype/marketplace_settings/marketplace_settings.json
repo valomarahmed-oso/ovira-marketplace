@@ -12,7 +12,9 @@
   "default_commission_rate",
   "approvals_section",
   "auto_approve_vendors",
-  "auto_approve_products"
+  "auto_approve_products",
+  "integration_section",
+  "sync_website_item"
  ],
  "fields": [
   {
@@ -68,6 +70,18 @@
    "fieldname": "auto_approve_products",
    "fieldtype": "Check",
    "label": "Auto-approve new products"
+  },
+  {
+   "fieldname": "integration_section",
+   "fieldtype": "Section Break",
+   "label": "ERPNext sync"
+  },
+  {
+   "default": "0",
+   "description": "Also mirror approved products as webshop Website Items. Off by default — the Ovira storefront is the primary shopfront.",
+   "fieldname": "sync_website_item",
+   "fieldtype": "Check",
+   "label": "Sync to webshop Website Item"
   }
  ],
  "index_web_pages_for_search": 1,
