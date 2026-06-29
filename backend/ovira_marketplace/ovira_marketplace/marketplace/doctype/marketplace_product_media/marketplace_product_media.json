@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "creation": "2026-06-26 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "image",
+  "is_primary",
+  "alt_text"
+ ],
+ "fields": [
+  {
+   "columns": 4,
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "in_list_view": 1,
+   "label": "Image",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "default": "0",
+   "fieldname": "is_primary",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Primary"
+  },
+  {
+   "fieldname": "alt_text",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Alt text"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-26 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Product Media",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

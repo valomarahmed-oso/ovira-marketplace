@@ -1,0 +1,11 @@
+# Normalize all text files to LF so the app runs cleanly on the Linux VPS.
+* text=auto eol=lf
+
+# Binary assets — never touch line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

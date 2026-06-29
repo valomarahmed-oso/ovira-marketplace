@@ -1,0 +1,101 @@
+{
+ "actions": [],
+ "creation": "2026-06-26 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "mode_section",
+  "mode",
+  "operator_company",
+  "column_break_defaults",
+  "default_currency",
+  "default_commission_rate",
+  "approvals_section",
+  "auto_approve_vendors",
+  "auto_approve_products"
+ ],
+ "fields": [
+  {
+   "fieldname": "mode_section",
+   "fieldtype": "Section Break",
+   "label": "Marketplace mode"
+  },
+  {
+   "default": "Multi Vendor",
+   "description": "Multi Vendor runs the full marketplace. Single Company sells only the operator's own products.",
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "label": "Mode",
+   "options": "Multi Vendor\nSingle Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "operator_company",
+   "fieldtype": "Link",
+   "label": "Operator company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_defaults",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_currency",
+   "fieldtype": "Link",
+   "label": "Default currency",
+   "options": "Currency"
+  },
+  {
+   "default": "10",
+   "fieldname": "default_commission_rate",
+   "fieldtype": "Percent",
+   "label": "Default commission rate"
+  },
+  {
+   "fieldname": "approvals_section",
+   "fieldtype": "Section Break",
+   "label": "Approvals"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_approve_vendors",
+   "fieldtype": "Check",
+   "label": "Auto-approve new vendors"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_approve_products",
+   "fieldtype": "Check",
+   "label": "Auto-approve new products"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-06-26 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Marketplace Operator",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ovira-blue: #0e8bff;
+  --ovira-blue-600: #0a6fd6;
+  --ovira-blue-050: #eaf3ff;
+  --ink: #0b1f38;
+  --ink-600: #3a4a60;
+  --ink-400: #6b7a90;
+  --line: #dbe6f5;
+  --canvas: #f4f8ff;
+  --surface: #ffffff;
+  --coral: #ff5630;
+  --coral-050: #ffede8;
+  --mint: #12b886;
+  --gold: #f5b301;
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-readex), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--ovira-blue);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ovira-blue);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  .container-ovira {
+    width: 100%;
+    max-width: var(--max-w, 1280px);
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .container-ovira {
+      padding-inline: 2rem;
+    }
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 12px;
+    font-weight: 500;
+    transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  .btn-primary {
+    background-color: var(--ovira-blue);
+    color: #fff;
+    padding: 0.7rem 1.25rem;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--ovira-blue-600);
+    box-shadow: 0 10px 24px rgba(14, 139, 255, 0.28);
+  }
+
+  .btn-ghost {
+    background-color: var(--ovira-blue-050);
+    color: var(--ovira-blue-600);
+    padding: 0.6rem 1rem;
+  }
+
+  .btn-ghost:hover {
+    background-color: #dcebff;
+  }
+
+  .card {
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+
+  .clip-corner {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 28px 100%, 0 calc(100% - 28px));
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

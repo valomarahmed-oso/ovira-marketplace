@@ -1,0 +1,127 @@
+{
+ "actions": [],
+ "autoname": "field:provider",
+ "creation": "2026-06-28 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "provider",
+  "enabled",
+  "mode",
+  "column_break_main",
+  "api_key",
+  "secret_key",
+  "public_key",
+  "credentials_section",
+  "integration_id",
+  "iframe_id",
+  "column_break_creds",
+  "hmac_secret",
+  "extra_config"
+ ],
+ "fields": [
+  {
+   "fieldname": "provider",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Provider",
+   "options": "Cash on Delivery\nPaymob\nFawry\nStripe",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "default": "Test",
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Mode",
+   "options": "Test\nLive"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "label": "API key"
+  },
+  {
+   "fieldname": "secret_key",
+   "fieldtype": "Password",
+   "label": "Secret key"
+  },
+  {
+   "fieldname": "public_key",
+   "fieldtype": "Data",
+   "label": "Public key"
+  },
+  {
+   "fieldname": "credentials_section",
+   "fieldtype": "Section Break",
+   "label": "Gateway credentials"
+  },
+  {
+   "description": "Paymob: card integration id.",
+   "fieldname": "integration_id",
+   "fieldtype": "Data",
+   "label": "Integration ID"
+  },
+  {
+   "description": "Paymob: iframe id used to render the card form.",
+   "fieldname": "iframe_id",
+   "fieldtype": "Data",
+   "label": "Iframe ID"
+  },
+  {
+   "fieldname": "column_break_creds",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "hmac_secret",
+   "fieldtype": "Password",
+   "label": "HMAC secret"
+  },
+  {
+   "description": "Optional JSON for provider-specific extras.",
+   "fieldname": "extra_config",
+   "fieldtype": "Small Text",
+   "label": "Extra config"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-28 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Payments",
+ "name": "Payment Connector",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Marketplace Operator",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

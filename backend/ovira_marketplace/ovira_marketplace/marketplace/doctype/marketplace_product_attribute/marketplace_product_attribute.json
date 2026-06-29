@@ -1,0 +1,39 @@
+{
+ "actions": [],
+ "creation": "2026-06-26 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "attribute",
+  "value"
+ ],
+ "fields": [
+  {
+   "columns": 4,
+   "fieldname": "attribute",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Attribute",
+   "reqd": 1
+  },
+  {
+   "columns": 6,
+   "fieldname": "value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Value"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-26 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Product Attribute",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
