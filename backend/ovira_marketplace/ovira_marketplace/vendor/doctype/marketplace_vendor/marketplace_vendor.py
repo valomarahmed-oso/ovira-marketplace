@@ -43,6 +43,7 @@ class MarketplaceVendor(Document):
         customer.customer_name = self.vendor_name
         customer.customer_type = "Company"
         customer.customer_group = _default_group("Customer Group", "All Customer Groups")
+        customer.territory = _default_group("Territory", "All Territories")
         customer.insert(ignore_permissions=True)
         return customer.name
 
