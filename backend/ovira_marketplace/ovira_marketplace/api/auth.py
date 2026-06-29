@@ -70,6 +70,10 @@ def register_customer(full_name, email, password, phone=None):
     user.flags.ignore_permissions = True
     user.insert(ignore_permissions=True)
 
+    # Customer role unlocks the buyer portal (own orders, addresses, invoices).
+    if frappe.db.exists("Role", "Customer"):
+        user.add_roles("Customer")
+
     _ensure_customer_for_user(full_name, email, phone)
     frappe.db.commit()
     return {"ok": True, "email": email}
