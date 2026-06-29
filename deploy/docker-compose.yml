@@ -1,34 +1,40 @@
-# Ovira storefront + reverse proxy.
-# The ERPNext / Frappe stack runs from its own compose; this file adds the
-# Next.js storefront and an nginx proxy that puts storefront + Frappe API on one
-# origin. Join the existing Frappe docker network so nginx can reach `backend`.
+# Ovira storefront, published on its own subdomain (e.g. shop.ovira.cloud) and
+# put on the SAME ORIGIN as the Frappe API by an nginx sidecar, so login/session
+# cookies work. Ingress + TLS are handled by the existing Traefik on the Frappe
+# docker network — this stack does not publish any host ports.
+#
+# Configure deploy/.env then:  docker compose -p ovira-shop up -d --build
 
 services:
   storefront:
     build:
       context: ../storefront
+      args:
+        NEXT_PUBLIC_FRAPPE_URL: ${FRAPPE_URL}
     environment:
-      - NEXT_PUBLIC_FRAPPE_URL=${FRAPPE_URL:-}
+      - NEXT_PUBLIC_FRAPPE_URL=${FRAPPE_URL}
     restart: unless-stopped
     networks:
-      - ovira
+      - frappe
 
   proxy:
     image: nginx:alpine
-    ports:
-      - "80:80"
     volumes:
       - ./nginx/ovira.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - storefront
     restart: unless-stopped
     networks:
-      - ovira
       - frappe
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${FRAPPE_NETWORK:-frappe_docker_default}
+      - traefik.http.routers.ovira-shop.rule=Host(`${SHOP_HOST}`)
+      - traefik.http.routers.ovira-shop.entrypoints=websecure
+      - traefik.http.routers.ovira-shop.tls.certresolver=main-resolver
+      - traefik.http.services.ovira-shop.loadbalancer.server.port=80
 
 networks:
-  ovira:
-    driver: bridge
   frappe:
     external: true
     name: ${FRAPPE_NETWORK:-frappe_docker_default}
