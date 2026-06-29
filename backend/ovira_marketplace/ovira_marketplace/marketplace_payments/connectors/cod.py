@@ -1,4 +1,4 @@
-from ovira_marketplace.payments.connectors.base import PaymentConnector
+from ovira_marketplace.marketplace_payments.connectors.base import PaymentConnector
 
 
 class CashOnDeliveryConnector(PaymentConnector):

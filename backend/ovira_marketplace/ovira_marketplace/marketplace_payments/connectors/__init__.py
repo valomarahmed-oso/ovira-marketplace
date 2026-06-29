@@ -1,7 +1,7 @@
 import frappe
 
-from ovira_marketplace.payments.connectors.cod import CashOnDeliveryConnector
-from ovira_marketplace.payments.connectors.paymob import PaymobConnector
+from ovira_marketplace.marketplace_payments.connectors.cod import CashOnDeliveryConnector
+from ovira_marketplace.marketplace_payments.connectors.paymob import PaymobConnector
 
 REGISTRY = {
     CashOnDeliveryConnector.provider: CashOnDeliveryConnector,

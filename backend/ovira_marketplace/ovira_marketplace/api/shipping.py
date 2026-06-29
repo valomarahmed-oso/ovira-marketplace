@@ -32,7 +32,7 @@ def create_shipments_for_order(order, provider=None):
         if not row.sales_order or row.sales_order in seen:
             continue
         seen.add(row.sales_order)
-        shipment = frappe.new_doc("Shipment")
+        shipment = frappe.new_doc("Marketplace Shipment")
         shipment.marketplace_order = order_doc.name
         shipment.vendor = row.vendor
         shipment.sales_order = row.sales_order
@@ -52,6 +52,6 @@ def create_shipments_for_order(order, provider=None):
 @frappe.whitelist()
 def track(shipment):
     """Refresh and return a shipment's tracking timeline."""
-    doc = frappe.get_doc("Shipment", shipment)
+    doc = frappe.get_doc("Marketplace Shipment", shipment)
     doc.refresh_tracking()
     return {"status": doc.status, "events": [e.as_dict() for e in doc.events]}

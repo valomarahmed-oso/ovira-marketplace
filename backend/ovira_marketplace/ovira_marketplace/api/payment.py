@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils import nowdate
 
-from ovira_marketplace.payments.connectors import get_connector
+from ovira_marketplace.marketplace_payments.connectors import get_connector
 
 
 @frappe.whitelist(allow_guest=True)

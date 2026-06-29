@@ -4,7 +4,7 @@ from frappe.model.document import Document
 from ovira_marketplace.shipping.connectors import get_shipping_connector
 
 
-class Shipment(Document):
+class MarketplaceShipment(Document):
     def book(self):
         """Create the shipment with the provider and store tracking + label."""
         connector = get_shipping_connector(self.provider)

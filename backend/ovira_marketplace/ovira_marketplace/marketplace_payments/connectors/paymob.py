@@ -4,7 +4,7 @@ import hmac
 import frappe
 import requests
 
-from ovira_marketplace.payments.connectors.base import PaymentConnector
+from ovira_marketplace.marketplace_payments.connectors.base import PaymentConnector
 
 BASE = "https://accept.paymob.com/api"
 
