@@ -65,7 +65,19 @@ def record_payment(order_name, reference=None, connector=None):
     if reference:
         order.db_set("payment_reference", reference)
     _invoice_and_settle(order, reference)
+    _settle_vendors(order)
     frappe.db.commit()
+
+
+def _settle_vendors(order):
+    """Book each vendor's payable (Debit COGS / Credit vendor payable).
+    Best-effort: the customer payment is already captured."""
+    try:
+        from ovira_marketplace.vendor.settlement import settle_order
+
+        settle_order(order)
+    except Exception:
+        frappe.log_error(title="Ovira: vendor settlement failed", message=frappe.get_traceback())
 
 
 def _invoice_and_settle(order, reference):
