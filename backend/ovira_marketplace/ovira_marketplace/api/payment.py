@@ -55,7 +55,8 @@ def paymob_callback(**kwargs):
 
 
 def record_payment(order_name, reference=None, connector=None):
-    """Mark an order paid and book a Payment Entry against each vendor Sales Order."""
+    """Mark an order paid, then invoice each vendor Sales Order and book a
+    customer Payment Entry against the resulting Sales Invoice."""
     order = frappe.get_doc("Marketplace Order", order_name)
     if order.payment_status == "Paid":
         return
@@ -63,25 +64,35 @@ def record_payment(order_name, reference=None, connector=None):
     order.db_set("status", "Processing")
     if reference:
         order.db_set("payment_reference", reference)
-    _create_payment_entries(order, reference)
+    _invoice_and_settle(order, reference)
     frappe.db.commit()
 
 
-def _create_payment_entries(order, reference):
+def _invoice_and_settle(order, reference):
+    """One Sales Invoice + Payment Entry per vendor Sales Order. Best-effort:
+    a payment was already captured, so log (not raise) any accounting hiccup."""
     from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+    from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
-    booked = set()
+    done = set()
     for row in order.items:
-        if not row.sales_order or row.sales_order in booked:
+        if not row.sales_order or row.sales_order in done:
             continue
-        booked.add(row.sales_order)
+        done.add(row.sales_order)
         try:
-            entry = get_payment_entry("Sales Order", row.sales_order)
-            if reference:
-                entry.reference_no = reference
-                entry.reference_date = nowdate()
-            entry.flags.ignore_permissions = True
-            entry.insert()
-            entry.submit()
+            invoice = make_sales_invoice(row.sales_order)
+            invoice.flags.ignore_permissions = True
+            invoice.insert()
+            invoice.submit()
+
+            payment = get_payment_entry("Sales Invoice", invoice.name)
+            payment.reference_no = reference or order.name
+            payment.reference_date = nowdate()
+            payment.flags.ignore_permissions = True
+            payment.insert()
+            payment.submit()
         except Exception:
-            frappe.log_error(title="Ovira: payment entry failed", message=frappe.get_traceback())
+            frappe.log_error(
+                title="Ovira: invoice/payment failed",
+                message=f"Order {order.name}, SO {row.sales_order}\n{frappe.get_traceback()}",
+            )
