@@ -1,4 +1,4 @@
-const CACHE = "ovira-v1";
+const CACHE = "ovira-v2";
 const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {

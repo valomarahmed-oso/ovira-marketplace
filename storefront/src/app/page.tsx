@@ -43,12 +43,12 @@ export default async function HomePage() {
       </section>
 
       <section>
-        <SectionHeading title={t.newArrivals} href="/category/electronics" />
+        <SectionHeading title={t.newArrivals} href="/products" />
         <ProductGrid products={products} />
       </section>
 
       <section>
-        <SectionHeading title={t.bestSellers} href="/category/electronics" />
+        <SectionHeading title={t.bestSellers} href="/products" />
         <ProductGrid products={bestSellers} />
       </section>
     </div>

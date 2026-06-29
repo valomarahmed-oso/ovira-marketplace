@@ -1,26 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Lock, LogIn, Mail } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { AlertCircle, Lock, LogIn, Mail } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/lib/auth-store";
 import { signIn } from "@/lib/auth";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  const next = params.get("next");
   const setUser = useAuth((s) => s.setUser);
+  const setReady = useAuth((s) => s.setReady);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const user = await signIn(email, password);
-    setUser(user);
-    router.push("/account");
+    setError(null);
+    try {
+      const user = await signIn(email, password);
+      setUser(user);
+      setReady(true);
+      router.push(next || (user.isVendor ? "/vendor" : "/account"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذّر تسجيل الدخول.");
+      setBusy(false);
+    }
   }
 
   const wrap = "relative";
@@ -35,6 +46,13 @@ export default function LoginPage() {
           <h1 className="text-2xl font-medium text-ink">تسجيل الدخول</h1>
           <p className="text-sm text-ink-400">أهلاً بيك تاني في أوفيرا</p>
         </div>
+
+        {error && (
+          <div className="flex items-center gap-2 rounded-xl bg-coral-50 px-4 py-3 text-sm text-coral">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
 
         <form onSubmit={submit} className="space-y-3">
           <div className={wrap}>
@@ -60,17 +78,28 @@ export default function LoginPage() {
             <Lock className={icon} />
           </div>
           <button type="submit" disabled={busy} className="btn btn-primary w-full disabled:opacity-50">
-            <LogIn className="h-5 w-5" /> دخول
+            <LogIn className="h-5 w-5" /> {busy ? "جارٍ الدخول…" : "دخول"}
           </button>
         </form>
 
         <p className="text-center text-sm text-ink-400">
           ليس لديك حساب؟{" "}
-          <Link href="/register" className="font-medium text-blue-600 hover:underline">
+          <Link
+            href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"}
+            className="font-medium text-blue-600 hover:underline"
+          >
             أنشئ حساب
           </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

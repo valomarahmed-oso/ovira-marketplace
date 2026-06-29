@@ -1,25 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Lock, Mail, Phone, UserPlus, User } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { AlertCircle, Lock, Mail, Phone, UserPlus, User } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/lib/auth-store";
 import { signUp } from "@/lib/auth";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  const next = params.get("next");
   const setUser = useAuth((s) => s.setUser);
+  const setReady = useAuth((s) => s.setReady);
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const user = await signUp(form.name, form.email, form.password);
-    setUser(user);
-    router.push("/account");
+    setError(null);
+    try {
+      const user = await signUp(form.name, form.email, form.password, form.phone);
+      setUser(user);
+      setReady(true);
+      router.push(next || (user.isVendor ? "/vendor" : "/account"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذّر إنشاء الحساب.");
+      setBusy(false);
+    }
   }
 
   const wrap = "relative";
@@ -35,6 +46,13 @@ export default function RegisterPage() {
           <p className="text-sm text-ink-400">انضم لأوفيرا في خطوة واحدة</p>
         </div>
 
+        {error && (
+          <div className="flex items-center gap-2 rounded-xl bg-coral-50 px-4 py-3 text-sm text-coral">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
         <form onSubmit={submit} className="space-y-3">
           <div className={wrap}>
             <input required placeholder="الاسم بالكامل" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={field} />
@@ -49,21 +67,32 @@ export default function RegisterPage() {
             <Phone className={icon} />
           </div>
           <div className={wrap}>
-            <input type="password" required placeholder="كلمة المرور" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={field} />
+            <input type="password" required minLength={6} placeholder="كلمة المرور" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={field} />
             <Lock className={icon} />
           </div>
           <button type="submit" disabled={busy} className="btn btn-primary w-full disabled:opacity-50">
-            <UserPlus className="h-5 w-5" /> إنشاء الحساب
+            <UserPlus className="h-5 w-5" /> {busy ? "جارٍ الإنشاء…" : "إنشاء الحساب"}
           </button>
         </form>
 
         <p className="text-center text-sm text-ink-400">
           لديك حساب بالفعل؟{" "}
-          <Link href="/login" className="font-medium text-blue-600 hover:underline">
+          <Link
+            href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
+            className="font-medium text-blue-600 hover:underline"
+          >
             سجّل دخولك
           </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
   );
 }

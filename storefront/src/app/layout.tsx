@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { PwaRegister } from "@/components/pwa-register";
+import { SessionSync } from "@/components/session-sync";
 
 const readex = Readex_Pro({
   subsets: ["arabic", "latin"],
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ar" dir="rtl" className={`${readex.variable} ${grotesk.variable}`}>
       <body className="min-h-screen">
         <PwaRegister />
+        <SessionSync />
         <Header />
         <main>{children}</main>
         <Footer />

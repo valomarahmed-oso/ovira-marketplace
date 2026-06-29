@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Heart, LogIn, LogOut, MapPin, Package } from "lucide-react";
+import { Bell, Heart, LogIn, LogOut, MapPin, Package, Store } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
+import { signOutServer } from "@/lib/auth";
 import { useHydrated } from "@/lib/use-hydrated";
 
 const links = [
@@ -59,6 +60,7 @@ export default function AccountPage() {
           type="button"
           onClick={() => {
             signOut();
+            void signOutServer();
             router.push("/");
           }}
           className="btn btn-ghost ms-auto"
@@ -66,6 +68,21 @@ export default function AccountPage() {
           <LogOut className="h-4 w-4" /> خروج
         </button>
       </div>
+
+      {user.isVendor && (
+        <Link
+          href="/vendor"
+          className="card flex items-center gap-4 p-5 transition-shadow hover:shadow-card"
+        >
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-50">
+            <Store className="h-5 w-5 text-blue-600" />
+          </span>
+          <div>
+            <div className="font-medium text-ink">لوحة البائع</div>
+            <div className="text-sm text-ink-400">أدِر متجرك ومنتجاتك وطلباتك</div>
+          </div>
+        </Link>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         {links.map((l) => (

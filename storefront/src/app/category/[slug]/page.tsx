@@ -16,7 +16,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <Breadcrumb
         items={[
           { label: t.brand, href: "/" },
-          { label: t.allCategories, href: "/" },
+          { label: t.allCategories, href: "/categories" },
           { label: name },
         ]}
       />
