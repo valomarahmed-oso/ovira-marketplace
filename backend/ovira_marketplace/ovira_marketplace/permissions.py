@@ -44,3 +44,17 @@ def vendor_query(user):
     if "Marketplace Vendor" in frappe.get_roles(user):
         return f"`tabMarketplace Vendor`.user = {frappe.db.escape(user)}"
     return ""
+
+
+# -- Marketplace Vendor Expense -------------------------------------------
+
+def expense_query(user):
+    user = user or frappe.session.user
+    if is_privileged(user):
+        return ""
+    if "Marketplace Vendor" in frappe.get_roles(user):
+        vendor = vendor_for_user(user)
+        if vendor:
+            return f"`tabMarketplace Vendor Expense`.vendor = {frappe.db.escape(vendor)}"
+        return "1=0"
+    return ""

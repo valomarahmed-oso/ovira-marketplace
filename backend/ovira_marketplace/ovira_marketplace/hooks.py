@@ -47,6 +47,7 @@ after_migrate = "ovira_marketplace.setup.install.after_migrate"
 permission_query_conditions = {
     "Marketplace Product": "ovira_marketplace.permissions.product_query",
     "Marketplace Vendor": "ovira_marketplace.permissions.vendor_query",
+    "Marketplace Vendor Expense": "ovira_marketplace.permissions.expense_query",
 }
 
 has_permission = {
