@@ -3,118 +3,136 @@
 Run on the bench with:
     bench --site <site> execute ovira_marketplace.setup.demo.seed_demo
 
-Creates one category, one *active* vendor (which provisions a Supplier +
-Customer), and a few *approved* products (which provision ERPNext Items) — just
-enough to light up the storefront and smoke-test the ERPNext integration.
-Safe to run repeatedly: existing records are reused, never duplicated.
+Creates a few categories, two *active* vendors (each provisions a Supplier +
+Customer) and a spread of *approved* products with images (each provisions an
+ERPNext Item). Enough to make the storefront look like a real marketplace and
+to exercise the ERPNext integration. Safe to run repeatedly.
 """
 
 import frappe
 
-VENDOR_SLUG = "ovira-demo-store"
+CATEGORIES = [
+    {"name": "إلكترونيات", "slug": "electronics", "icon": "smartphone"},
+    {"name": "موضة", "slug": "fashion", "icon": "shirt"},
+    {"name": "المنزل والمطبخ", "slug": "home", "icon": "lamp"},
+    {"name": "الجمال والعناية", "slug": "beauty", "icon": "sparkles"},
+    {"name": "رياضة ولياقة", "slug": "sports", "icon": "dumbbell"},
+    {"name": "ألعاب", "slug": "toys", "icon": "gamepad-2"},
+]
 
-CATEGORY = {"name": "إلكترونيات", "slug": "electronics", "icon": "smartphone"}
+VENDORS = [
+    {"name": "متجر أوفيرا للإلكترونيات", "slug": "ovira-demo-store", "email": "store@demo.ovira.cloud"},
+    {"name": "بيت الموضة والمنزل", "slug": "fashion-home-house", "email": "house@demo.ovira.cloud"},
+]
 
+
+def _img(seed):
+    return f"https://picsum.photos/seed/ovira-{seed}/800/800"
+
+
+# (category slug, vendor index, title, slug, price, compare_at, image seed)
 PRODUCTS = [
-    {
-        "title": "سماعة بلوتوث لاسلكية بخاصية عزل الضوضاء",
-        "slug": "wireless-anc-headphones",
-        "price": 1899,
-        "compare_at_price": 2499,
-        "short_description": "سماعة رأس لاسلكية ببطارية تدوم ٤٠ ساعة وعزل ضوضاء نشط.",
-    },
-    {
-        "title": "ساعة ذكية بشاشة AMOLED",
-        "slug": "amoled-smartwatch",
-        "price": 2450,
-        "compare_at_price": 2999,
-        "short_description": "ساعة ذكية بشاشة AMOLED ومتابعة صحية ومقاومة للماء.",
-    },
-    {
-        "title": "شاحن سريع 65 واط بتقنية GaN",
-        "slug": "gan-charger-65w",
-        "price": 690,
-        "compare_at_price": 950,
-        "short_description": "شاحن مدمج 65 واط بثلاثة منافذ يشحن اللابتوب والموبايل.",
-    },
+    ("electronics", 0, "سماعة بلوتوث لاسلكية بعزل الضوضاء", "wireless-anc-headphones", 1899, 2499, "headphones"),
+    ("electronics", 0, "ساعة ذكية بشاشة AMOLED", "amoled-smartwatch", 2450, 2999, "smartwatch"),
+    ("electronics", 0, "شاحن سريع 65 واط بتقنية GaN", "gan-charger-65w", 690, 950, "charger"),
+    ("electronics", 0, "لوحة مفاتيح ميكانيكية RGB", "rgb-mechanical-keyboard", 1650, 2100, "keyboard"),
+    ("fashion", 1, "حقيبة ظهر مقاومة للماء بمنفذ USB", "anti-theft-backpack", 690, 950, "backpack"),
+    ("fashion", 1, "نظارة شمسية بولارايزد", "polarized-sunglasses", 540, 720, "sunglasses"),
+    ("fashion", 1, "ساعة يد كلاسيكية جلد", "leather-classic-watch", 1290, 1700, "leatherwatch"),
+    ("home", 1, "ماكينة قهوة إسبريسو منزلية", "home-espresso-machine", 4750, 5600, "espresso"),
+    ("home", 1, "مصباح مكتب LED قابل للتعتيم", "dimmable-led-desk-lamp", 540, 720, "desklamp"),
+    ("home", 1, "مكنسة لاسلكية شفط قوي", "cordless-vacuum", 3200, 3990, "vacuum"),
+    ("beauty", 1, "مجموعة العناية بالبشرة فيتامين سي", "vitamin-c-skincare-set", 845, 1100, "skincare"),
+    ("beauty", 1, "مجفف شعر أيوني احترافي", "ionic-hair-dryer", 990, 1350, "hairdryer"),
+    ("sports", 0, "حذاء جري خفيف للرجال", "mens-running-shoes", 1290, 1650, "shoes"),
+    ("sports", 0, "دمبل قابل للتعديل 24 كجم", "adjustable-dumbbell", 2100, 2600, "dumbbell"),
+    ("toys", 1, "مكعّب روبيك احترافي سريع", "speed-rubik-cube", 240, 320, "cube"),
+    ("toys", 1, "سيارة تحكم عن بعد 4x4", "rc-offroad-car", 1150, 1500, "rccar"),
 ]
 
 
 def seed_demo():
-    """Create the demo catalog and return a summary of what exists now."""
-    category = _ensure_category()
-    vendor = _ensure_vendor()
-    product_names = [_ensure_product(vendor, category, p) for p in PRODUCTS]
+    categories = {c["slug"]: _ensure_category(c) for c in CATEGORIES}
+    vendors = [_ensure_vendor(v) for v in VENDORS]
+
+    created = []
+    for cat_slug, vendor_idx, title, slug, price, compare_at, seed in PRODUCTS:
+        name = _ensure_product(
+            vendor=vendors[vendor_idx],
+            category=categories[cat_slug],
+            title=title,
+            slug=slug,
+            price=price,
+            compare_at=compare_at,
+            image=_img(seed),
+        )
+        created.append(name)
     frappe.db.commit()
 
-    v = frappe.get_doc("Marketplace Vendor", vendor)
     summary = {
-        "category": category,
-        "item_group": frappe.db.get_value("Marketplace Category", category, "item_group"),
-        "vendor": vendor,
-        "vendor_status": v.status,
-        "supplier": v.supplier,
-        "customer": v.customer,
-        "products": [
-            {
-                "name": name,
-                "slug": frappe.db.get_value("Marketplace Product", name, "slug"),
-                "item": frappe.db.get_value("Marketplace Product", name, "item"),
-                "approval": frappe.db.get_value("Marketplace Product", name, "approval_status"),
-            }
-            for name in product_names
-        ],
+        "categories": len(categories),
+        "vendors": vendors,
+        "products": len(created),
     }
     print("SEED_SUMMARY:", frappe.as_json(summary))
     return summary
 
 
-def _ensure_category():
-    existing = frappe.db.get_value("Marketplace Category", {"slug": CATEGORY["slug"]}, "name")
+def _ensure_category(spec):
+    existing = frappe.db.get_value("Marketplace Category", {"slug": spec["slug"]}, "name")
     if existing:
         return existing
     doc = frappe.new_doc("Marketplace Category")
-    doc.category_name = CATEGORY["name"]
-    doc.slug = CATEGORY["slug"]
-    doc.icon = CATEGORY["icon"]
+    doc.category_name = spec["name"]
+    doc.slug = spec["slug"]
+    doc.icon = spec["icon"]
     doc.is_group = 0
     doc.insert(ignore_permissions=True)
     return doc.name
 
 
-def _ensure_vendor():
-    existing = frappe.db.get_value("Marketplace Vendor", {"slug": VENDOR_SLUG}, "name")
+def _ensure_vendor(spec):
+    existing = frappe.db.get_value("Marketplace Vendor", {"slug": spec["slug"]}, "name")
     if existing:
         doc = frappe.get_doc("Marketplace Vendor", existing)
         if doc.status != "Active":
-            doc.status = "Active"  # on_update provisions Supplier + Customer
+            doc.status = "Active"
             doc.save(ignore_permissions=True)
         return existing
     doc = frappe.new_doc("Marketplace Vendor")
-    doc.vendor_name = "متجر أوفيرا التجريبي"
-    doc.slug = VENDOR_SLUG
-    doc.email = "store@demo.ovira.cloud"
-    doc.phone = "01000000000"
-    doc.description = "متجر تجريبي لاختبار تكامل أوفيرا ماركت مع ERPNext."
-    doc.status = "Active"  # triggers ERPNext provisioning on insert/on_update
+    doc.vendor_name = spec["name"]
+    doc.slug = spec["slug"]
+    doc.email = spec["email"]
+    doc.status = "Active"  # provisions Supplier + Customer on insert
     doc.insert(ignore_permissions=True)
     return doc.name
 
 
-def _ensure_product(vendor, category, spec):
-    existing = frappe.db.get_value("Marketplace Product", {"slug": spec["slug"]}, "name")
+def _ensure_product(vendor, category, title, slug, price, compare_at, image):
+    existing = frappe.db.get_value("Marketplace Product", {"slug": slug}, "name")
     if existing:
+        _ensure_media(existing, image, title)
         return existing
     doc = frappe.new_doc("Marketplace Product")
-    doc.title = spec["title"]
-    doc.slug = spec["slug"]
+    doc.title = title
+    doc.slug = slug
     doc.vendor = vendor
     doc.category = category
-    doc.price = spec["price"]
-    doc.compare_at_price = spec["compare_at_price"]
+    doc.price = price
+    doc.compare_at_price = compare_at
     doc.currency = "EGP"
-    doc.short_description = spec["short_description"]
+    doc.short_description = title
     doc.published = 1
-    doc.approval_status = "Approved"  # on_update syncs the ERPNext Item
+    doc.append("media", {"image": image, "is_primary": 1, "alt_text": title})
+    doc.approval_status = "Approved"  # syncs the ERPNext Item on_update
     doc.insert(ignore_permissions=True)
     return doc.name
+
+
+def _ensure_media(product_name, image, title):
+    """Backfill a primary image for a product that has none."""
+    if frappe.db.exists("Marketplace Product Media", {"parent": product_name}):
+        return
+    doc = frappe.get_doc("Marketplace Product", product_name)
+    doc.append("media", {"image": image, "is_primary": 1, "alt_text": title})
+    doc.save(ignore_permissions=True)
