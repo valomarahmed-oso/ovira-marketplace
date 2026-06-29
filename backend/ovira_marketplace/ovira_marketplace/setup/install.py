@@ -31,7 +31,18 @@ def after_migrate():
     safe to run on every migrate; seeds settings only on first run."""
     _create_roles()
     _seed_settings_if_ready()
+    _seed_cms_if_empty()
     frappe.db.commit()
+
+
+def _seed_cms_if_empty():
+    """Populate default homepage content so the storefront isn't blank. Only
+    seeds when the CMS doctypes exist and have no rows yet."""
+    if not frappe.db.exists("DocType", "Marketplace Banner"):
+        return
+    from ovira_marketplace.setup.cms import seed_cms
+
+    seed_cms()
 
 
 def _create_roles():

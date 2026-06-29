@@ -1,0 +1,152 @@
+{
+ "actions": [],
+ "autoname": "format:BNR-{#####}",
+ "creation": "2026-06-29 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "subtitle",
+  "placement",
+  "is_active",
+  "column_break_main",
+  "image",
+  "link",
+  "cta_label",
+  "tone",
+  "display_order",
+  "schedule_section",
+  "valid_from",
+  "column_break_schedule",
+  "valid_upto"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "subtitle",
+   "fieldtype": "Small Text",
+   "label": "Subtitle"
+  },
+  {
+   "default": "Promo",
+   "description": "Hero = the large homepage banner. Promo = the smaller promo cards row.",
+   "fieldname": "placement",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Placement",
+   "options": "Hero\nPromo",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Shown as the banner background / image.",
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
+  },
+  {
+   "description": "Where the banner links, e.g. /category/electronics or /products.",
+   "fieldname": "link",
+   "fieldtype": "Data",
+   "label": "Link"
+  },
+  {
+   "description": "Call-to-action button text. Optional.",
+   "fieldname": "cta_label",
+   "fieldtype": "Data",
+   "label": "CTA label"
+  },
+  {
+   "default": "Blue",
+   "description": "Colour theme used when there is no image.",
+   "fieldname": "tone",
+   "fieldtype": "Select",
+   "label": "Tone",
+   "options": "Blue\nCoral\nLight Blue\nMint\nGold"
+  },
+  {
+   "default": "0",
+   "fieldname": "display_order",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Display order"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "schedule_section",
+   "fieldtype": "Section Break",
+   "label": "Schedule (optional)"
+  },
+  {
+   "description": "Banner hides before this time. Leave blank to always show.",
+   "fieldname": "valid_from",
+   "fieldtype": "Datetime",
+   "label": "Valid from"
+  },
+  {
+   "fieldname": "column_break_schedule",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Banner hides after this time. Leave blank to never expire.",
+   "fieldname": "valid_upto",
+   "fieldtype": "Datetime",
+   "label": "Valid upto"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Banner",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

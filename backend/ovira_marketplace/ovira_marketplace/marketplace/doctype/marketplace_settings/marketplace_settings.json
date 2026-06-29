@@ -15,7 +15,9 @@
   "auto_approve_products",
   "integration_section",
   "sync_website_item",
-  "sales_tax_template"
+  "sales_tax_template",
+  "homepage_section",
+  "deal_product"
  ],
  "fields": [
   {
@@ -90,6 +92,18 @@
    "fieldtype": "Link",
    "label": "Sales tax template",
    "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "homepage_section",
+   "fieldtype": "Section Break",
+   "label": "Homepage"
+  },
+  {
+   "description": "Product featured in the homepage \"Deal of the day\" card. Leave blank to auto-pick the best in-stock discount.",
+   "fieldname": "deal_product",
+   "fieldtype": "Link",
+   "label": "Deal of the day product",
+   "options": "Marketplace Product"
   }
  ],
  "index_web_pages_for_search": 1,

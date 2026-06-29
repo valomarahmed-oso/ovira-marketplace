@@ -1,0 +1,112 @@
+{
+ "actions": [],
+ "autoname": "format:SEC-{#####}",
+ "creation": "2026-06-29 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "heading",
+  "source",
+  "is_active",
+  "column_break_main",
+  "category",
+  "item_limit",
+  "display_order",
+  "link"
+ ],
+ "fields": [
+  {
+   "fieldname": "heading",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Heading",
+   "reqd": 1
+  },
+  {
+   "default": "Latest",
+   "description": "Latest = newest products. Best Selling = by quantity sold. Category = a specific category. Discounted = products on sale.",
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Source",
+   "options": "Latest\nBest Selling\nDiscounted\nCategory",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.source=='Category'",
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "label": "Category",
+   "options": "Marketplace Category"
+  },
+  {
+   "default": "8",
+   "fieldname": "item_limit",
+   "fieldtype": "Int",
+   "label": "Number of products"
+  },
+  {
+   "default": "0",
+   "fieldname": "display_order",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Display order"
+  },
+  {
+   "description": "\"View all\" target. Auto-derived from the source if left blank.",
+   "fieldname": "link",
+   "fieldtype": "Data",
+   "label": "View-all link"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Homepage Section",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "heading",
+ "track_changes": 1
+}

@@ -96,6 +96,57 @@ export async function getCategories() {
   return live && live.length ? live : MOCK_CATEGORIES;
 }
 
+export type Banner = {
+  name?: string;
+  title: string;
+  subtitle?: string;
+  image?: string;
+  link?: string;
+  cta_label?: string;
+  tone?: string;
+  placement?: string;
+};
+
+export type HomeSection = { heading: string; link?: string; products: Product[] };
+
+export type Homepage = {
+  hero: Banner[];
+  promos: Banner[];
+  deal: Product | null;
+  sections: HomeSection[];
+};
+
+export async function getHomepage(): Promise<Homepage> {
+  const live = await callMethod<Homepage>("ovira_marketplace.api.cms.get_homepage");
+  if (live && (live.hero?.length || live.promos?.length || live.sections?.length)) return live;
+  return MOCK_HOMEPAGE();
+}
+
+function MOCK_HOMEPAGE(): Homepage {
+  return {
+    hero: [
+      {
+        title: "تسوّق أذكى، من بائعين تثق فيهم.",
+        subtitle: "آلاف المنتجات، أسعار تنافسية، وشحن سريع لكل مصر — كل ده في مكان واحد.",
+        link: "/products",
+        cta_label: "تسوّق دلوقتي",
+        tone: "Blue",
+        placement: "Hero",
+      },
+    ],
+    promos: [
+      { title: "إلكترونيات بأسعار لا تُقاوم", subtitle: "خصومات تصل إلى ٤٠٪", link: "/category/electronics", tone: "Blue", placement: "Promo" },
+      { title: "تجهيزات المنزل والمطبخ", subtitle: "كل اللي بيتك محتاجه", link: "/category/home", tone: "Coral", placement: "Promo" },
+      { title: "أزياء الموسم الجديد", subtitle: "وصل حديثًا", link: "/category/fashion", tone: "Light Blue", placement: "Promo" },
+    ],
+    deal: MOCK_PRODUCTS[3],
+    sections: [
+      { heading: "وصل حديثًا", link: "/products", products: MOCK_PRODUCTS.slice(0, 8) },
+      { heading: "الأكثر مبيعًا", link: "/products", products: [...MOCK_PRODUCTS].reverse().slice(0, 8) },
+    ],
+  };
+}
+
 export type CheckoutPayload = {
   items: { slug: string; qty: number }[];
   customer: { name: string; phone: string; email?: string; gov: string; address: string };
