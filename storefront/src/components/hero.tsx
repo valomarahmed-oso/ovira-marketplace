@@ -6,7 +6,17 @@ import type { Dict } from "@/lib/i18n";
 import { OviraBars } from "@/components/ovira-bars";
 import { cn, formatPrice, discountPercent } from "@/lib/utils";
 
-export function Hero({ hero, deal, t }: { hero: Banner | null; deal: Product | null; t: Dict }) {
+export function Hero({
+  hero,
+  deal,
+  t,
+  multiVendor = true,
+}: {
+  hero: Banner | null;
+  deal: Product | null;
+  t: Dict;
+  multiVendor?: boolean;
+}) {
   const title = hero?.title ?? "تسوّق أذكى، من بائعين تثق فيهم.";
   const subtitle =
     hero?.subtitle ?? "آلاف المنتجات، أسعار تنافسية، وشحن سريع لكل مصر — كل ده في مكان واحد.";
@@ -44,10 +54,12 @@ export function Hero({ hero, deal, t }: { hero: Banner | null; deal: Product | n
               {ctaLabel}
               <ArrowLeft className="h-4 w-4" />
             </Link>
-            <Link href="/sell" className="btn border border-white/40 px-6 py-3 text-white hover:bg-white/10">
-              <Store className="h-4 w-4" />
-              {t.becomeVendor}
-            </Link>
+            {multiVendor && (
+              <Link href="/sell" className="btn border border-white/40 px-6 py-3 text-white hover:bg-white/10">
+                <Store className="h-4 w-4" />
+                {t.becomeVendor}
+              </Link>
+            )}
           </div>
 
           <div className="mt-9 flex flex-wrap gap-x-7 gap-y-3 text-sm text-white/90">
