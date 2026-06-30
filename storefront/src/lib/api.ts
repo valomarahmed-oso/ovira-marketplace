@@ -187,17 +187,28 @@ export type AppConfig = {
 const DEFAULT_CONFIG: AppConfig = { multiVendor: true, currency: "EGP", autoApproveVendors: false };
 
 export async function getAppConfig(): Promise<AppConfig> {
-  const live = await callMethod<{
-    multi_vendor: boolean;
-    currency: string;
-    auto_approve_vendors: boolean;
-  }>("ovira_marketplace.api.settings.get_public_config");
-  if (!live) return DEFAULT_CONFIG;
-  return {
-    multiVendor: !!live.multi_vendor,
-    currency: live.currency || "EGP",
-    autoApproveVendors: !!live.auto_approve_vendors,
-  };
+  if (!BASE) return DEFAULT_CONFIG;
+  // Always fresh: this gates vendor-facing UI, so a mode switch must take effect
+  // immediately and never serve a stale cached value.
+  try {
+    const res = await fetch(
+      `${BASE}/api/method/ovira_marketplace.api.settings.get_public_config`,
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) return DEFAULT_CONFIG;
+    const live = (await res.json()).message as {
+      multi_vendor: boolean;
+      currency: string;
+      auto_approve_vendors: boolean;
+    };
+    return {
+      multiVendor: !!live.multi_vendor,
+      currency: live.currency || "EGP",
+      autoApproveVendors: !!live.auto_approve_vendors,
+    };
+  } catch {
+    return DEFAULT_CONFIG;
+  }
 }
 
 export async function getHomepage(): Promise<Homepage> {
