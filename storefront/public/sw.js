@@ -1,8 +1,8 @@
-const CACHE = "ovira-v2";
-const OFFLINE_URL = "/offline";
+const CACHE = "ovira-v3";
+const OFFLINE_URL = "/shop/offline";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(["/", OFFLINE_URL])));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(["/shop", OFFLINE_URL])));
   self.skipWaiting();
 });
 
