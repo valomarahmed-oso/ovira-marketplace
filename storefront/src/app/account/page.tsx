@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Heart, LogIn, LogOut, MapPin, Package, Store } from "lucide-react";
+import { Bell, Heart, LogIn, LogOut, MapPin, Package, Settings, Store } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { signOutServer } from "@/lib/auth";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -70,6 +70,21 @@ export default function AccountPage() {
           <LogOut className="h-4 w-4" /> {t.logout}
         </button>
       </div>
+
+      {user.isOperator && (
+        <Link
+          href="/admin"
+          className="card flex items-center gap-4 p-5 transition-shadow hover:shadow-card"
+        >
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-50">
+            <Settings className="h-5 w-5 text-blue-600" />
+          </span>
+          <div>
+            <div className="font-medium text-ink">{t.storeAdmin}</div>
+            <div className="text-sm text-ink-400">{t.storeAdminSub}</div>
+          </div>
+        </Link>
+      )}
 
       {user.isVendor && (
         <Link
