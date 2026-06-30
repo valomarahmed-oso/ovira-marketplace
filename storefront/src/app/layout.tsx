@@ -6,6 +6,8 @@ import { Footer } from "@/components/footer";
 import { PwaRegister } from "@/components/pwa-register";
 import { SessionSync } from "@/components/session-sync";
 import { I18nProvider } from "@/components/i18n-provider";
+import { AppConfigProvider } from "@/components/app-config-provider";
+import { getAppConfig } from "@/lib/api";
 import { getLocale, getTheme } from "@/lib/locale";
 
 const readex = Readex_Pro({
@@ -39,7 +41,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [locale, theme] = await Promise.all([getLocale(), getTheme()]);
+  const [locale, theme, config] = await Promise.all([getLocale(), getTheme(), getAppConfig()]);
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
@@ -49,13 +51,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${readex.variable} ${grotesk.variable}${theme === "dark" ? " dark" : ""}`}
     >
       <body className="min-h-screen">
-        <I18nProvider locale={locale}>
-          <PwaRegister />
-          <SessionSync />
-          <Header />
-          <main>{children}</main>
-          <Footer />
-        </I18nProvider>
+        <AppConfigProvider config={config}>
+          <I18nProvider locale={locale}>
+            <PwaRegister />
+            <SessionSync />
+            <Header />
+            <main>{children}</main>
+            <Footer />
+          </I18nProvider>
+        </AppConfigProvider>
       </body>
     </html>
   );

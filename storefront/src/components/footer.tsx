@@ -4,9 +4,11 @@ import Link from "next/link";
 import { CreditCard, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useI18n } from "@/components/i18n-provider";
+import { useAppConfig } from "@/components/app-config-provider";
 
 export function Footer() {
   const { t } = useI18n();
+  const { multiVendor } = useAppConfig();
 
   const trust = [
     { icon: Truck, label: t.freeShipping, note: t.freeShippingNote, href: "/products" },
@@ -34,15 +36,19 @@ export function Footer() {
         { label: t.footHelp, href: "/account" },
       ],
     },
-    {
-      title: t.footVendors,
-      links: [
-        { label: t.becomeVendor, href: "/sell" },
-        { label: t.footVendorDashboard, href: "/vendor" },
-        { label: t.footSellingPolicy, href: "/sell" },
-        { label: t.footCommissions, href: "/sell" },
-      ],
-    },
+    ...(multiVendor
+      ? [
+          {
+            title: t.footVendors,
+            links: [
+              { label: t.becomeVendor, href: "/sell" },
+              { label: t.footVendorDashboard, href: "/vendor" },
+              { label: t.footSellingPolicy, href: "/sell" },
+              { label: t.footCommissions, href: "/sell" },
+            ],
+          },
+        ]
+      : []),
     {
       title: t.footOvira,
       links: [

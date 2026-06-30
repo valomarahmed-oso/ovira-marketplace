@@ -17,11 +17,16 @@ def register(vendor_name, email=None, phone=None, description=None):
     if user == "Guest":
         frappe.throw(_("Please sign in to register as a vendor."), frappe.PermissionError)
 
+    settings = get_settings()
+    if settings.mode != "Multi Vendor":
+        frappe.throw(
+            _("Vendor registration is disabled in single-company mode."),
+            frappe.PermissionError,
+        )
+
     existing = frappe.db.get_value("Marketplace Vendor", {"user": user}, "name")
     if existing:
         frappe.throw(_("You already have a vendor store: {0}").format(existing))
-
-    settings = get_settings()
     vendor = frappe.new_doc("Marketplace Vendor")
     vendor.vendor_name = vendor_name
     vendor.user = user

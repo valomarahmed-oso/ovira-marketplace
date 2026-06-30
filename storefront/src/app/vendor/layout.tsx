@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Loader2, Lock, Store } from "lucide-react";
+import { Clock, Loader2, Lock, Store, XCircle } from "lucide-react";
 import { VendorSidebar } from "@/components/vendor-sidebar";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
@@ -59,6 +59,26 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
           <Link href="/sell" className="btn btn-primary inline-flex">
             {t.startSelling}
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Vendor exists but isn't live yet → pending review or suspended.
+  if (user.vendorStatus && user.vendorStatus !== "Active") {
+    const suspended = user.vendorStatus === "Suspended";
+    return (
+      <div className="container-ovira py-16">
+        <div className="card mx-auto max-w-md space-y-4 p-10 text-center">
+          <div className={`mx-auto grid h-16 w-16 place-items-center rounded-2xl ${suspended ? "bg-coral-50" : "bg-[#fdf2dd]"}`}>
+            {suspended ? <XCircle className="h-7 w-7 text-coral" /> : <Clock className="h-7 w-7 text-[#854f0b]" />}
+          </div>
+          <h1 className="text-xl font-medium text-ink">
+            {suspended ? t.vendorSuspendedTitle : t.vendorPendingTitle}
+          </h1>
+          <p className="text-sm text-ink-400">
+            {suspended ? t.vendorSuspendedSub : t.vendorPendingSub}
+          </p>
         </div>
       </div>
     );

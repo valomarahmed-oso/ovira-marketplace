@@ -178,6 +178,28 @@ export type Homepage = {
   sections: HomeSection[];
 };
 
+export type AppConfig = {
+  multiVendor: boolean;
+  currency: string;
+  autoApproveVendors: boolean;
+};
+
+const DEFAULT_CONFIG: AppConfig = { multiVendor: true, currency: "EGP", autoApproveVendors: false };
+
+export async function getAppConfig(): Promise<AppConfig> {
+  const live = await callMethod<{
+    multi_vendor: boolean;
+    currency: string;
+    auto_approve_vendors: boolean;
+  }>("ovira_marketplace.api.settings.get_public_config");
+  if (!live) return DEFAULT_CONFIG;
+  return {
+    multiVendor: !!live.multi_vendor,
+    currency: live.currency || "EGP",
+    autoApproveVendors: !!live.auto_approve_vendors,
+  };
+}
+
 export async function getHomepage(): Promise<Homepage> {
   const live = await callMethod<Homepage>("ovira_marketplace.api.cms.get_homepage");
   if (live && (live.hero?.length || live.promos?.length || live.sections?.length)) return live;

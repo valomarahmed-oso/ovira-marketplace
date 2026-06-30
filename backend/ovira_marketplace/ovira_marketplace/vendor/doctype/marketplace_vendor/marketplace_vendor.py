@@ -7,11 +7,28 @@ class MarketplaceVendor(Document):
     def validate(self):
         self._ensure_slug()
 
+    def after_insert(self):
+        if self.status == "Pending":
+            self._notify_operators()
+
     def on_update(self):
         if self.status == "Active":
             self.provision_erpnext_records()
 
     # -- internal ----------------------------------------------------------
+
+    def _notify_operators(self):
+        """Ping operators in the Desk that a store is awaiting approval."""
+        for user in _operator_users():
+            note = frappe.new_doc("Notification Log")
+            note.subject = _("New vendor application: {0}").format(self.vendor_name)
+            note.email_content = _("A new vendor has applied and is awaiting approval.")
+            note.for_user = user
+            note.type = "Alert"
+            note.document_type = "Marketplace Vendor"
+            note.document_name = self.name
+            note.from_user = self.user or frappe.session.user
+            note.insert(ignore_permissions=True)
 
     def _ensure_slug(self):
         if not self.slug and self.vendor_name:
@@ -57,3 +74,18 @@ class MarketplaceVendor(Document):
 def _default_group(doctype, fallback):
     name = frappe.db.get_value(doctype, {"is_group": 0}, "name")
     return name or fallback
+
+
+def _operator_users():
+    """Enabled users who can approve vendors."""
+    rows = frappe.get_all(
+        "Has Role",
+        filters={
+            "parenttype": "User",
+            "role": ["in", ["Marketplace Operator", "System Manager"]],
+        },
+        pluck="parent",
+        ignore_permissions=True,
+    )
+    users = {u for u in rows if u and u not in ("Administrator", "Guest")}
+    return [u for u in users if frappe.db.get_value("User", u, "enabled")]

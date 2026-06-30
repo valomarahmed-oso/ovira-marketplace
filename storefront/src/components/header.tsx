@@ -12,10 +12,12 @@ import { useWishlist } from "@/lib/wishlist-store";
 import { useNotifications } from "@/lib/notifications-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useI18n } from "@/components/i18n-provider";
+import { useAppConfig } from "@/components/app-config-provider";
 
 export function Header() {
   const router = useRouter();
   const { t } = useI18n();
+  const { multiVendor } = useAppConfig();
   const [q, setQ] = useState("");
   const items = useCart((s) => s.items);
   const user = useAuth((s) => s.user);
@@ -41,9 +43,11 @@ export function Header() {
             {t.deliverTo} <strong className="font-medium text-ink">{t.egypt}</strong>
           </span>
           <div className="flex items-center gap-3">
-            <Link href="/sell" className="hidden items-center gap-1 hover:text-blue-600 sm:flex">
-              {t.becomeVendor}
-            </Link>
+            {multiVendor && (
+              <Link href="/sell" className="hidden items-center gap-1 hover:text-blue-600 sm:flex">
+                {t.becomeVendor}
+              </Link>
+            )}
             <PrefsToggle />
           </div>
         </div>

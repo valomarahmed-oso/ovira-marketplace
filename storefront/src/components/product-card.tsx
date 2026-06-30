@@ -11,9 +11,11 @@ import { useWishlist } from "@/lib/wishlist-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { cn, discountPercent, formatPrice } from "@/lib/utils";
 import { useI18n } from "@/components/i18n-provider";
+import { useAppConfig } from "@/components/app-config-provider";
 
 export function ProductCard({ p }: { p: Product }) {
   const { t } = useI18n();
+  const { multiVendor } = useAppConfig();
   const [added, setAdded] = useState(false);
   const add = useCart((s) => s.add);
   const wishItems = useWishlist((s) => s.items);
@@ -70,10 +72,12 @@ export function ProductCard({ p }: { p: Product }) {
       </div>
 
       <div className="flex grow flex-col gap-2 p-3">
-        <div className="flex items-center gap-1.5 text-xs text-ink-400">
-          <Store className="h-3.5 w-3.5" />
-          <span>{p.vendor_name}</span>
-        </div>
+        {multiVendor && p.vendor_name && (
+          <div className="flex items-center gap-1.5 text-xs text-ink-400">
+            <Store className="h-3.5 w-3.5" />
+            <span>{p.vendor_name}</span>
+          </div>
+        )}
 
         <Link
           href={`/product/${p.slug}`}
