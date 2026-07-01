@@ -35,8 +35,7 @@ See [docs/architecture.md](docs/architecture.md) for the full picture.
 ├── backend/
 │   └── ovira_marketplace/    the custom Frappe app (installed into the bench)
 ├── storefront/               Next.js 15 app (added in Phase 2)
-├── deploy/                   docker-compose, nginx/traefik, env templates
-└── brand/                    logo and brand assets
+└── deploy/                   docker-compose, nginx/traefik, env templates
 ```
 
 ## Tech stack
