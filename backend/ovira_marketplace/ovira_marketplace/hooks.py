@@ -7,20 +7,6 @@ app_license = "MIT"
 required_apps = ["erpnext"]
 
 # ---------------------------------------------------------------------------
-# Desk branding: a first-class app tile on the /apps switcher (like HRMS/LMS),
-# gated to operators + System Managers. Opens the marketplace workspace.
-# ---------------------------------------------------------------------------
-add_to_apps_screen = [
-    {
-        "name": "ovira_marketplace",
-        "logo": "/assets/ovira_marketplace/images/ovira-mark.svg",
-        "title": "Ovira Marketplace",
-        "route": "/app/ovira-marketplace",
-        "has_permission": "ovira_marketplace.setup.workspace.has_app_permission",
-    }
-]
-
-# ---------------------------------------------------------------------------
 # Installation
 # ---------------------------------------------------------------------------
 before_install = "ovira_marketplace.setup.install.before_install"

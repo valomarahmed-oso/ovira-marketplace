@@ -32,17 +32,7 @@ def after_migrate():
     _create_roles()
     _seed_settings_if_ready()
     _seed_cms_if_empty()
-    _ensure_workspace()
     frappe.db.commit()
-
-
-def _ensure_workspace():
-    """Build/refresh the branded Desk workspace once its DocTypes exist."""
-    if not frappe.db.exists("DocType", "Marketplace Settings"):
-        return
-    from ovira_marketplace.setup.workspace import ensure_workspace
-
-    ensure_workspace()
 
 
 def _seed_cms_if_empty():

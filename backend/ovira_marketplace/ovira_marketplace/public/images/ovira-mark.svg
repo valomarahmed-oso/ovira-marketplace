@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Ovira Marketplace">
-  <rect width="64" height="64" rx="16" fill="#0e8bff"/>
-  <g transform="translate(10 10) scale(1.375)">
-    <path d="M16 4a12 12 0 1 0 0 24 12 12 0 0 0 11-7.2" fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round"/>
-    <rect x="20.5" y="11" width="8.5" height="2.4" rx="1.2" fill="#ffffff"/>
-    <rect x="20.5" y="14.8" width="8.5" height="2.4" rx="1.2" fill="#ffffff"/>
-    <rect x="20.5" y="18.6" width="8.5" height="2.4" rx="1.2" fill="#ffffff"/>
-  </g>
-</svg>
