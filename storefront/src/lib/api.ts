@@ -1,3 +1,5 @@
+import { writeHeaders } from "@/lib/frappe-client";
+
 export type Product = {
   name: string;
   title: string;
@@ -255,7 +257,7 @@ export async function placeOrder(
   try {
     const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.checkout.place_order`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: writeHeaders(),
       body: JSON.stringify(payload),
       credentials: "include",
     });
@@ -276,7 +278,7 @@ export async function initiatePayment(
   try {
     const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.payment.create_payment`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: writeHeaders(),
       body: JSON.stringify({ order, token, return_url: returnUrl }),
       credentials: "include",
     });

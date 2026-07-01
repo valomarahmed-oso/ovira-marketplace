@@ -42,7 +42,19 @@ def me():
         "vendor": vendor.name if vendor else None,
         "vendor_slug": vendor.slug if vendor else None,
         "vendor_status": vendor.status if vendor else None,
+        # Frappe enforces CSRF on authenticated writes; hand the storefront the
+        # session token so it can send X-Frappe-CSRF-Token on POSTs.
+        "csrf_token": _csrf_token(),
     }
+
+
+def _csrf_token():
+    from frappe.sessions import get_csrf_token
+
+    try:
+        return get_csrf_token()
+    except Exception:
+        return None
 
 
 @frappe.whitelist(allow_guest=True)

@@ -1,4 +1,5 @@
 import type { AuthUser } from "@/lib/auth-store";
+import { setCsrfToken, writeHeaders } from "@/lib/frappe-client";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
@@ -13,6 +14,7 @@ type MeResponse = {
   is_operator?: boolean;
   vendor?: string | null;
   vendor_status?: string | null;
+  csrf_token?: string | null;
 };
 
 function toUser(m: MeResponse): AuthUser | null {
@@ -54,7 +56,9 @@ export async function fetchMe(): Promise<AuthUser | null> {
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return toUser((data.message ?? {}) as MeResponse);
+    const me = (data.message ?? {}) as MeResponse;
+    setCsrfToken(me.csrf_token);
+    return toUser(me);
   } catch {
     return null;
   }
@@ -88,7 +92,7 @@ export async function signUp(
 
   const res = await fetch(`${BASE}/api/method/${METHOD}.register_customer`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders(),
     body: JSON.stringify({ full_name: name, email, password, phone }),
     credentials: "include",
   });
@@ -103,11 +107,15 @@ export async function signUp(
 export async function signOutServer(): Promise<void> {
   if (!BASE) return;
   try {
+    // Logout is itself an authenticated write, so it needs the CSRF token too.
     await fetch(`${BASE}/api/method/logout`, {
       method: "POST",
+      headers: writeHeaders(),
       credentials: "include",
     });
   } catch {
     /* ignore */
+  } finally {
+    setCsrfToken(null);
   }
 }

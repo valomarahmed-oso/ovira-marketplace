@@ -1,3 +1,5 @@
+import { writeHeaders } from "@/lib/frappe-client";
+
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
 export type NotificationKind = "order" | "promo" | "system";
@@ -23,7 +25,7 @@ async function post(method: string, body: Record<string, unknown> = {}): Promise
   if (!BASE) return;
   await fetch(`${BASE}/api/method/${method}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders(),
     body: JSON.stringify(body),
     credentials: "include",
   });

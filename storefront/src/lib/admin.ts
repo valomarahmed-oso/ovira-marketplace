@@ -1,3 +1,5 @@
+import { writeHeaders } from "@/lib/frappe-client";
+
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
 export type AdminSettings = {
@@ -43,7 +45,7 @@ export async function updateAdminSettings(data: Partial<AdminSettings>): Promise
   if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
   const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.admin.update_admin_settings`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders(),
     body: JSON.stringify(data),
     credentials: "include",
   });

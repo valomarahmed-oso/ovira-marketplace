@@ -1,3 +1,5 @@
+import { writeHeaders } from "@/lib/frappe-client";
+
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
 export type BuyerAddress = {
@@ -44,7 +46,7 @@ async function post<T>(method: string, body: Record<string, unknown>): Promise<T
   if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
   const res = await fetch(`${BASE}/api/method/${method}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders(),
     body: JSON.stringify(body),
     credentials: "include",
   });

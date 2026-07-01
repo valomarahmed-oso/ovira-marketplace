@@ -1,3 +1,5 @@
+import { writeHeaders } from "@/lib/frappe-client";
+
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
 export type VendorStatus = "Pending" | "Active" | "Suspended" | "Draft";
@@ -72,7 +74,7 @@ export async function setVendorStatus(
   if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
   const res = await fetch(opUrl("set_vendor_status"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders(),
     body: JSON.stringify({ name, status }),
     credentials: "include",
   });
@@ -147,7 +149,7 @@ export async function setProductStatus(
   if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
   const res = await fetch(opUrl("set_product_status"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders(),
     body: JSON.stringify({ name, status, rejection_reason: rejectionReason ?? "" }),
     credentials: "include",
   });
@@ -254,7 +256,7 @@ export async function setOrderStatus(
   if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
   const res = await fetch(opUrl("set_order_status"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders(),
     body: JSON.stringify({ name, status }),
     credentials: "include",
   });
