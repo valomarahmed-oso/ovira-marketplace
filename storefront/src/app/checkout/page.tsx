@@ -65,7 +65,7 @@ export default function CheckoutPage() {
     // For a real card order, send the shopper to the payment gateway.
     if (remote?.name) {
       const returnUrl = `${window.location.origin}/checkout/success?order=${id}`;
-      const payment = await initiatePayment(remote.name, returnUrl);
+      const payment = await initiatePayment(remote.name, remote.token, returnUrl);
       if (payment?.redirect_url && payment.method !== "cod" && payment.method !== "manual") {
         clear();
         window.location.href = payment.redirect_url;

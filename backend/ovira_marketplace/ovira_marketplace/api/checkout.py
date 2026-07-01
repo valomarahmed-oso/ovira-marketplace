@@ -4,6 +4,11 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from ovira_marketplace.customers import (
+    customer_for_user,
+    get_or_create_customer,
+    new_customer,
+)
 from ovira_marketplace.marketplace.doctype.marketplace_settings.marketplace_settings import (
     get_settings,
 )
@@ -30,7 +35,7 @@ def place_order(items, customer, payment_method="cod"):
     order.customer = _ensure_customer(customer)
     order.customer_name = customer.get("name")
     order.phone = customer.get("phone")
-    order.email = customer.get("email")
+    order.email = customer.get("email") or _session_email()
     order.governorate = customer.get("gov")
     order.shipping_address = customer.get("address")
     order.payment_method = payment_method
@@ -39,16 +44,39 @@ def place_order(items, customer, payment_method="cod"):
     order.currency = settings.default_currency
 
     subtotal = 0.0
+    shortages = []
     for line in items:
         product = frappe.db.get_value(
             "Marketplace Product",
             {"slug": line.get("slug"), "approval_status": "Approved", "published": 1},
-            ["name", "vendor", "price", "title"],
+            ["name", "vendor", "price", "title", "stock_qty", "track_inventory"],
             as_dict=True,
         )
         if not product:
             continue
-        qty = int(line.get("qty") or 1)
+        # Never trust the client-supplied quantity: clamp to a positive integer
+        # so a negative qty can't be used to drive the order total down.
+        try:
+            qty = int(line.get("qty") or 1)
+        except (TypeError, ValueError):
+            qty = 1
+        qty = max(1, qty)
+
+        # Block overselling for products that track inventory. `stock_qty` is the
+        # value synced from ERPNext and shown to the shopper, so we gate on it.
+        # Any shortage rejects the whole order (below) rather than silently
+        # trimming quantities the buyer didn't agree to.
+        if product.track_inventory:
+            available = int(flt(product.stock_qty))
+            if available <= 0:
+                shortages.append(_("{0} is out of stock.").format(product.title))
+                continue
+            if qty > available:
+                shortages.append(
+                    _("Only {0} left of {1}.").format(available, product.title)
+                )
+                continue
+
         amount = flt(product.price) * qty
         subtotal += amount
         order.append(
@@ -63,6 +91,9 @@ def place_order(items, customer, payment_method="cod"):
             },
         )
 
+    if shortages:
+        frappe.throw("<br>".join(shortages), title=_("Stock unavailable"))
+
     if not order.get("items"):
         frappe.throw(_("None of the cart items are available."))
 
@@ -74,25 +105,41 @@ def place_order(items, customer, payment_method="cod"):
     order.create_vendor_orders()
     frappe.db.commit()
 
-    return {"name": order.name, "total": order.total, "status": order.status}
+    # `token` lets the storefront start payment for this specific order without
+    # exposing every order to any guest who can guess an id.
+    return {
+        "name": order.name,
+        "total": order.total,
+        "status": order.status,
+        "token": order.access_token,
+    }
 
 
 def _ensure_customer(info):
-    name = (info.get("name") or "عميل أوفيرا").strip()
-    existing = frappe.db.get_value("Customer", {"customer_name": name}, "name")
-    if existing:
-        return existing
-    customer = frappe.new_doc("Customer")
-    customer.customer_name = name
-    customer.customer_type = "Individual"
-    customer.customer_group = (
-        frappe.db.get_value("Customer Group", {"is_group": 0}, "name") or "All Customer Groups"
-    )
-    customer.territory = (
-        frappe.db.get_value("Territory", {"is_group": 0}, "name") or "All Territories"
-    )
+    """Resolve the Customer this order belongs to.
+
+    A logged-in shopper is always bound to *their own* account (by login, never
+    by the typed name) so orders can't leak across people who share a name. A
+    guest gets a fresh Customer per order — we have no authenticated identity to
+    safely dedupe against.
+    """
+    user = frappe.session.user
+    if user and user != "Guest":
+        existing = customer_for_user(user)
+        if existing:
+            return existing
+        full_name = info.get("name") or frappe.db.get_value("User", user, "full_name") or user
+        return get_or_create_customer(full_name, email=user, phone=info.get("phone"))
+
+    customer = new_customer(info.get("name"), info.get("phone"))
+    customer.flags.ignore_permissions = True
     customer.insert(ignore_permissions=True)
     return customer.name
+
+
+def _session_email():
+    user = frappe.session.user
+    return user if user and user != "Guest" else None
 
 
 def _loads(value):

@@ -14,6 +14,13 @@ STATUS_TITLE = {
 
 
 class MarketplaceOrder(Document):
+    def before_insert(self):
+        # A capability token so a guest can drive *their* order's payment without
+        # a login, while an attacker who merely guesses the order id (OVR-000123)
+        # cannot. Registered buyers and operators are authorized separately.
+        if not self.access_token:
+            self.access_token = frappe.generate_hash(length=48)
+
     def validate(self):
         for row in self.items:
             row.amount = flt(row.rate) * (row.qty or 0)

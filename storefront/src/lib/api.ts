@@ -248,7 +248,9 @@ export type CheckoutPayload = {
   payment_method: string;
 };
 
-export async function placeOrder(payload: CheckoutPayload): Promise<{ name: string } | null> {
+export async function placeOrder(
+  payload: CheckoutPayload,
+): Promise<{ name: string; token?: string } | null> {
   if (!BASE) return null;
   try {
     const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.checkout.place_order`, {
@@ -267,6 +269,7 @@ export async function placeOrder(payload: CheckoutPayload): Promise<{ name: stri
 
 export async function initiatePayment(
   order: string,
+  token: string | undefined,
   returnUrl: string,
 ): Promise<{ method?: string; redirect_url?: string } | null> {
   if (!BASE) return null;
@@ -274,7 +277,7 @@ export async function initiatePayment(
     const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.payment.create_payment`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ order, return_url: returnUrl }),
+      body: JSON.stringify({ order, token, return_url: returnUrl }),
       credentials: "include",
     });
     if (!res.ok) return null;

@@ -9,6 +9,8 @@ canonical identity (roles, vendor link) and a self-service customer sign-up.
 import frappe
 from frappe import _
 
+from ovira_marketplace.customers import get_or_create_customer
+
 OPERATOR_ROLES = ("System Manager", "Marketplace Operator")
 
 
@@ -74,31 +76,7 @@ def register_customer(full_name, email, password, phone=None):
     if frappe.db.exists("Role", "Customer"):
         user.add_roles("Customer")
 
-    _ensure_customer_for_user(full_name, email, phone)
+    # Bind an ERPNext Customer to this login (by portal-user link, not by name).
+    get_or_create_customer(full_name, email=email, phone=phone)
     frappe.db.commit()
     return {"ok": True, "email": email}
-
-
-def _ensure_customer_for_user(full_name, email, phone=None):
-    """Create (or link) an ERPNext Customer owned by this login."""
-    existing = frappe.db.get_value("Customer", {"customer_name": full_name}, "name")
-    customer = frappe.get_doc("Customer", existing) if existing else frappe.new_doc("Customer")
-    if not existing:
-        customer.customer_name = full_name
-        customer.customer_type = "Individual"
-        customer.customer_group = (
-            frappe.db.get_value("Customer Group", {"is_group": 0}, "name") or "All Customer Groups"
-        )
-        customer.territory = (
-            frappe.db.get_value("Territory", {"is_group": 0}, "name") or "All Territories"
-        )
-
-    # Link the login to the customer portal so orders resolve to this account.
-    if customer.meta.has_field("portal_users") and not any(
-        row.user == email for row in customer.get("portal_users", [])
-    ):
-        customer.append("portal_users", {"user": email})
-
-    customer.flags.ignore_permissions = True
-    customer.save(ignore_permissions=True) if existing else customer.insert(ignore_permissions=True)
-    return customer.name

@@ -25,7 +25,8 @@
   "subtotal",
   "shipping_amount",
   "column_break_totals",
-  "total"
+  "total",
+  "access_token"
  ],
  "fields": [
   {
@@ -145,6 +146,15 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "access_token",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Access token",
+   "no_copy": 1,
+   "print_hide": 1,
    "read_only": 1
   }
  ],

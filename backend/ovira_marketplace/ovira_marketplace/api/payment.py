@@ -1,14 +1,31 @@
+import hmac
+
 import frappe
+from frappe import _
 from frappe.utils import nowdate
 
+from ovira_marketplace.customers import customer_for_user
 from ovira_marketplace.marketplace_payments.connectors import get_connector
+
+OPERATOR_ROLES = {"System Manager", "Marketplace Operator", "Administrator"}
 
 
 @frappe.whitelist(allow_guest=True)
-def create_payment(order, return_url=None):
+def create_payment(order, token=None, return_url=None):
     """Start payment for a Marketplace Order. Returns a redirect_url for hosted
-    gateways, or a `cod`/`manual` method when no redirect is needed."""
+    gateways, or a `cod`/`manual` method when no redirect is needed.
+
+    The caller must be authorized for this order (operator, the logged-in owner,
+    or a holder of the order's access token) — otherwise a guessed order id must
+    not be enough to touch it.
+    """
     order_doc = frappe.get_doc("Marketplace Order", order)
+    _authorize_order(order_doc, token)
+
+    if order_doc.payment_status == "Paid":
+        # Nothing to collect; don't re-initiate or flip the method on a paid order.
+        return {"method": "paid", "redirect_url": return_url}
+
     provider = _provider_for(order_doc)
     order_doc.db_set("payment_method", provider)
 
@@ -19,6 +36,24 @@ def create_payment(order, return_url=None):
     if not connector:
         return {"method": "manual", "redirect_url": return_url}
     return connector.initiate(order_doc, return_url)
+
+
+def _authorize_order(order, token):
+    """Guard access to a specific order for a storefront (possibly guest) caller."""
+    user = frappe.session.user
+
+    if user and user != "Guest" and (OPERATOR_ROLES & set(frappe.get_roles(user))):
+        return
+
+    # The order's own capability token (handed to the shopper at checkout).
+    if token and order.access_token and hmac.compare_digest(str(token), order.access_token):
+        return
+
+    # A logged-in buyer may pay for an order that resolves to their own account.
+    if user and user != "Guest" and order.customer and customer_for_user(user) == order.customer:
+        return
+
+    frappe.throw(_("You are not allowed to pay for this order."), frappe.PermissionError)
 
 
 def _provider_for(order):
