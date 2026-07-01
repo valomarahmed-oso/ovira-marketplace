@@ -1,16 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-  Lock,
-  Settings,
-  ShieldCheck,
-  Store,
-} from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, ShieldCheck, Store } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import {
@@ -20,10 +11,11 @@ import {
   type AdminSettings,
 } from "@/lib/admin";
 
-export default function AdminPage() {
+export default function AdminSettingsPage() {
   const { t } = useI18n();
   const user = useAuth((s) => s.user);
   const ready = useAuth((s) => s.ready);
+  const isOperator = !!user?.isOperator;
 
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [products, setProducts] = useState<{ name: string; title: string }[]>([]);
@@ -32,13 +24,8 @@ export default function AdminPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isOperator = !!user?.isOperator;
-
   useEffect(() => {
-    if (!ready || !isOperator) {
-      if (ready) setLoading(false);
-      return;
-    }
+    if (!ready || !isOperator) return;
     let cancelled = false;
     Promise.all([getAdminSettings(), getProductOptions()]).then(([s, p]) => {
       if (cancelled) return;
@@ -81,33 +68,15 @@ export default function AdminPage() {
     }
   }
 
-  if (!ready || loading) {
+  if (loading || !settings) {
     return (
-      <div className="container-ovira flex justify-center py-24">
+      <div className="flex justify-center py-24">
         <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
       </div>
     );
   }
 
-  if (!user || !isOperator) {
-    return (
-      <div className="container-ovira py-16">
-        <div className="card mx-auto max-w-md space-y-4 p-10 text-center">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-50">
-            <Lock className="h-7 w-7 text-blue-600" />
-          </div>
-          <h1 className="text-xl font-medium text-ink">{t.adminAccessDenied}</h1>
-          {!user && (
-            <Link href={`/login?next=${encodeURIComponent("/admin")}`} className="btn btn-primary inline-flex">
-              {t.loginTitle}
-            </Link>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const s = settings!;
+  const s = settings;
   const toggle = (key: keyof AdminSettings) =>
     set(key, (s[key] ? 0 : 1) as AdminSettings[keyof AdminSettings]);
 
@@ -115,17 +84,7 @@ export default function AdminPage() {
     "h-11 w-full rounded-xl border border-line bg-white px-4 text-sm outline-none focus:border-blue";
 
   return (
-    <div className="container-ovira max-w-3xl space-y-6 py-8">
-      <div className="flex items-center gap-3">
-        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-50">
-          <Settings className="h-6 w-6 text-blue-600" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-medium text-ink">{t.adminTitle}</h1>
-          <p className="text-sm text-ink-400">{t.adminSubtitle}</p>
-        </div>
-      </div>
-
+    <div className="max-w-3xl space-y-6">
       {/* General */}
       <section className="card space-y-5 p-6">
         <div className="flex items-center gap-2 font-medium text-ink">

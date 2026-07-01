@@ -180,6 +180,24 @@ const ar = {
   save: "حفظ التغييرات",
   saving: "جارٍ الحفظ…",
   savedOk: "تم الحفظ بنجاح",
+
+  adminNavSettings: "الإعدادات",
+  adminNavVendors: "البائعون",
+  vendorsTitle: "البائعون",
+  vendorsSubtitle: "اعتماد وإدارة بائعي المتجر",
+  vendorSearch: "ابحث باسم البائع أو الإيميل…",
+  vStatusAll: "الكل",
+  vStatusPending: "قيد المراجعة",
+  vStatusActive: "نشط",
+  vStatusSuspended: "موقوف",
+  vStatusDraft: "مسودة",
+  vApprove: "اعتماد",
+  vReject: "رفض",
+  vSuspend: "إيقاف",
+  vReactivate: "إعادة تفعيل",
+  vEmpty: "لا يوجد بائعون هنا",
+  vApplied: "تاريخ الطلب",
+  vActionError: "تعذّر تنفيذ العملية، حاول مرة أخرى.",
 };
 
 export type Dict = typeof ar;
@@ -360,6 +378,24 @@ const en: Dict = {
   save: "Save changes",
   saving: "Saving…",
   savedOk: "Saved successfully",
+
+  adminNavSettings: "Settings",
+  adminNavVendors: "Vendors",
+  vendorsTitle: "Vendors",
+  vendorsSubtitle: "Approve and manage your marketplace vendors",
+  vendorSearch: "Search by vendor name or email…",
+  vStatusAll: "All",
+  vStatusPending: "Pending",
+  vStatusActive: "Active",
+  vStatusSuspended: "Suspended",
+  vStatusDraft: "Draft",
+  vApprove: "Approve",
+  vReject: "Reject",
+  vSuspend: "Suspend",
+  vReactivate: "Reactivate",
+  vEmpty: "No vendors here",
+  vApplied: "Applied",
+  vActionError: "Could not complete the action, please try again.",
 };
 
 const DICTS: Record<Locale, Dict> = { ar, en };
