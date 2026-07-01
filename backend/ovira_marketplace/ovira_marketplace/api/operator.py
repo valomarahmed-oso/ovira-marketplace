@@ -85,3 +85,104 @@ def get_vendor(name):
     """Full vendor record for the operator detail view."""
     _require_operator()
     return frappe.get_doc("Marketplace Vendor", name).as_dict()
+
+
+# ---------------------------------------------------------------------------
+# Products (moderation)
+# ---------------------------------------------------------------------------
+
+PRODUCT_STATUSES = ("Pending", "Approved", "Rejected", "Draft")
+PRODUCT_LIST_FIELDS = [
+    "name",
+    "title",
+    "slug",
+    "vendor",
+    "approval_status",
+    "published",
+    "price",
+    "currency",
+    "stock_qty",
+    "creation",
+]
+
+
+@frappe.whitelist()
+def list_products(status=None, search=None, limit=200):
+    """Product moderation queue, filterable by approval status + free text."""
+    _require_operator()
+    filters = {}
+    if status and status not in ("All", ""):
+        filters["approval_status"] = status
+    or_filters = None
+    if search:
+        like = f"%{search}%"
+        or_filters = [["title", "like", like], ["slug", "like", like]]
+    rows = frappe.get_all(
+        "Marketplace Product",
+        filters=filters,
+        or_filters=or_filters,
+        fields=PRODUCT_LIST_FIELDS,
+        order_by="creation desc",
+        limit_page_length=cint(limit) or 200,
+        ignore_permissions=True,
+    )
+    _attach_vendor_and_image(rows)
+    return rows
+
+
+@frappe.whitelist()
+def product_status_counts():
+    """Counts per approval status, for the filter tabs."""
+    _require_operator()
+    counts = {"All": frappe.db.count("Marketplace Product")}
+    for status in PRODUCT_STATUSES:
+        counts[status] = frappe.db.count("Marketplace Product", {"approval_status": status})
+    return counts
+
+
+@frappe.whitelist()
+def set_product_status(name, status, rejection_reason=None):
+    """Approve / reject a product. Approving triggers ``on_update`` →
+    ``sync_to_erpnext`` (idempotently creates the Item + optional Website Item)."""
+    _require_operator()
+    if status not in PRODUCT_STATUSES:
+        frappe.throw(_("حالة غير صالحة."))
+    product = frappe.get_doc("Marketplace Product", name)
+    product.approval_status = status
+    if status == "Rejected" and rejection_reason:
+        product.rejection_reason = rejection_reason
+    product.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": product.name, "approval_status": product.approval_status}
+
+
+def _attach_vendor_and_image(rows):
+    """Enrich product rows with the vendor's display name + primary image."""
+    if not rows:
+        return
+    vendor_ids = list({r["vendor"] for r in rows if r.get("vendor")})
+    vendor_names = {}
+    if vendor_ids:
+        for v in frappe.get_all(
+            "Marketplace Vendor",
+            filters={"name": ["in", vendor_ids]},
+            fields=["name", "vendor_name"],
+            ignore_permissions=True,
+        ):
+            vendor_names[v["name"]] = v["vendor_name"]
+
+    product_ids = [r["name"] for r in rows]
+    images = {}
+    media = frappe.get_all(
+        "Marketplace Product Media",
+        filters={"parenttype": "Marketplace Product", "parent": ["in", product_ids]},
+        fields=["parent", "image"],
+        order_by="is_primary desc, idx asc",
+        ignore_permissions=True,
+    )
+    for m in media:
+        images.setdefault(m["parent"], m["image"])
+
+    for r in rows:
+        r["vendor_name"] = vendor_names.get(r.get("vendor"))
+        r["image"] = images.get(r["name"])

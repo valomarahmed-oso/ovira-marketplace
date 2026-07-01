@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Loader2, Lock, Settings, ShieldCheck, Store } from "lucide-react";
+import { Loader2, Lock, Package, Settings, ShieldCheck, Store } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import type { Dict } from "@/lib/i18n";
@@ -14,6 +14,7 @@ type NavItem = { href: string; key: keyof Dict; icon: typeof Settings; exact?: b
 const NAV: NavItem[] = [
   { href: "/admin", key: "adminNavSettings", icon: Settings, exact: true },
   { href: "/admin/vendors", key: "adminNavVendors", icon: Store },
+  { href: "/admin/products", key: "adminNavProducts", icon: Package },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

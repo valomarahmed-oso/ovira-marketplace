@@ -198,6 +198,21 @@ const ar = {
   vEmpty: "لا يوجد بائعون هنا",
   vApplied: "تاريخ الطلب",
   vActionError: "تعذّر تنفيذ العملية، حاول مرة أخرى.",
+
+  adminNavProducts: "المنتجات",
+  productsTitle: "المنتجات",
+  productsSubtitle: "مراجعة واعتماد منتجات البائعين",
+  productSearch: "ابحث باسم المنتج…",
+  pStatusAll: "الكل",
+  pStatusPending: "قيد المراجعة",
+  pStatusApproved: "معتمد",
+  pStatusRejected: "مرفوض",
+  pStatusDraft: "مسودة",
+  pApprove: "اعتماد",
+  pReject: "رفض",
+  pEmpty: "لا توجد منتجات هنا",
+  rejectReasonPrompt: "سبب الرفض (اختياري):",
+  byVendor: "البائع",
 };
 
 export type Dict = typeof ar;
@@ -396,6 +411,21 @@ const en: Dict = {
   vEmpty: "No vendors here",
   vApplied: "Applied",
   vActionError: "Could not complete the action, please try again.",
+
+  adminNavProducts: "Products",
+  productsTitle: "Products",
+  productsSubtitle: "Review and approve vendor products",
+  productSearch: "Search by product title…",
+  pStatusAll: "All",
+  pStatusPending: "Pending",
+  pStatusApproved: "Approved",
+  pStatusRejected: "Rejected",
+  pStatusDraft: "Draft",
+  pApprove: "Approve",
+  pReject: "Reject",
+  pEmpty: "No products here",
+  rejectReasonPrompt: "Rejection reason (optional):",
+  byVendor: "Vendor",
 };
 
 const DICTS: Record<Locale, Dict> = { ar, en };

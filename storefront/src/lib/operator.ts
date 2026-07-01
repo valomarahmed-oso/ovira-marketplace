@@ -79,3 +79,78 @@ export async function setVendorStatus(
   if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تنفيذ العملية."));
   return (await res.json()).message;
 }
+
+// --- Products (moderation) -------------------------------------------------
+
+export type ProductApprovalStatus = "Pending" | "Approved" | "Rejected" | "Draft";
+
+export type AdminProduct = {
+  name: string;
+  title: string;
+  slug?: string;
+  vendor?: string;
+  vendor_name?: string | null;
+  approval_status: ProductApprovalStatus;
+  published?: number;
+  price?: number;
+  currency?: string;
+  stock_qty?: number;
+  image?: string | null;
+  creation?: string;
+};
+
+/** Absolute URL for a Frappe /files path (images are served at the API origin). */
+export function fileUrl(path?: string | null): string | undefined {
+  if (!path) return undefined;
+  if (/^https?:\/\//.test(path)) return path;
+  return `${BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
+export async function listProducts(params: { status?: string; search?: string } = {}): Promise<AdminProduct[]> {
+  if (!BASE) return [];
+  const qs = new URLSearchParams();
+  if (params.status && params.status !== "All") qs.set("status", params.status);
+  if (params.search) qs.set("search", params.search);
+  try {
+    const res = await fetch(opUrl("list_products", qs), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return ((await res.json()).message ?? []) as AdminProduct[];
+  } catch {
+    return [];
+  }
+}
+
+export async function productStatusCounts(): Promise<VendorCounts> {
+  if (!BASE) return {};
+  try {
+    const res = await fetch(opUrl("product_status_counts"), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return {};
+    return ((await res.json()).message ?? {}) as VendorCounts;
+  } catch {
+    return {};
+  }
+}
+
+export async function setProductStatus(
+  name: string,
+  status: ProductApprovalStatus,
+  rejectionReason?: string,
+): Promise<{ name: string; approval_status: ProductApprovalStatus }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("set_product_status"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, status, rejection_reason: rejectionReason ?? "" }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تنفيذ العملية."));
+  return (await res.json()).message;
+}
