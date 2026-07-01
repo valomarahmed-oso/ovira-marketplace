@@ -186,3 +186,99 @@ def _attach_vendor_and_image(rows):
     for r in rows:
         r["vendor_name"] = vendor_names.get(r.get("vendor"))
         r["image"] = images.get(r["name"])
+
+
+# ---------------------------------------------------------------------------
+# Orders
+# ---------------------------------------------------------------------------
+
+ORDER_STATUSES = ("Pending Payment", "Paid", "Processing", "Shipped", "Completed", "Cancelled")
+ORDER_LIST_FIELDS = [
+    "name",
+    "customer_name",
+    "phone",
+    "status",
+    "payment_status",
+    "total",
+    "currency",
+    "creation",
+]
+
+
+@frappe.whitelist()
+def list_orders(status=None, search=None, limit=200):
+    """All marketplace orders for the operator, filterable by status + text."""
+    _require_operator()
+    filters = {}
+    if status and status not in ("All", ""):
+        filters["status"] = status
+    or_filters = None
+    if search:
+        like = f"%{search}%"
+        or_filters = [["customer_name", "like", like], ["name", "like", like]]
+    rows = frappe.get_all(
+        "Marketplace Order",
+        filters=filters,
+        or_filters=or_filters,
+        fields=ORDER_LIST_FIELDS,
+        order_by="creation desc",
+        limit_page_length=cint(limit) or 200,
+        ignore_permissions=True,
+    )
+    ids = [r["name"] for r in rows]
+    item_counts = {}
+    if ids:
+        for row in frappe.get_all(
+            "Marketplace Order Item",
+            filters={"parent": ["in", ids]},
+            fields=["parent"],
+            ignore_permissions=True,
+        ):
+            item_counts[row["parent"]] = item_counts.get(row["parent"], 0) + 1
+    for r in rows:
+        r["item_count"] = item_counts.get(r["name"], 0)
+    return rows
+
+
+@frappe.whitelist()
+def order_status_counts():
+    """Counts per order status, for the filter tabs."""
+    _require_operator()
+    counts = {"All": frappe.db.count("Marketplace Order")}
+    for status in ORDER_STATUSES:
+        counts[status] = frappe.db.count("Marketplace Order", {"status": status})
+    return counts
+
+
+@frappe.whitelist()
+def get_order(name):
+    """Full order (items enriched with vendor name) for the detail view."""
+    _require_operator()
+    order = frappe.get_doc("Marketplace Order", name).as_dict()
+    items = order.get("items") or []
+    vendor_ids = list({it.get("vendor") for it in items if it.get("vendor")})
+    vendor_names = {}
+    if vendor_ids:
+        for v in frappe.get_all(
+            "Marketplace Vendor",
+            filters={"name": ["in", vendor_ids]},
+            fields=["name", "vendor_name"],
+            ignore_permissions=True,
+        ):
+            vendor_names[v["name"]] = v["vendor_name"]
+    for it in items:
+        it["vendor_name"] = vendor_names.get(it.get("vendor"))
+    return order
+
+
+@frappe.whitelist()
+def set_order_status(name, status):
+    """Advance an order through its fulfilment lifecycle."""
+    _require_operator()
+    if status not in ORDER_STATUSES:
+        frappe.throw(_("حالة غير صالحة."))
+    order = frappe.get_doc("Marketplace Order", name)
+    order.status = status
+    order.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": order.name, "status": order.status}

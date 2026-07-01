@@ -154,3 +154,110 @@ export async function setProductStatus(
   if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تنفيذ العملية."));
   return (await res.json()).message;
 }
+
+// --- Orders ----------------------------------------------------------------
+
+export type OrderStatus =
+  | "Pending Payment"
+  | "Paid"
+  | "Processing"
+  | "Shipped"
+  | "Completed"
+  | "Cancelled";
+export type PaymentStatus = "Unpaid" | "Paid" | "Refunded";
+
+export type AdminOrder = {
+  name: string;
+  customer_name?: string;
+  phone?: string;
+  status: OrderStatus;
+  payment_status?: PaymentStatus;
+  total?: number;
+  currency?: string;
+  creation?: string;
+  item_count?: number;
+};
+
+export type AdminOrderItem = {
+  marketplace_product?: string;
+  title?: string;
+  vendor?: string;
+  vendor_name?: string | null;
+  qty?: number;
+  rate?: number;
+  amount?: number;
+};
+
+export type AdminOrderDetail = AdminOrder & {
+  email?: string;
+  governorate?: string;
+  shipping_address?: string;
+  payment_method?: string;
+  subtotal?: number;
+  shipping_amount?: number;
+  items: AdminOrderItem[];
+};
+
+export async function listOrders(params: { status?: string; search?: string } = {}): Promise<AdminOrder[]> {
+  if (!BASE) return [];
+  const qs = new URLSearchParams();
+  if (params.status && params.status !== "All") qs.set("status", params.status);
+  if (params.search) qs.set("search", params.search);
+  try {
+    const res = await fetch(opUrl("list_orders", qs), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return ((await res.json()).message ?? []) as AdminOrder[];
+  } catch {
+    return [];
+  }
+}
+
+export async function orderStatusCounts(): Promise<VendorCounts> {
+  if (!BASE) return {};
+  try {
+    const res = await fetch(opUrl("order_status_counts"), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return {};
+    return ((await res.json()).message ?? {}) as VendorCounts;
+  } catch {
+    return {};
+  }
+}
+
+export async function getOrder(name: string): Promise<AdminOrderDetail | null> {
+  if (!BASE) return null;
+  const qs = new URLSearchParams({ name });
+  try {
+    const res = await fetch(opUrl("get_order", qs), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return ((await res.json()).message ?? null) as AdminOrderDetail | null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setOrderStatus(
+  name: string,
+  status: OrderStatus,
+): Promise<{ name: string; status: OrderStatus }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("set_order_status"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, status }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تنفيذ العملية."));
+  return (await res.json()).message;
+}
