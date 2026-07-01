@@ -282,3 +282,45 @@ def set_order_status(name, status):
     order.save(ignore_permissions=True)
     frappe.db.commit()
     return {"name": order.name, "status": order.status}
+
+
+# ---------------------------------------------------------------------------
+# Payouts — operator pays vendors their settled balance on demand
+# ---------------------------------------------------------------------------
+
+
+@frappe.whitelist()
+def vendor_payouts():
+    """Every vendor with a linked supplier and the balance the operator owes."""
+    _require_operator()
+    from ovira_marketplace.vendor.settlement import vendor_balances
+
+    return vendor_balances()
+
+
+@frappe.whitelist()
+def pay_vendor(vendor):
+    """Pay one vendor their full outstanding balance via a Payment Entry."""
+    _require_operator()
+    from ovira_marketplace.vendor.settlement import pay_supplier
+
+    settings = frappe.get_cached_doc("Marketplace Settings")
+    supplier = frappe.db.get_value("Marketplace Vendor", vendor, "supplier")
+    if not supplier:
+        frappe.throw(_("لا يوجد مورّد مرتبط بهذا البائع بعد."))
+
+    payment_entry = pay_supplier(supplier, settings.operator_company)
+    frappe.db.commit()
+    if not payment_entry:
+        return {"paid": False, "message": _("لا يوجد رصيد مستحق لهذا البائع.")}
+    return {"paid": True, "payment_entry": payment_entry}
+
+
+@frappe.whitelist()
+def run_all_payouts():
+    """Pay every active vendor their outstanding balance in one run."""
+    _require_operator()
+    from ovira_marketplace.vendor.settlement import run_due_payouts
+
+    paid = run_due_payouts()
+    return {"count": len(paid), "payment_entries": paid}

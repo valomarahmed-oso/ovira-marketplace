@@ -83,15 +83,81 @@ def _settle_sub_order(order, so_name, rows):
     return je.name
 
 
-def run_due_payouts(company=None):
-    """Scheduler: pay each vendor their outstanding payable balance via a
-    Payment Entry (Pay). Returns the list of created payments."""
-    settings = frappe.get_cached_doc("Marketplace Settings")
-    company = company or settings.operator_company
+def _payout_accounts(company):
+    """(payable account, cash/bank account) used to pay a vendor, or (None, None)."""
     payable = frappe.db.get_value("Company", company, "default_payable_account")
     paid_from = frappe.db.get_value("Company", company, "default_cash_account") or frappe.db.get_value(
         "Company", company, "default_bank_account"
     )
+    return payable, paid_from
+
+
+def pay_supplier(supplier, company, payable=None, paid_from=None):
+    """Pay a supplier's full outstanding payable via a submitted Payment Entry.
+
+    Returns the Payment Entry name, or ``None`` when nothing is due or the
+    company payout accounts aren't configured. Raises on a booking error so the
+    caller can surface it (``run_due_payouts`` logs and continues instead)."""
+    if payable is None or paid_from is None:
+        payable, paid_from = _payout_accounts(company)
+    if not (payable and paid_from):
+        return None
+
+    outstanding = _supplier_outstanding(supplier, company)
+    if outstanding <= 0:
+        return None
+
+    pe = frappe.new_doc("Payment Entry")
+    pe.payment_type = "Pay"
+    pe.company = company
+    pe.posting_date = nowdate()
+    pe.party_type = "Supplier"
+    pe.party = supplier
+    pe.paid_from = paid_from
+    pe.paid_to = payable
+    pe.paid_amount = outstanding
+    pe.received_amount = outstanding
+    pe.reference_no = f"OVIRA-PAYOUT-{nowdate()}"
+    pe.reference_date = nowdate()
+    pe.flags.ignore_permissions = True
+    pe.insert()
+    pe.submit()
+    return pe.name
+
+
+def vendor_balances(company=None):
+    """Every vendor with a linked supplier and the balance the operator owes them.
+
+    Powers the operator's payout view: each row carries the outstanding payable
+    so the operator can see who is due what before paying."""
+    settings = frappe.get_cached_doc("Marketplace Settings")
+    company = company or settings.operator_company
+    rows = []
+    for v in frappe.get_all(
+        "Marketplace Vendor",
+        filters={"supplier": ["is", "set"]},
+        fields=["name", "vendor_name", "supplier", "status"],
+    ):
+        rows.append(
+            {
+                "vendor": v.name,
+                "vendor_name": v.vendor_name,
+                "supplier": v.supplier,
+                "status": v.status,
+                "balance_due": round(_supplier_outstanding(v.supplier, company), 2),
+                "currency": settings.default_currency,
+            }
+        )
+    rows.sort(key=lambda r: r["balance_due"], reverse=True)
+    return rows
+
+
+def run_due_payouts(company=None):
+    """Pay each active vendor their outstanding payable balance via a Payment
+    Entry (Pay). Best-effort per vendor. Returns the list of created payments."""
+    settings = frappe.get_cached_doc("Marketplace Settings")
+    company = company or settings.operator_company
+    payable, paid_from = _payout_accounts(company)
     if not (payable and paid_from):
         return []
 
@@ -102,26 +168,10 @@ def run_due_payouts(company=None):
         pluck="supplier",
     )
     for supplier in set(suppliers):
-        outstanding = _supplier_outstanding(supplier, company)
-        if outstanding <= 0:
-            continue
         try:
-            pe = frappe.new_doc("Payment Entry")
-            pe.payment_type = "Pay"
-            pe.company = company
-            pe.posting_date = nowdate()
-            pe.party_type = "Supplier"
-            pe.party = supplier
-            pe.paid_from = paid_from
-            pe.paid_to = payable
-            pe.paid_amount = outstanding
-            pe.received_amount = outstanding
-            pe.reference_no = f"OVIRA-PAYOUT-{nowdate()}"
-            pe.reference_date = nowdate()
-            pe.flags.ignore_permissions = True
-            pe.insert()
-            pe.submit()
-            paid.append(pe.name)
+            pe = pay_supplier(supplier, company, payable, paid_from)
+            if pe:
+                paid.append(pe)
         except Exception:
             frappe.log_error(title="Ovira: vendor payout failed", message=frappe.get_traceback())
     frappe.db.commit()

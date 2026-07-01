@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Store,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import type { AuthUser } from "@/lib/auth-store";
@@ -50,6 +51,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/admin/vendors", key: "adminNavVendors", icon: Store },
       { href: "/admin/products", key: "adminNavProducts", icon: Package },
       { href: "/admin/orders", key: "adminNavOrders", icon: ClipboardList },
+      { href: "/admin/payouts", key: "adminNavPayouts", icon: Wallet },
     ],
   },
   vendor: {

@@ -263,3 +263,55 @@ export async function setOrderStatus(
   if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تنفيذ العملية."));
   return (await res.json()).message;
 }
+
+// --- Payouts ---------------------------------------------------------------
+
+export type VendorPayout = {
+  vendor: string;
+  vendor_name: string;
+  supplier: string;
+  status: VendorStatus;
+  balance_due: number;
+  currency?: string;
+};
+
+export async function vendorPayouts(): Promise<VendorPayout[]> {
+  if (!BASE) return [];
+  try {
+    const res = await fetch(opUrl("vendor_payouts"), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return ((await res.json()).message ?? []) as VendorPayout[];
+  } catch {
+    return [];
+  }
+}
+
+export async function payVendor(
+  vendor: string,
+): Promise<{ paid: boolean; payment_entry?: string; message?: string }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("pay_vendor"), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify({ vendor }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تنفيذ الصرف."));
+  return (await res.json()).message;
+}
+
+export async function runAllPayouts(): Promise<{ count: number; payment_entries: string[] }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("run_all_payouts"), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify({}),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تنفيذ الصرف."));
+  return (await res.json()).message;
+}
