@@ -235,6 +235,17 @@ const ar = {
   ordSubtotal: "المجموع الفرعي",
   ordShipping: "الشحن",
   ordTotal: "الإجمالي",
+
+  // Unified dashboards (owner / vendor / buyer)
+  buyerDashboard: "حسابي",
+  buyerDashboardSub: "طلباتك وعناوينك ومفضلتك",
+  buyerNavOverview: "نظرة عامة",
+  vendorNavOverview: "نظرة عامة",
+  vendorNavProducts: "المنتجات",
+  vendorNavOrders: "الطلبات",
+  vendorNavSettings: "الإعدادات",
+  switchDashboard: "لوحات أخرى",
+  viewStore: "عرض المتجر",
 };
 
 export type Dict = typeof ar;
@@ -470,6 +481,17 @@ const en: Dict = {
   ordSubtotal: "Subtotal",
   ordShipping: "Shipping",
   ordTotal: "Total",
+
+  // Unified dashboards (owner / vendor / buyer)
+  buyerDashboard: "My account",
+  buyerDashboardSub: "Your orders, addresses and wishlist",
+  buyerNavOverview: "Overview",
+  vendorNavOverview: "Overview",
+  vendorNavProducts: "Products",
+  vendorNavOrders: "Orders",
+  vendorNavSettings: "Settings",
+  switchDashboard: "Other dashboards",
+  viewStore: "View store",
 };
 
 const DICTS: Record<Locale, Dict> = { ar, en };

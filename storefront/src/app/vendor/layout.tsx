@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Clock, Loader2, Lock, Store, XCircle } from "lucide-react";
-import { VendorSidebar } from "@/components/vendor-sidebar";
+import { DashboardShell } from "@/components/dashboard-shell";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
+import { DASHBOARDS } from "@/lib/dashboards";
 
 export default function VendorLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -84,12 +85,5 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
     );
   }
 
-  return (
-    <div className="container-ovira py-6">
-      <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
-        <VendorSidebar />
-        <div className="min-w-0">{children}</div>
-      </div>
-    </div>
-  );
+  return <DashboardShell def={DASHBOARDS.vendor}>{children}</DashboardShell>;
 }

@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, Heart, MapPin, Menu, Search, ShoppingCart, User } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { PrefsToggle } from "@/components/prefs-toggle";
 import { cartCount, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
 import { useWishlist } from "@/lib/wishlist-store";
-import { useNotifications } from "@/lib/notifications-store";
+import { getUnreadCount } from "@/lib/notifications-api";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useI18n } from "@/components/i18n-provider";
 import { useAppConfig } from "@/components/app-config-provider";
@@ -22,11 +22,19 @@ export function Header() {
   const items = useCart((s) => s.items);
   const user = useAuth((s) => s.user);
   const wishItems = useWishlist((s) => s.items);
-  const notifications = useNotifications((s) => s.notifications);
   const hydrated = useHydrated();
+  const [unread, setUnread] = useState(0);
   const count = hydrated ? cartCount(items) : 0;
   const wishCount = hydrated ? wishItems.length : 0;
-  const unread = hydrated ? notifications.filter((n) => !n.read).length : 0;
+
+  // Unread notification badge comes from the backend, once we know who's signed in.
+  useEffect(() => {
+    if (!user) {
+      setUnread(0);
+      return;
+    }
+    getUnreadCount().then(setUnread);
+  }, [user]);
   const accountLabel = hydrated && user ? user.name.split(" ")[0] : t.account;
 
   function onSearch(e: React.FormEvent) {

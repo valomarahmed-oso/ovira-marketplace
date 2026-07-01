@@ -2,30 +2,48 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Package, Plus, ShoppingBag, Star, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Clock, Loader2, Package, Plus, ShoppingBag, TrendingUp } from "lucide-react";
 import {
-  PRODUCT_STATUS_LABEL,
-  PRODUCT_STATUS_STYLE,
-  useVendor,
-} from "@/lib/vendor-store";
-import { useHydrated } from "@/lib/use-hydrated";
+  APPROVAL_LABEL,
+  APPROVAL_STYLE,
+  getMyOrders,
+  getMyProducts,
+  type VendorOrder,
+  type VendorProduct,
+} from "@/lib/vendor";
 import { cn, formatPrice } from "@/lib/utils";
 
 export default function VendorOverview() {
-  const products = useVendor((s) => s.products);
-  const hydrated = useHydrated();
+  const [products, setProducts] = useState<VendorProduct[]>([]);
+  const [orders, setOrders] = useState<VendorOrder[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (!hydrated) {
-    return <div className="card p-10 text-center text-ink-400">جارٍ التحميل…</div>;
+  useEffect(() => {
+    Promise.all([getMyProducts(), getMyOrders()])
+      .then(([p, o]) => {
+        setProducts(p);
+        setOrders(o);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+      </div>
+    );
   }
 
-  const pending = products.filter((p) => p.status === "Pending").length;
+  const pending = products.filter((p) => p.approval_status === "Pending").length;
+  const revenue = orders.reduce((sum, o) => sum + (o.vendor_total || 0), 0);
 
   const stats = [
-    { label: "مبيعات الشهر", value: formatPrice(124500), icon: TrendingUp, hint: "+12% عن الشهر اللي فات" },
-    { label: "الطلبات", value: "٨٦", icon: ShoppingBag, hint: "٧ طلبات جديدة" },
+    { label: "إجمالي المبيعات", value: formatPrice(revenue), icon: TrendingUp, hint: `${orders.length} طلب` },
+    { label: "الطلبات", value: String(orders.length), icon: ShoppingBag, hint: "كل الطلبات" },
     { label: "المنتجات", value: String(products.length), icon: Package, hint: `${pending} بانتظار المراجعة` },
-    { label: "تقييم المتجر", value: "٤٫٨", icon: Star, hint: "٢٦٣ تقييم" },
+    { label: "بانتظار المراجعة", value: String(pending), icon: Clock, hint: "منتجات غير منشورة" },
   ];
 
   return (
@@ -59,26 +77,30 @@ export default function VendorOverview() {
             عرض الكل
           </Link>
         </div>
-        <div className="divide-y divide-line">
-          {products.slice(0, 5).map((p) => (
-            <div key={p.id} className="flex items-center gap-3 p-3">
-              <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-blue-50">
-                {p.image && <Image src={p.image} alt="" fill sizes="48px" className="object-cover" />}
-              </span>
-              <div className="min-w-0 grow">
-                <div className="truncate text-sm text-ink">{p.title}</div>
-                <div className="text-xs text-ink-400">{p.category}</div>
+        {products.length === 0 ? (
+          <div className="p-8 text-center text-sm text-ink-400">لسه مفيش منتجات.</div>
+        ) : (
+          <div className="divide-y divide-line">
+            {products.slice(0, 5).map((p) => (
+              <div key={p.name} className="flex items-center gap-3 p-3">
+                <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-blue-50">
+                  {p.image && <Image src={p.image} alt="" fill sizes="48px" className="object-cover" />}
+                </span>
+                <div className="min-w-0 grow">
+                  <div className="truncate text-sm text-ink">{p.title}</div>
+                  <div className="text-xs text-ink-400">{p.category_name ?? "—"}</div>
+                </div>
+                <span className="hidden font-tech text-sm text-ink sm:block">{formatPrice(p.price, p.currency)}</span>
+                <span className="hidden w-16 text-center text-xs text-ink-400 sm:block">
+                  {p.stock_qty > 0 ? `${p.stock_qty} قطعة` : "نفد"}
+                </span>
+                <span className={cn("rounded-full px-2 py-0.5 text-xs", APPROVAL_STYLE[p.approval_status])}>
+                  {APPROVAL_LABEL[p.approval_status]}
+                </span>
               </div>
-              <span className="hidden font-tech text-sm text-ink sm:block">{formatPrice(p.price)}</span>
-              <span className="hidden w-16 text-center text-xs text-ink-400 sm:block">
-                {p.stock > 0 ? `${p.stock} قطعة` : "نفد"}
-              </span>
-              <span className={cn("rounded-full px-2 py-0.5 text-xs", PRODUCT_STATUS_STYLE[p.status])}>
-                {PRODUCT_STATUS_LABEL[p.status]}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,22 +2,44 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Package, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Loader2, Package, Plus, Trash2 } from "lucide-react";
 import {
-  PRODUCT_STATUS_LABEL,
-  PRODUCT_STATUS_STYLE,
-  useVendor,
-} from "@/lib/vendor-store";
-import { useHydrated } from "@/lib/use-hydrated";
+  APPROVAL_LABEL,
+  APPROVAL_STYLE,
+  deleteProduct,
+  getMyProducts,
+  type VendorProduct,
+} from "@/lib/vendor";
 import { cn, formatPrice } from "@/lib/utils";
 
 export default function VendorProductsPage() {
-  const products = useVendor((s) => s.products);
-  const removeProduct = useVendor((s) => s.removeProduct);
-  const hydrated = useHydrated();
+  const [products, setProducts] = useState<VendorProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [removing, setRemoving] = useState<string | null>(null);
 
-  if (!hydrated) {
-    return <div className="card p-10 text-center text-ink-400">جارٍ التحميل…</div>;
+  useEffect(() => {
+    getMyProducts()
+      .then(setProducts)
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function remove(name: string) {
+    setRemoving(name);
+    try {
+      await deleteProduct(name);
+      setProducts((list) => list.filter((p) => p.name !== name));
+    } finally {
+      setRemoving(null);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+      </div>
+    );
   }
 
   return (
@@ -43,28 +65,29 @@ export default function VendorProductsPage() {
         <div className="card overflow-hidden">
           <div className="divide-y divide-line">
             {products.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 p-3">
+              <div key={p.name} className="flex items-center gap-3 p-3">
                 <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-blue-50">
                   {p.image && <Image src={p.image} alt="" fill sizes="56px" className="object-cover" />}
                 </span>
                 <div className="min-w-0 grow">
                   <div className="truncate text-sm text-ink">{p.title}</div>
-                  <div className="font-tech text-xs text-ink-400">{p.id}</div>
+                  <div className="font-tech text-xs text-ink-400">{p.name}</div>
                 </div>
-                <span className="hidden font-tech text-sm text-ink sm:block">{formatPrice(p.price)}</span>
+                <span className="hidden font-tech text-sm text-ink sm:block">{formatPrice(p.price, p.currency)}</span>
                 <span className="hidden w-20 text-center text-xs text-ink-400 md:block">
-                  {p.stock > 0 ? `${p.stock} قطعة` : "نفد المخزون"}
+                  {p.stock_qty > 0 ? `${p.stock_qty} قطعة` : "نفد المخزون"}
                 </span>
-                <span className={cn("rounded-full px-2 py-0.5 text-xs", PRODUCT_STATUS_STYLE[p.status])}>
-                  {PRODUCT_STATUS_LABEL[p.status]}
+                <span className={cn("rounded-full px-2 py-0.5 text-xs", APPROVAL_STYLE[p.approval_status])}>
+                  {APPROVAL_LABEL[p.approval_status]}
                 </span>
                 <button
                   type="button"
-                  onClick={() => removeProduct(p.id)}
+                  onClick={() => remove(p.name)}
+                  disabled={removing === p.name}
                   aria-label="حذف المنتج"
-                  className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-coral-50 hover:text-coral"
+                  className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-coral-50 hover:text-coral disabled:opacity-50"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  {removing === p.name ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </button>
               </div>
             ))}

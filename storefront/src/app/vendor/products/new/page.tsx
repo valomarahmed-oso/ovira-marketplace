@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowRight, Save } from "lucide-react";
-import { MOCK_CATEGORIES } from "@/lib/api";
-import { useVendor } from "@/lib/vendor-store";
+import { useEffect, useState } from "react";
+import { ArrowRight, Loader2, Save } from "lucide-react";
+import { getCategories, type Category } from "@/lib/api";
+import { upsertProduct } from "@/lib/vendor";
 
 export default function NewProductPage() {
   const router = useRouter();
-  const addProduct = useVendor((s) => s.addProduct);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState({
     title: "",
-    category: MOCK_CATEGORIES[0].category_name,
+    category: "",
     price: "",
     compare_at_price: "",
     stock: "",
@@ -21,22 +21,35 @@ export default function NewProductPage() {
     description: "",
   });
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function submit(e: React.FormEvent) {
+  useEffect(() => {
+    getCategories().then((cats) => {
+      setCategories(cats);
+      setForm((f) => (f.category ? f : { ...f, category: cats[0]?.name ?? "" }));
+    });
+  }, []);
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    // TODO: POST to ovira_marketplace.api.products.upsert_product when backend is wired.
-    addProduct({
-      title: form.title,
-      category: form.category,
-      price: Number(form.price) || 0,
-      compare_at_price: form.compare_at_price ? Number(form.compare_at_price) : undefined,
-      stock: Number(form.stock) || 0,
-      condition: form.condition,
-      image: form.image || undefined,
-      description: form.description || undefined,
-    });
-    router.push("/vendor/products");
+    setError(null);
+    try {
+      await upsertProduct({
+        title: form.title,
+        category: form.category || undefined,
+        price: Number(form.price) || 0,
+        compare_at_price: form.compare_at_price ? Number(form.compare_at_price) : undefined,
+        stock_qty: form.stock ? Number(form.stock) : undefined,
+        condition: form.condition,
+        image: form.image || undefined,
+        description: form.description || undefined,
+      });
+      router.push("/vendor/products");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذّر حفظ المنتج.");
+      setBusy(false);
+    }
   }
 
   const field = "h-11 w-full rounded-xl border border-line bg-white px-4 text-sm outline-none focus:border-blue";
@@ -50,6 +63,10 @@ export default function NewProductPage() {
         </Link>
         <h1 className="text-2xl font-medium text-ink">إضافة منتج</h1>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-coral bg-coral-50 px-4 py-3 text-sm text-coral">{error}</div>
+      )}
 
       <form onSubmit={submit} className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
@@ -79,8 +96,8 @@ export default function NewProductPage() {
             <div>
               <label className={label}>القسم</label>
               <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={field}>
-                {MOCK_CATEGORIES.map((c) => (
-                  <option key={c.slug}>{c.category_name}</option>
+                {categories.map((c) => (
+                  <option key={c.name} value={c.name}>{c.category_name}</option>
                 ))}
               </select>
             </div>
@@ -113,7 +130,7 @@ export default function NewProductPage() {
           </section>
 
           <button type="submit" disabled={busy} className="btn btn-primary w-full disabled:opacity-50">
-            <Save className="h-4 w-4" /> حفظ المنتج
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} حفظ المنتج
           </button>
           <p className="text-center text-xs text-ink-400">المنتج هيتراجع من الإدارة قبل النشر</p>
         </div>

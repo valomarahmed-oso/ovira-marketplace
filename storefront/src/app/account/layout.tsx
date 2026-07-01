@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, LogIn } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import { DASHBOARDS } from "@/lib/dashboards";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
-  const pathname = usePathname();
   const user = useAuth((s) => s.user);
   const ready = useAuth((s) => s.ready);
 
@@ -22,26 +20,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!user || !user.isOperator) {
+  if (!user) {
     return (
       <div className="container-ovira py-16">
         <div className="card mx-auto max-w-md space-y-4 p-10 text-center">
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-50">
-            <Lock className="h-7 w-7 text-blue-600" />
+            <LogIn className="h-7 w-7 text-blue-600" />
           </div>
-          <h1 className="text-xl font-medium text-ink">{t.adminAccessDenied}</h1>
-          {!user && (
-            <Link
-              href={`/login?next=${encodeURIComponent(pathname || "/admin")}`}
-              className="btn btn-primary inline-flex"
-            >
-              {t.loginTitle}
-            </Link>
-          )}
+          <h1 className="text-xl font-medium text-ink">{t.signInPrompt}</h1>
+          <p className="text-sm text-ink-400">{t.signInPromptSub}</p>
+          <div className="flex justify-center gap-2">
+            <Link href="/login?next=%2Faccount" className="btn btn-primary">{t.loginTitle}</Link>
+            <Link href="/register" className="btn btn-ghost">{t.createAccount}</Link>
+          </div>
         </div>
       </div>
     );
   }
 
-  return <DashboardShell def={DASHBOARDS.operator}>{children}</DashboardShell>;
+  return <DashboardShell def={DASHBOARDS.buyer}>{children}</DashboardShell>;
 }

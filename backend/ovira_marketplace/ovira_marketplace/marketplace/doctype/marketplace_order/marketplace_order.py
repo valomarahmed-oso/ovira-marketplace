@@ -3,6 +3,16 @@ from frappe.model.document import Document
 from frappe.utils import add_days, flt, nowdate
 
 
+STATUS_TITLE = {
+    "Pending Payment": "بانتظار الدفع",
+    "Paid": "تم استلام الدفع",
+    "Processing": "طلبك قيد التجهيز",
+    "Shipped": "تم شحن طلبك",
+    "Completed": "تم تسليم طلبك",
+    "Cancelled": "تم إلغاء طلبك",
+}
+
+
 class MarketplaceOrder(Document):
     def validate(self):
         for row in self.items:
@@ -10,6 +20,35 @@ class MarketplaceOrder(Document):
         self.subtotal = sum(flt(r.amount) for r in self.items)
         if self.total is None:
             self.total = flt(self.subtotal) + flt(self.shipping_amount)
+
+    def on_update(self):
+        self._notify_status_change()
+
+    def _notify_status_change(self):
+        """Raise a buyer notification whenever the order status advances.
+
+        Best-effort: a notification failure must never block the status change.
+        """
+        before = self.get_doc_before_save()
+        if not before or before.status == self.status:
+            return
+        recipient = self.email if self.email and frappe.db.exists("User", self.email) else None
+        if not recipient:
+            return
+        try:
+            from ovira_marketplace.api.notifications import create_notification
+
+            title = STATUS_TITLE.get(self.status, self.status)
+            create_notification(
+                user=recipient,
+                kind="order",
+                title=title,
+                message=f"{title} — {self.name}",
+                reference_doctype="Marketplace Order",
+                reference_name=self.name,
+            )
+        except Exception:
+            frappe.log_error(title="Ovira order notification failed")
 
     def create_vendor_orders(self):
         """Split the order into one ERPNext Sales Order per vendor and book

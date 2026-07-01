@@ -3,33 +3,48 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Check, MapPin, Package } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Loader2, MapPin, Package } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { OviraBars } from "@/components/ovira-bars";
-import { ORDER_STEPS, useOrders } from "@/lib/orders-store";
-import { useHydrated } from "@/lib/use-hydrated";
+import { getOrder, ORDER_STEPS, type BuyerOrder } from "@/lib/orders-api";
 import { cn, formatPrice } from "@/lib/utils";
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat("ar-EG", { dateStyle: "long" }).format(new Date(iso));
 }
 
+// How far along the tracker each status sits.
+const STEP_INDEX: Record<string, number> = {
+  "Pending Payment": -1,
+  Paid: 0,
+  Processing: 1,
+  Shipped: 2,
+  Completed: 3,
+};
+
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const order = useOrders((s) => s.orders.find((o) => o.id === id));
-  const hydrated = useHydrated();
+  const [order, setOrder] = useState<BuyerOrder | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!hydrated) {
+  useEffect(() => {
+    getOrder(id)
+      .then(setOrder)
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
     return (
-      <div className="container-ovira py-10">
-        <div className="card p-10 text-center text-ink-400">جارٍ التحميل…</div>
+      <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="container-ovira py-16">
+      <div className="py-8">
         <div className="card mx-auto max-w-md space-y-4 p-10 text-center">
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-50">
             <Package className="h-7 w-7 text-blue-600" />
@@ -41,25 +56,24 @@ export default function OrderDetailPage() {
     );
   }
 
-  const stepIndex =
-    order.status === "delivered" ? 2 : order.status === "shipped" ? 1 : 0;
+  const stepIndex = STEP_INDEX[order.status] ?? -1;
 
   return (
-    <div className="container-ovira space-y-6 py-6">
+    <div className="space-y-6">
       <Breadcrumb
         items={[
           { label: "حسابي", href: "/account" },
           { label: "طلباتي", href: "/account/orders" },
-          { label: order.id },
+          { label: order.name },
         ]}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-tech text-2xl font-medium text-ink">{order.id}</h1>
-        <span className="text-sm text-ink-400">{formatDate(order.date)}</span>
+        <h1 className="font-tech text-2xl font-medium text-ink">{order.name}</h1>
+        <span className="text-sm text-ink-400">{formatDate(order.creation)}</span>
       </div>
 
-      {order.status !== "cancelled" && (
+      {order.status !== "Cancelled" && (
         <div className="card p-5">
           <div className="flex items-center justify-between">
             {ORDER_STEPS.map((step, i) => {
@@ -84,17 +98,16 @@ export default function OrderDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-3 lg:col-span-2">
-          {order.items.map(({ product: p, qty }) => (
-            <div key={p.slug} className="card flex gap-4 p-3">
+          {order.items.map((it, idx) => (
+            <div key={`${it.marketplace_product}-${idx}`} className="card flex gap-4 p-3">
               <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-blue-50">
-                {p.image && <Image src={p.image} alt={p.title} fill sizes="80px" className="object-cover" />}
+                {it.image && <Image src={it.image} alt={it.title} fill sizes="80px" className="object-cover" />}
               </span>
               <div className="flex grow flex-col">
-                <span className="line-clamp-2 text-sm text-ink">{p.title}</span>
-                <span className="text-xs text-ink-400">{p.vendor_name}</span>
+                <span className="line-clamp-2 text-sm text-ink">{it.title}</span>
                 <div className="mt-auto flex items-center justify-between pt-2">
-                  <span className="text-sm text-ink-400">الكمية: {qty}</span>
-                  <span className="font-tech font-medium text-ink">{formatPrice(p.price * qty, p.currency)}</span>
+                  <span className="text-sm text-ink-400">الكمية: {it.qty}</span>
+                  <span className="font-tech font-medium text-ink">{formatPrice(it.amount, order.currency)}</span>
                 </div>
               </div>
             </div>
@@ -107,10 +120,11 @@ export default function OrderDetailPage() {
               <MapPin className="h-4 w-4 text-blue-600" /> عنوان التوصيل
             </div>
             <div className="text-sm leading-6 text-ink-600">
-              <div className="text-ink">{order.address.name}</div>
-              <div>{order.address.phone}</div>
+              <div className="text-ink">{order.customer_name}</div>
+              <div>{order.phone}</div>
               <div>
-                {order.address.address}، {order.address.gov}
+                {order.shipping_address}
+                {order.governorate ? `، ${order.governorate}` : ""}
               </div>
             </div>
           </div>
@@ -121,20 +135,20 @@ export default function OrderDetailPage() {
             </div>
             <div className="flex justify-between text-sm text-ink-600">
               <span>الإجمالي الفرعي</span>
-              <span className="font-tech text-ink">{formatPrice(order.subtotal)}</span>
+              <span className="font-tech text-ink">{formatPrice(order.subtotal, order.currency)}</span>
             </div>
             <div className="flex justify-between text-sm text-ink-600">
               <span>الشحن</span>
               <span className="font-tech text-ink">
-                {order.shipping === 0 ? <span className="text-mint">مجاني</span> : formatPrice(order.shipping)}
+                {order.shipping_amount === 0 ? <span className="text-mint">مجاني</span> : formatPrice(order.shipping_amount, order.currency)}
               </span>
             </div>
             <div className="flex justify-between border-t border-line pt-2 font-medium text-ink">
               <span>الإجمالي</span>
-              <span className="font-tech">{formatPrice(order.total)}</span>
+              <span className="font-tech">{formatPrice(order.total, order.currency)}</span>
             </div>
             <div className="pt-1 text-xs text-ink-400">
-              طريقة الدفع: {order.payment === "cod" ? "الدفع عند الاستلام" : "بطاقة ائتمان"}
+              طريقة الدفع: {order.payment_method === "cod" ? "الدفع عند الاستلام" : order.payment_method || "—"}
             </div>
           </div>
         </div>

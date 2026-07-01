@@ -6,7 +6,7 @@ import { useState } from "react";
 import { CreditCard, Truck } from "lucide-react";
 import { initiatePayment, placeOrder as apiPlaceOrder } from "@/lib/api";
 import { cartSubtotal, shippingFor, useCart } from "@/lib/cart-store";
-import { useOrders } from "@/lib/orders-store";
+import { useAuth } from "@/lib/auth-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { OrderSummary } from "@/components/order-summary";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const items = useCart((s) => s.items);
   const clear = useCart((s) => s.clear);
-  const addOrder = useOrders((s) => s.addOrder);
+  const user = useAuth((s) => s.user);
   const hydrated = useHydrated();
 
   const [form, setForm] = useState({ name: "", phone: "", gov: GOVERNORATES[0], address: "" });
@@ -45,29 +45,22 @@ export default function CheckoutPage() {
   async function placeOrder(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    const sub = cartSubtotal(items);
-    const ship = shippingFor(sub);
 
-    // Create the order in ERPNext when the backend is connected; otherwise the
-    // remote call returns null and we keep a local record so the demo still flows.
+    // Create the order in ERPNext. The logged-in shopper's email is attached so
+    // the order resolves to their account under "my orders". Guests still check
+    // out; a local id keeps the success page flowing if the backend is offline.
     const remote = await apiPlaceOrder({
       items: items.map((i) => ({ slug: i.product.slug, qty: i.qty })),
-      customer: { name: form.name, phone: form.phone, gov: form.gov, address: form.address },
+      customer: {
+        name: form.name,
+        phone: form.phone,
+        email: user?.email,
+        gov: form.gov,
+        address: form.address,
+      },
       payment_method: pay,
     });
     const id = remote?.name ?? "OVR-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-
-    addOrder({
-      id,
-      date: new Date().toISOString(),
-      items,
-      subtotal: sub,
-      shipping: ship,
-      total: sub + ship,
-      status: "processing",
-      payment: pay,
-      address: form,
-    });
 
     // For a real card order, send the shopper to the payment gateway.
     if (remote?.name) {
