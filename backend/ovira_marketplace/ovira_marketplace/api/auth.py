@@ -8,6 +8,7 @@ canonical identity (roles, vendor link) and a self-service customer sign-up.
 
 import frappe
 from frappe import _
+from frappe.rate_limiter import rate_limit
 
 from ovira_marketplace.customers import get_or_create_customer
 
@@ -58,6 +59,7 @@ def _csrf_token():
 
 
 @frappe.whitelist(allow_guest=True)
+@rate_limit(limit=10, seconds=60 * 60, methods="POST")
 def register_customer(full_name, email, password, phone=None):
     """Self-service buyer sign-up.
 

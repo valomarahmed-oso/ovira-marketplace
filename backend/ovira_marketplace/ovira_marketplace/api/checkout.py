@@ -2,6 +2,7 @@ import json
 
 import frappe
 from frappe import _
+from frappe.rate_limiter import rate_limit
 from frappe.utils import flt
 
 from ovira_marketplace.customers import (
@@ -18,6 +19,7 @@ FLAT_SHIPPING = 50
 
 
 @frappe.whitelist(allow_guest=True)
+@rate_limit(limit=30, seconds=60 * 60, methods="POST")
 def place_order(items, customer, payment_method="cod"):
     """Create a Marketplace Order from the storefront cart and split it into
     per-vendor ERPNext Sales Orders.

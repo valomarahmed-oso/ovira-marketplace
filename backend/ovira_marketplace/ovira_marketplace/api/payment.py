@@ -2,6 +2,7 @@ import hmac
 
 import frappe
 from frappe import _
+from frappe.rate_limiter import rate_limit
 from frappe.utils import nowdate
 
 from ovira_marketplace.customers import customer_for_user
@@ -11,6 +12,7 @@ OPERATOR_ROLES = {"System Manager", "Marketplace Operator", "Administrator"}
 
 
 @frappe.whitelist(allow_guest=True)
+@rate_limit(limit=30, seconds=60 * 60, methods="POST")
 def create_payment(order, token=None, return_url=None):
     """Start payment for a Marketplace Order. Returns a redirect_url for hosted
     gateways, or a `cod`/`manual` method when no redirect is needed.
