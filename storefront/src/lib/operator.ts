@@ -315,3 +315,43 @@ export async function runAllPayouts(): Promise<{ count: number; payment_entries:
   if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تنفيذ الصرف."));
   return (await res.json()).message;
 }
+
+// --- Accounting recovery ---------------------------------------------------
+
+export type FailedAccountingOrder = {
+  name: string;
+  customer_name?: string;
+  total?: number;
+  currency?: string;
+  creation?: string;
+  accounting_error?: string;
+};
+
+export async function failedAccountingOrders(): Promise<FailedAccountingOrder[]> {
+  if (!BASE) return [];
+  try {
+    const res = await fetch(opUrl("failed_accounting_orders"), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return ((await res.json()).message ?? []) as FailedAccountingOrder[];
+  } catch {
+    return [];
+  }
+}
+
+export async function retryOrderAccounting(
+  order: string,
+): Promise<{ order: string; ok: boolean; accounting_status: string }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("retry_order_accounting"), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify({ order }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر إعادة المحاولة."));
+  return (await res.json()).message;
+}

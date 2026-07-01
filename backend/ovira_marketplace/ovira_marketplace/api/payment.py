@@ -3,7 +3,7 @@ import hmac
 import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
-from frappe.utils import nowdate
+from frappe.utils import flt, nowdate
 
 from ovira_marketplace.customers import customer_for_user
 from ovira_marketplace.marketplace_payments.connectors import get_connector
@@ -92,56 +92,111 @@ def paymob_callback(**kwargs):
 
 
 def record_payment(order_name, reference=None, connector=None):
-    """Mark an order paid, then invoice each vendor Sales Order and book a
-    customer Payment Entry against the resulting Sales Invoice."""
+    """Mark an order paid, then book its accounting (invoices, customer Payment
+    Entry, vendor settlement). The capture and the booking are decoupled: if the
+    booking fails the payment still stands and the order is flagged for retry."""
     order = frappe.get_doc("Marketplace Order", order_name)
-    if order.payment_status == "Paid":
-        return
-    order.db_set("payment_status", "Paid")
-    order.db_set("status", "Processing")
-    if reference:
-        order.db_set("payment_reference", reference)
-    _invoice_and_settle(order, reference)
-    _settle_vendors(order)
+    if order.payment_status == "Paid" and order.get("accounting_status") == "Booked":
+        return  # fully done already
+    if order.payment_status != "Paid":
+        order.db_set("payment_status", "Paid")
+        order.db_set("status", "Processing")
+        if reference:
+            order.db_set("payment_reference", reference)
+    book_order_accounting(order, reference or order.payment_reference)
     frappe.db.commit()
 
 
-def _settle_vendors(order):
-    """Book each vendor's payable (Debit COGS / Credit vendor payable).
-    Best-effort: the customer payment is already captured."""
-    try:
-        from ovira_marketplace.vendor.settlement import settle_order
+def book_order_accounting(order, reference=None):
+    """Invoice each vendor Sales Order, book the customer Payment Entry and the
+    vendor settlement, then record the outcome on the order.
 
-        settle_order(order)
-    except Exception:
-        frappe.log_error(title="Ovira: vendor settlement failed", message=frappe.get_traceback())
+    Idempotent and safe to re-run: it skips Sales Orders already invoiced and
+    invoices already paid, so a retry after a partial failure never double-books.
+    A failure after the customer was charged is surfaced (``accounting_status =
+    Failed`` + ``accounting_error`` + an Error Log) instead of being lost."""
+    if isinstance(order, str):
+        order = frappe.get_doc("Marketplace Order", order)
+
+    errors = []
+    _invoice_and_pay(order, reference, errors)
+    _settle_vendors(order, errors)
+
+    if errors:
+        order.db_set("accounting_status", "Failed")
+        order.db_set("accounting_error", ("\n".join(errors))[:2000])
+        frappe.log_error(
+            title="Ovira: order accounting incomplete",
+            message=f"Order {order.name}\n" + "\n".join(errors),
+        )
+    else:
+        order.db_set("accounting_status", "Booked")
+        order.db_set("accounting_error", None)
+    return not errors
 
 
-def _invoice_and_settle(order, reference):
-    """One Sales Invoice + Payment Entry per vendor Sales Order. Best-effort:
-    a payment was already captured, so log (not raise) any accounting hiccup."""
+def _invoice_and_pay(order, reference, errors):
+    """One Sales Invoice + customer Payment Entry per vendor Sales Order."""
     from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
     from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
     done = set()
     for row in order.items:
-        if not row.sales_order or row.sales_order in done:
+        so_name = row.sales_order
+        if not so_name or so_name in done:
             continue
-        done.add(row.sales_order)
+        done.add(so_name)
         try:
-            invoice = make_sales_invoice(row.sales_order)
-            invoice.flags.ignore_permissions = True
-            invoice.insert()
-            invoice.submit()
-
-            payment = get_payment_entry("Sales Invoice", invoice.name)
-            payment.reference_no = reference or order.name
-            payment.reference_date = nowdate()
-            payment.flags.ignore_permissions = True
-            payment.insert()
-            payment.submit()
+            invoice = _existing_invoice(so_name)
+            if not invoice:
+                invoice = make_sales_invoice(so_name)
+                invoice.flags.ignore_permissions = True
+                invoice.insert()
+                invoice.submit()
+            _ensure_invoice_paid(get_payment_entry, invoice, reference or order.name)
         except Exception:
+            errors.append(f"SO {so_name}: {_last_error_line()}")
             frappe.log_error(
                 title="Ovira: invoice/payment failed",
-                message=f"Order {order.name}, SO {row.sales_order}\n{frappe.get_traceback()}",
+                message=f"Order {order.name}, SO {so_name}\n{frappe.get_traceback()}",
             )
+
+
+def _existing_invoice(so_name):
+    """A submitted Sales Invoice already billed against this Sales Order, if any."""
+    name = frappe.db.get_value(
+        "Sales Invoice Item", {"sales_order": so_name, "docstatus": 1}, "parent"
+    )
+    return frappe.get_doc("Sales Invoice", name) if name else None
+
+
+def _ensure_invoice_paid(get_payment_entry, invoice, reference):
+    """Book a customer Payment Entry against the invoice unless it's already paid."""
+    if flt(invoice.outstanding_amount) <= 0:
+        return
+    if frappe.db.exists(
+        "Payment Entry Reference",
+        {"reference_doctype": "Sales Invoice", "reference_name": invoice.name, "docstatus": 1},
+    ):
+        return
+    payment = get_payment_entry("Sales Invoice", invoice.name)
+    payment.reference_no = reference
+    payment.reference_date = nowdate()
+    payment.flags.ignore_permissions = True
+    payment.insert()
+    payment.submit()
+
+
+def _settle_vendors(order, errors):
+    """Book each vendor's payable (idempotent via settle_order)."""
+    try:
+        from ovira_marketplace.vendor.settlement import settle_order
+
+        settle_order(order)
+    except Exception:
+        errors.append(f"settlement: {_last_error_line()}")
+        frappe.log_error(title="Ovira: vendor settlement failed", message=frappe.get_traceback())
+
+
+def _last_error_line():
+    return (frappe.get_traceback().strip().splitlines() or [""])[-1][:200]

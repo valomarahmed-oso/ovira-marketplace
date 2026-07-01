@@ -16,6 +16,8 @@
   "payment_status",
   "payment_method",
   "payment_reference",
+  "accounting_status",
+  "accounting_error",
   "shipping_section",
   "governorate",
   "shipping_address",
@@ -93,6 +95,21 @@
    "fieldname": "payment_reference",
    "fieldtype": "Data",
    "label": "Payment reference"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "accounting_status",
+   "fieldtype": "Select",
+   "label": "Accounting status",
+   "options": "Pending\nBooked\nFailed",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.accounting_status=='Failed'",
+   "fieldname": "accounting_error",
+   "fieldtype": "Small Text",
+   "label": "Accounting error",
+   "read_only": 1
   },
   {
    "fieldname": "shipping_section",

@@ -324,3 +324,34 @@ def run_all_payouts():
 
     paid = run_due_payouts()
     return {"count": len(paid), "payment_entries": paid}
+
+
+# ---------------------------------------------------------------------------
+# Accounting recovery — retry orders whose post-payment booking failed
+# ---------------------------------------------------------------------------
+
+
+@frappe.whitelist()
+def failed_accounting_orders(limit=200):
+    """Paid orders whose invoice/settlement booking failed and needs a retry."""
+    _require_operator()
+    return frappe.get_all(
+        "Marketplace Order",
+        filters={"accounting_status": "Failed"},
+        fields=["name", "customer_name", "total", "currency", "creation", "accounting_error"],
+        order_by="creation desc",
+        limit_page_length=cint(limit) or 200,
+        ignore_permissions=True,
+    )
+
+
+@frappe.whitelist()
+def retry_order_accounting(order):
+    """Re-run the post-payment booking for one order (idempotent)."""
+    _require_operator()
+    from ovira_marketplace.api.payment import book_order_accounting
+
+    ok = book_order_accounting(order)
+    frappe.db.commit()
+    status = frappe.db.get_value("Marketplace Order", order, "accounting_status")
+    return {"order": order, "ok": ok, "accounting_status": status}

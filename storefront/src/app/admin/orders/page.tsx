@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, ChevronDown, ClipboardList, Loader2, MapPin, Search } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
+import { AccountingAlerts } from "@/components/accounting-alerts";
 import {
   getOrder,
   listOrders,
@@ -129,6 +130,8 @@ export default function AdminOrdersPage() {
         <h2 className="text-xl font-medium text-ink">{t.ordAdminTitle}</h2>
         <p className="text-sm text-ink-400">{t.ordAdminSubtitle}</p>
       </div>
+
+      <AccountingAlerts />
 
       {/* Status tabs */}
       <div className="flex flex-wrap gap-2">
