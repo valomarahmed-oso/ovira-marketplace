@@ -33,6 +33,9 @@
   "stock_qty",
   "column_break_inventory",
   "low_stock_threshold",
+  "ratings_section",
+  "rating",
+  "review_count",
   "description_section",
   "short_description",
   "description",
@@ -217,6 +220,26 @@
    "fieldname": "low_stock_threshold",
    "fieldtype": "Int",
    "label": "Low stock threshold"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "ratings_section",
+   "fieldtype": "Section Break",
+   "label": "Ratings"
+  },
+  {
+   "description": "Average of published reviews (recomputed automatically).",
+   "fieldname": "rating",
+   "fieldtype": "Float",
+   "label": "Rating",
+   "precision": "1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "review_count",
+   "fieldtype": "Int",
+   "label": "Review count",
+   "read_only": 1
   },
   {
    "fieldname": "description_section",

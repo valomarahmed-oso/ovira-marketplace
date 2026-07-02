@@ -13,6 +13,8 @@ PRODUCT_LIST_FIELDS = [
     "category",
     "brand",
     "stock_qty",
+    "rating",
+    "review_count",
 ]
 
 SORT_MAP = {
@@ -142,6 +144,7 @@ def _attach_card_fields(products):
     for p in products:
         p["image"] = image_by_product.get(p.name)
         p["vendor_name"] = vendor_names.get(p.vendor)
+        p["reviews"] = cint(p.get("review_count"))
 
 
 @frappe.whitelist(allow_guest=True)
@@ -158,6 +161,7 @@ def get_product(slug):
         doc.get("media")[0] if doc.get("media") else None
     )
     doc["image"] = primary.get("image") if primary else None
+    doc["reviews"] = cint(doc.get("review_count"))
     return doc
 
 
