@@ -8,6 +8,7 @@ purchase.
 
 import frappe
 from frappe import _
+from frappe.rate_limiter import rate_limit
 from frappe.utils import cint
 
 
@@ -99,7 +100,7 @@ def list_reviews(product, limit=50):
 
 
 @frappe.whitelist()
-@frappe.rate_limit(key="add_review", limit=20, seconds=60 * 60)
+@rate_limit(limit=20, seconds=60 * 60, methods="POST")
 def add_review(product, rating, body, author=None):
     """Add (or replace) the signed-in buyer's review of a product."""
     email = _session_email()
