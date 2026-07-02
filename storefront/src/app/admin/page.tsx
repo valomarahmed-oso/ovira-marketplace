@@ -85,6 +85,13 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
+      {s.email_configured === false && (
+        <div className="flex items-start gap-2 rounded-xl bg-[#fdf2dd] px-4 py-3 text-sm text-[#854f0b]">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{t.emailNotConfigured}</span>
+        </div>
+      )}
+
       {/* General */}
       <section className="card space-y-5 p-6">
         <div className="flex items-center gap-2 font-medium text-ink">

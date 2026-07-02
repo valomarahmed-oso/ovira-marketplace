@@ -32,30 +32,39 @@ class MarketplaceOrder(Document):
         self._notify_status_change()
 
     def _notify_status_change(self):
-        """Raise a buyer notification whenever the order status advances.
+        """On every status advance: raise an in-app notification for a registered
+        buyer, and email whoever the order is addressed to (guest or registered).
 
-        Best-effort: a notification failure must never block the status change.
+        Best-effort: a notification/email failure must never block the status
+        change.
         """
         before = self.get_doc_before_save()
         if not before or before.status == self.status:
             return
-        recipient = self.email if self.email and frappe.db.exists("User", self.email) else None
-        if not recipient:
-            return
-        try:
-            from ovira_marketplace.api.notifications import create_notification
 
-            title = STATUS_TITLE.get(self.status, self.status)
-            create_notification(
-                user=recipient,
-                kind="order",
-                title=title,
-                message=f"{title} — {self.name}",
-                reference_doctype="Marketplace Order",
-                reference_name=self.name,
-            )
+        recipient = self.email if self.email and frappe.db.exists("User", self.email) else None
+        if recipient:
+            try:
+                from ovira_marketplace.api.notifications import create_notification
+
+                title = STATUS_TITLE.get(self.status, self.status)
+                create_notification(
+                    user=recipient,
+                    kind="order",
+                    title=title,
+                    message=f"{title} — {self.name}",
+                    reference_doctype="Marketplace Order",
+                    reference_name=self.name,
+                )
+            except Exception:
+                frappe.log_error(title="Ovira order notification failed")
+
+        try:
+            from ovira_marketplace.emails import send_order_status
+
+            send_order_status(self)
         except Exception:
-            frappe.log_error(title="Ovira order notification failed")
+            frappe.log_error(title="Ovira order status email failed")
 
     def create_vendor_orders(self):
         """Split the order into one ERPNext Sales Order per vendor and book

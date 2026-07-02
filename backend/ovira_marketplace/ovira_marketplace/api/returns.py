@@ -170,4 +170,12 @@ def set_return_status(name, status, note=None, refund_amount=None):
     doc.flags.ignore_permissions = True
     doc.save(ignore_permissions=True)
     frappe.db.commit()
+
+    try:
+        from ovira_marketplace.emails import send_return_update
+
+        send_return_update(doc.customer_email, doc.marketplace_order, doc.status, doc.operator_note)
+    except Exception:
+        frappe.log_error(title="Ovira: return email failed")
+
     return _to_flat(doc)

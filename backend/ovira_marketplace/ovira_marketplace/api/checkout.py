@@ -122,6 +122,13 @@ def place_order(items, customer, payment_method="cod", coupon=None):
         _redeem_coupon(coupon_doc.name)
     frappe.db.commit()
 
+    try:
+        from ovira_marketplace.emails import send_order_confirmation
+
+        send_order_confirmation(order)
+    except Exception:
+        frappe.log_error(title="Ovira: order confirmation email failed")
+
     # `token` lets the storefront start payment for this specific order without
     # exposing every order to any guest who can guess an id.
     return {

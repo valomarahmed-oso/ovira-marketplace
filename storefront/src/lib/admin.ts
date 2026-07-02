@@ -13,6 +13,8 @@ export type AdminSettings = {
   deal_product?: string | null;
   sales_tax_template?: string | null;
   shipping_account?: string | null;
+  /** Read-only: whether outgoing email is configured (drives the email hint). */
+  email_configured?: boolean;
 };
 
 async function errorMessage(res: Response, fallback: string): Promise<string> {

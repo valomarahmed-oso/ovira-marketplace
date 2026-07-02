@@ -38,6 +38,12 @@ def _require_operator():
 def _serialize(settings):
     data = {f: settings.get(f) for f in ADMIN_FIELDS}
     data["is_operator"] = True
+    try:
+        from ovira_marketplace.emails import outgoing_configured
+
+        data["email_configured"] = outgoing_configured()
+    except Exception:
+        data["email_configured"] = False
     return data
 
 

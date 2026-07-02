@@ -218,6 +218,8 @@ const ar = {
   adminNavReturns: "المرتجعات",
   adminNavCoupons: "الكوبونات",
   adminNavPayouts: "المستحقات",
+  emailNotConfigured:
+    "إشعارات الإيميل غير مُفعّلة: أضف حساب بريد صادر (Email Account) في ERPNext لبدء إرسال رسائل الطلبات والمرتجعات.",
   payoutsTitle: "مستحقات البائعين",
   payoutsSubtitle: "اصرف للبائعين أرصدتهم المستحقة من المبيعات المدفوعة.",
   payoutTotalDue: "إجمالي المستحق",
@@ -521,6 +523,8 @@ const en: Dict = {
   adminNavReturns: "Returns",
   adminNavCoupons: "Coupons",
   adminNavPayouts: "Payouts",
+  emailNotConfigured:
+    "Email notifications are off: add an outgoing Email Account in ERPNext to start sending order and return emails.",
   payoutsTitle: "Vendor payouts",
   payoutsSubtitle: "Pay vendors the balances owed to them from paid sales.",
   payoutTotalDue: "Total due",
