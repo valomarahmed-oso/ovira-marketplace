@@ -1,6 +1,7 @@
 import {
   Bell,
   ClipboardList,
+  CreditCard,
   Heart,
   LayoutDashboard,
   MapPin,
@@ -9,6 +10,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Store,
+  Truck,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -52,6 +54,8 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/admin/products", key: "adminNavProducts", icon: Package },
       { href: "/admin/orders", key: "adminNavOrders", icon: ClipboardList },
       { href: "/admin/payouts", key: "adminNavPayouts", icon: Wallet },
+      { href: "/admin/payments", key: "adminNavPayments", icon: CreditCard },
+      { href: "/admin/shipping", key: "adminNavShipping", icon: Truck },
     ],
   },
   vendor: {

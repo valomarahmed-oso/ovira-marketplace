@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Bell, Heart, MapPin, Menu, Search, ShoppingCart, User } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { MobileMenu } from "@/components/mobile-menu";
 import { PrefsToggle } from "@/components/prefs-toggle";
 import { cartCount, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
@@ -19,6 +20,7 @@ export function Header() {
   const { t } = useI18n();
   const { multiVendor } = useAppConfig();
   const [q, setQ] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
   const items = useCart((s) => s.items);
   const user = useAuth((s) => s.user);
   const wishItems = useWishlist((s) => s.items);
@@ -62,9 +64,16 @@ export function Header() {
       </div>
 
       <div className="container-ovira flex h-16 items-center gap-3 md:gap-6">
-        <button type="button" aria-label={t.menu} className="grid h-10 w-10 place-items-center rounded-xl border border-line lg:hidden">
+        <button
+          type="button"
+          aria-label={t.menu}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(true)}
+          className="grid h-10 w-10 place-items-center rounded-xl border border-line lg:hidden"
+        >
           <Menu className="h-5 w-5" />
         </button>
+        <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
 
         <Logo />
 

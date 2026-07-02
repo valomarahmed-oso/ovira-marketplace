@@ -12,6 +12,7 @@ export type AdminSettings = {
   sync_website_item?: number;
   deal_product?: string | null;
   sales_tax_template?: string | null;
+  shipping_account?: string | null;
 };
 
 async function errorMessage(res: Response, fallback: string): Promise<string> {

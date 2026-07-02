@@ -16,6 +16,7 @@
   "integration_section",
   "sync_website_item",
   "sales_tax_template",
+  "shipping_account",
   "homepage_section",
   "deal_product"
  ],
@@ -92,6 +93,13 @@
    "fieldtype": "Link",
    "label": "Sales tax template",
    "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "description": "Income account that receives the shipping fee (billed on the first vendor Sales Order). Leave blank to keep shipping out of ERPNext invoices.",
+   "fieldname": "shipping_account",
+   "fieldtype": "Link",
+   "label": "Shipping income account",
+   "options": "Account"
   },
   {
    "fieldname": "homepage_section",

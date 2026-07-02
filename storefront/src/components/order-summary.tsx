@@ -3,12 +3,15 @@ import { formatPrice } from "@/lib/utils";
 
 export function OrderSummary({
   subtotal,
+  shipping: shippingOverride,
   children,
 }: {
   subtotal: number;
+  /** Live rate from the backend; null/undefined falls back to the local estimate. */
+  shipping?: number | null;
   children?: React.ReactNode;
 }) {
-  const shipping = shippingFor(subtotal);
+  const shipping = shippingOverride ?? shippingFor(subtotal);
   const total = subtotal + shipping;
 
   return (
@@ -25,7 +28,7 @@ export function OrderSummary({
             {shipping === 0 ? <span className="text-mint">مجاني</span> : formatPrice(shipping)}
           </span>
         </div>
-        {shipping > 0 && (
+        {shippingOverride == null && shipping > 0 && (
           <p className="text-xs text-ink-400">
             أضف منتجات بقيمة {formatPrice(500 - subtotal)} للحصول على شحن مجاني.
           </p>

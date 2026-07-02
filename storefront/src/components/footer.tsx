@@ -52,10 +52,10 @@ export function Footer() {
     {
       title: t.footOvira,
       links: [
-        { label: t.footAbout, href: "#" },
-        { label: t.footCareers, href: "#" },
-        { label: t.footTerms, href: "#" },
-        { label: t.footPrivacy, href: "#" },
+        { label: t.footAbout, href: "/about" },
+        { label: t.footCareers, href: "/careers" },
+        { label: t.footTerms, href: "/terms" },
+        { label: t.footPrivacy, href: "/privacy" },
       ],
     },
   ];

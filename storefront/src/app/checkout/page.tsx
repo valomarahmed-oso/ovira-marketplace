@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CreditCard, Truck } from "lucide-react";
-import { initiatePayment, placeOrder as apiPlaceOrder } from "@/lib/api";
-import { cartSubtotal, shippingFor, useCart } from "@/lib/cart-store";
+import { getShippingRate, initiatePayment, placeOrder as apiPlaceOrder } from "@/lib/api";
+import { cartSubtotal, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { OrderSummary } from "@/components/order-summary";
@@ -28,6 +28,21 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ name: "", phone: "", gov: GOVERNORATES[0], address: "" });
   const [pay, setPay] = useState<"cod" | "card">("cod");
   const [submitting, setSubmitting] = useState(false);
+
+  // Live shipping rate from the configured provider (falls back to the local
+  // estimate inside OrderSummary while loading / when the backend is offline).
+  const subtotal = cartSubtotal(items);
+  const [shipRate, setShipRate] = useState<number | null>(null);
+  useEffect(() => {
+    if (subtotal <= 0) return;
+    let cancelled = false;
+    getShippingRate(subtotal, form.gov).then((r) => {
+      if (!cancelled) setShipRate(r);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [subtotal, form.gov]);
 
   if (hydrated && !items.length) {
     return (
@@ -77,7 +92,6 @@ export default function CheckoutPage() {
     router.push(`/checkout/success?order=${id}`);
   }
 
-  const subtotal = cartSubtotal(items);
   const field = "h-11 w-full rounded-xl border border-line bg-white px-4 text-sm outline-none focus:border-blue";
 
   return (
@@ -121,7 +135,7 @@ export default function CheckoutPage() {
         </div>
 
         <div className="h-fit">
-          <OrderSummary subtotal={subtotal}>
+          <OrderSummary subtotal={subtotal} shipping={shipRate}>
             <button type="submit" disabled={submitting} className="btn btn-primary w-full disabled:opacity-50">
               تأكيد الطلب
             </button>

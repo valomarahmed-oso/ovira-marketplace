@@ -186,6 +186,29 @@ export async function getHomepage(): Promise<Homepage> {
   return USE_MOCKS ? mockHomepage() : { hero: [], promos: [], deal: null, sections: [] };
 }
 
+/** Live shipping fee from the configured provider. Null = backend unreachable
+ * (caller falls back to the local estimate). */
+export async function getShippingRate(
+  subtotal: number,
+  governorate?: string,
+): Promise<number | null> {
+  if (!BASE) return null;
+  try {
+    const qs = new URLSearchParams({ subtotal: String(subtotal) });
+    if (governorate) qs.set("governorate", governorate);
+    const res = await fetch(
+      `${BASE}/api/method/ovira_marketplace.api.shipping.get_rate?${qs}`,
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    const v = (await res.json()).message;
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
+}
+
 export type CheckoutPayload = {
   items: { slug: string; qty: number }[];
   customer: { name: string; phone: string; email?: string; gov: string; address: string };

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import {
   listVendors,
+  setVendorCommission,
   setVendorStatus,
   vendorStatusCounts,
   type Vendor,
@@ -62,6 +63,30 @@ export default function AdminVendorsPage() {
     try {
       await setVendorStatus(vendor.name, to);
       await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.vActionError);
+    } finally {
+      setActingOn(null);
+    }
+  }
+
+  const [commission, setCommission] = useState<Record<string, string>>({});
+
+  async function saveCommission(vendor: Vendor) {
+    const raw = commission[vendor.name];
+    if (raw === undefined) return; // untouched
+    setActingOn(vendor.name);
+    setError(null);
+    try {
+      const res = await setVendorCommission(vendor.name, raw === "" ? null : Number(raw));
+      setVendors((prev) =>
+        prev.map((v) => (v.name === vendor.name ? { ...v, commission_rate: res.commission_rate } : v)),
+      );
+      setCommission((c) => {
+        const next = { ...c };
+        delete next[vendor.name];
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : t.vActionError);
     } finally {
@@ -188,6 +213,31 @@ export default function AdminVendorsPage() {
                       <span>
                         {t.vApplied}: {v.creation.slice(0, 10)}
                       </span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                    <span className="text-ink-400">{t.vCommission}:</span>
+                    <input
+                      type="number"
+                      dir="ltr"
+                      min={0}
+                      max={100}
+                      step="0.5"
+                      value={commission[v.name] ?? (v.commission_rate ? String(v.commission_rate) : "")}
+                      placeholder={t.vCommissionDefault}
+                      onChange={(e) => setCommission((c) => ({ ...c, [v.name]: e.target.value }))}
+                      className="h-8 w-20 rounded-lg border border-line bg-white px-2 text-sm outline-none focus:border-blue"
+                    />
+                    <span className="text-xs text-ink-400">{t.vCommissionHint}</span>
+                    {commission[v.name] !== undefined && (
+                      <button
+                        type="button"
+                        disabled={acting}
+                        onClick={() => saveCommission(v)}
+                        className="btn btn-primary h-8 px-3 text-xs disabled:opacity-50"
+                      >
+                        {t.paySave}
+                      </button>
                     )}
                   </div>
                 </div>

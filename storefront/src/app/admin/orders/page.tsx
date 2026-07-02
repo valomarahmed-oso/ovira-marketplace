@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, ChevronDown, ClipboardList, Loader2, MapPin, Search } from "lucide-react";
+import { AlertCircle, Banknote, ChevronDown, ClipboardList, Loader2, MapPin, Search } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import { AccountingAlerts } from "@/components/accounting-alerts";
 import {
   getOrder,
   listOrders,
+  markOrderPaid,
   orderStatusCounts,
   setOrderStatus,
   type AdminOrder,
@@ -98,6 +99,24 @@ export default function AdminOrdersPage() {
       );
       setDetails((d) => (d[order.name] ? { ...d, [order.name]: { ...d[order.name], status: to } } : d));
       orderStatusCounts().then(setCounts);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.vActionError);
+    } finally {
+      setActingOn(null);
+    }
+  }
+
+  async function recordCollection(order: AdminOrder) {
+    setActingOn(order.name);
+    setError(null);
+    try {
+      const res = await markOrderPaid(order.name);
+      setOrders((prev) =>
+        prev.map((x) => (x.name === order.name ? { ...x, payment_status: res.payment_status } : x)),
+      );
+      setDetails((d) =>
+        d[order.name] ? { ...d, [order.name]: { ...d[order.name], payment_status: res.payment_status } } : d,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : t.vActionError);
     } finally {
@@ -226,6 +245,18 @@ export default function AdminOrdersPage() {
 
                   <div className="flex shrink-0 items-center gap-2">
                     {actingOn === o.name && <Loader2 className="h-4 w-4 animate-spin text-blue-600" />}
+                    {o.payment_status === "Unpaid" && o.status !== "Cancelled" && (
+                      <button
+                        type="button"
+                        disabled={actingOn === o.name}
+                        onClick={() => recordCollection(o)}
+                        title={t.ordMarkPaid}
+                        className="btn btn-ghost h-9 px-3 text-sm disabled:opacity-50"
+                      >
+                        <Banknote className="h-4 w-4" />
+                        <span className="hidden sm:inline">{t.ordMarkPaid}</span>
+                      </button>
+                    )}
                     <select
                       value={o.status}
                       disabled={actingOn === o.name}

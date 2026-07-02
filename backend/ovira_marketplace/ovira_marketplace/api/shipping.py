@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from ovira_marketplace.api.admin import _require_operator
 from ovira_marketplace.shipping.connectors import default_provider, get_shipping_connector
 
 FREE_SHIPPING_THRESHOLD = 500
@@ -21,6 +22,7 @@ def get_rate(subtotal, governorate=None):
 @frappe.whitelist()
 def create_shipments_for_order(order, provider=None):
     """Create and book one Shipment per vendor sub-order of a Marketplace Order."""
+    _require_operator()
     order_doc = frappe.get_doc("Marketplace Order", order)
     provider = provider or default_provider()
     if not provider:
@@ -52,6 +54,7 @@ def create_shipments_for_order(order, provider=None):
 @frappe.whitelist()
 def track(shipment):
     """Refresh and return a shipment's tracking timeline."""
+    _require_operator()
     doc = frappe.get_doc("Marketplace Shipment", shipment)
     doc.refresh_tracking()
     return {"status": doc.status, "events": [e.as_dict() for e in doc.events]}

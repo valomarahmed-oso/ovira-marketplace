@@ -8,7 +8,7 @@ operator gate is shared with :mod:`ovira_marketplace.api.admin`.
 
 import frappe
 from frappe import _
-from frappe.utils import cint
+from frappe.utils import cint, flt
 
 from ovira_marketplace.api.admin import _require_operator
 
@@ -27,6 +27,7 @@ VENDOR_LIST_FIELDS = [
     "user",
     "supplier",
     "customer",
+    "commission_rate",
     "creation",
 ]
 
@@ -78,6 +79,20 @@ def set_vendor_status(name, status):
     vendor.save(ignore_permissions=True)
     frappe.db.commit()
     return {"name": vendor.name, "status": vendor.status}
+
+
+@frappe.whitelist()
+def set_vendor_commission(name, commission_rate=None):
+    """Vendor-specific commission override. Empty/0 falls back to the default."""
+    _require_operator()
+    rate = flt(commission_rate) if commission_rate not in (None, "") else 0
+    if rate < 0 or rate > 100:
+        frappe.throw(_("نسبة عمولة غير صالحة."))
+    vendor = frappe.get_doc("Marketplace Vendor", name)
+    vendor.commission_rate = rate
+    vendor.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": vendor.name, "commission_rate": vendor.commission_rate}
 
 
 @frappe.whitelist()
@@ -280,8 +295,41 @@ def set_order_status(name, status):
     order = frappe.get_doc("Marketplace Order", name)
     order.status = status
     order.save(ignore_permissions=True)
+
+    # COD: a completed delivery means the courier collected the cash. Record the
+    # payment so invoices + vendor settlement are booked (idempotent, best-effort
+    # — a booking failure surfaces via accounting_status, not by blocking here).
+    if status == "Completed" and order.payment_status != "Paid" and _is_cod(order):
+        try:
+            from ovira_marketplace.api.payment import record_payment
+
+            record_payment(order.name)
+        except Exception:
+            frappe.log_error(title="Ovira: COD auto-capture failed")
+
     frappe.db.commit()
     return {"name": order.name, "status": order.status}
+
+
+def _is_cod(order):
+    return (order.payment_method or "").strip().lower() in ("cod", "cash on delivery")
+
+
+@frappe.whitelist()
+def mark_order_paid(name):
+    """Record that an order's payment was collected (COD cash received, bank
+    transfer confirmed, …). Books the full accounting chain — idempotent."""
+    _require_operator()
+    from ovira_marketplace.api.payment import record_payment
+
+    record_payment(name)
+    row = frappe.db.get_value(
+        "Marketplace Order",
+        name,
+        ["payment_status", "accounting_status", "status"],
+        as_dict=True,
+    )
+    return {"name": name, **row}
 
 
 # ---------------------------------------------------------------------------
@@ -355,3 +403,113 @@ def retry_order_accounting(order):
     frappe.db.commit()
     status = frappe.db.get_value("Marketplace Order", order, "accounting_status")
     return {"order": order, "ok": ok, "accounting_status": status}
+
+
+# ---------------------------------------------------------------------------
+# Payment gateways & shipping providers — configured from the branded admin
+# ---------------------------------------------------------------------------
+
+PAYMENT_PROVIDERS = ("Cash on Delivery", "Paymob", "Fawry", "Stripe")
+PAYMENT_SECRET_FIELDS = ("api_key", "secret_key", "hmac_secret")
+PAYMENT_PLAIN_FIELDS = ("mode", "public_key", "integration_id", "iframe_id")
+
+SHIPPING_PROVIDERS = ("Manual", "Bosta", "Aramex", "Mylerz")
+SHIPPING_SECRET_FIELDS = ("api_key", "api_secret")
+SHIPPING_PLAIN_FIELDS = ("mode", "account_number", "base_url")
+SHIPPING_NUMERIC_FIELDS = ("flat_rate", "free_over")
+
+
+def _connector_row(doctype, provider, plain, secrets, numeric=()):
+    """One provider's config state. Secrets are never echoed — only whether set."""
+    name = frappe.db.get_value(doctype, {"provider": provider}, "name")
+    doc = frappe.get_doc(doctype, name) if name else None
+    row = {
+        "provider": provider,
+        "configured": bool(doc),
+        "enabled": bool(doc.enabled) if doc else False,
+    }
+    for f in plain + tuple(numeric):
+        row[f] = doc.get(f) if doc else None
+    for f in secrets:
+        row[f"has_{f}"] = bool(doc and doc.get_password(f, raise_exception=False))
+    return row
+
+
+def _update_connector(doctype, provider, enabled, kwargs, plain, secrets, numeric=()):
+    """Create/update a provider config. Secret fields are only overwritten when a
+    non-empty value arrives, so the UI can submit placeholders untouched."""
+    name = frappe.db.get_value(doctype, {"provider": provider}, "name")
+    doc = frappe.get_doc(doctype, name) if name else frappe.new_doc(doctype)
+    doc.provider = provider
+    if enabled is not None:
+        doc.enabled = cint(enabled)
+    for f in plain:
+        if kwargs.get(f) is not None:
+            doc.set(f, kwargs[f] or None)
+    for f in numeric:
+        if kwargs.get(f) is not None:
+            doc.set(f, flt(kwargs[f]))
+    for f in secrets:
+        if kwargs.get(f):
+            doc.set(f, kwargs[f])
+    doc.flags.ignore_permissions = True
+    if name:
+        doc.save(ignore_permissions=True)
+    else:
+        doc.insert(ignore_permissions=True)
+    frappe.db.commit()
+    return doc
+
+
+@frappe.whitelist()
+def list_payment_connectors():
+    """Every payment gateway with its config state (secrets masked)."""
+    _require_operator()
+    return [
+        _connector_row("Payment Connector", p, PAYMENT_PLAIN_FIELDS, PAYMENT_SECRET_FIELDS)
+        for p in PAYMENT_PROVIDERS
+    ]
+
+
+@frappe.whitelist()
+def update_payment_connector(provider, enabled=None, **kwargs):
+    """Enable/disable a gateway and store its credentials."""
+    _require_operator()
+    if provider not in PAYMENT_PROVIDERS:
+        frappe.throw(_("مزوّد دفع غير معروف."))
+    doc = _update_connector(
+        "Payment Connector", provider, enabled, kwargs, PAYMENT_PLAIN_FIELDS, PAYMENT_SECRET_FIELDS
+    )
+    return _connector_row("Payment Connector", doc.provider, PAYMENT_PLAIN_FIELDS, PAYMENT_SECRET_FIELDS)
+
+
+@frappe.whitelist()
+def list_shipping_providers():
+    """Every shipping provider with its config state (secrets masked)."""
+    _require_operator()
+    return [
+        _connector_row(
+            "Shipping Provider", p, SHIPPING_PLAIN_FIELDS, SHIPPING_SECRET_FIELDS, SHIPPING_NUMERIC_FIELDS
+        )
+        for p in SHIPPING_PROVIDERS
+    ]
+
+
+@frappe.whitelist()
+def update_shipping_provider(provider, enabled=None, **kwargs):
+    """Enable/disable a shipping provider and store rates + credentials."""
+    _require_operator()
+    if provider not in SHIPPING_PROVIDERS:
+        frappe.throw(_("شركة شحن غير معروفة."))
+    doc = _update_connector(
+        "Shipping Provider",
+        provider,
+        enabled,
+        kwargs,
+        SHIPPING_PLAIN_FIELDS,
+        SHIPPING_SECRET_FIELDS,
+        SHIPPING_NUMERIC_FIELDS,
+    )
+    return _connector_row(
+        "Shipping Provider", doc.provider, SHIPPING_PLAIN_FIELDS, SHIPPING_SECRET_FIELDS, SHIPPING_NUMERIC_FIELDS
+    )

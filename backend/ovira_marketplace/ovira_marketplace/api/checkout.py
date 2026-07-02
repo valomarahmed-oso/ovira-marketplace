@@ -100,7 +100,7 @@ def place_order(items, customer, payment_method="cod"):
         frappe.throw(_("None of the cart items are available."))
 
     order.subtotal = subtotal
-    order.shipping_amount = 0 if subtotal >= FREE_SHIPPING_THRESHOLD else FLAT_SHIPPING
+    order.shipping_amount = _shipping_amount(subtotal, customer.get("gov"))
     order.total = subtotal + order.shipping_amount
 
     order.insert(ignore_permissions=True)
@@ -137,6 +137,18 @@ def _ensure_customer(info):
     customer.flags.ignore_permissions = True
     customer.insert(ignore_permissions=True)
     return customer.name
+
+
+def _shipping_amount(subtotal, governorate=None):
+    """Rate from the configured Shipping Provider; falls back to the flat rule
+    (free over the threshold) if no provider is enabled or the lookup fails."""
+    try:
+        from ovira_marketplace.api.shipping import get_rate
+
+        return flt(get_rate(subtotal, governorate))
+    except Exception:
+        frappe.log_error(title="Ovira: shipping rate lookup failed")
+        return 0 if subtotal >= FREE_SHIPPING_THRESHOLD else FLAT_SHIPPING
 
 
 def _session_email():

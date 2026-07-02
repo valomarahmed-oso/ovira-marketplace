@@ -67,16 +67,23 @@ class MarketplaceOrder(Document):
                 continue
             by_vendor.setdefault(row.vendor, []).append(row)
 
+        # The shipping fee is order-level, so it rides on the FIRST vendor
+        # Sales Order only (and only on a fresh order — a retry after a partial
+        # failure must not bill it twice).
+        include_shipping = not any(row.sales_order for row in self.items)
         for vendor, rows in by_vendor.items():
-            sales_order = self._make_sales_order(vendor, rows, settings)
+            sales_order = self._make_sales_order(
+                vendor, rows, settings, include_shipping=include_shipping
+            )
             if not sales_order:
                 continue
+            include_shipping = False
             rate = self._commission_rate(vendor, settings)
             for row in rows:
                 row.db_set("sales_order", sales_order)
                 row.db_set("commission_amount", flt(row.amount) * rate / 100.0)
 
-    def _make_sales_order(self, vendor, rows, settings):
+    def _make_sales_order(self, vendor, rows, settings, include_shipping=False):
         so = frappe.new_doc("Sales Order")
         so.customer = self.customer
         so.company = settings.operator_company
@@ -103,6 +110,18 @@ class MarketplaceOrder(Document):
             return None
 
         _apply_sales_taxes(so, settings)
+        if include_shipping and flt(self.shipping_amount) and settings.get("shipping_account"):
+            # Actual charge → flows to the Sales Invoice as shipping income.
+            # Kept out of net_total, so vendor settlement is unaffected.
+            so.append(
+                "taxes",
+                {
+                    "charge_type": "Actual",
+                    "account_head": settings.shipping_account,
+                    "description": "Shipping",
+                    "tax_amount": flt(self.shipping_amount),
+                },
+            )
         so.flags.ignore_permissions = True
         so.insert()
         so.submit()

@@ -23,6 +23,7 @@ ADMIN_FIELDS = [
     "sync_website_item",
     "deal_product",
     "sales_tax_template",
+    "shipping_account",
 ]
 
 OPERATOR_ROLES = ("System Manager", "Marketplace Operator")
@@ -56,6 +57,7 @@ def update_admin_settings(
     sync_website_item=None,
     deal_product=None,
     sales_tax_template=None,
+    shipping_account=None,
 ):
     _require_operator()
     settings = frappe.get_doc("Marketplace Settings")
@@ -78,6 +80,8 @@ def update_admin_settings(
         settings.deal_product = deal_product or None
     if sales_tax_template is not None:
         settings.sales_tax_template = sales_tax_template or None
+    if shipping_account is not None:
+        settings.shipping_account = shipping_account or None
 
     settings.flags.ignore_permissions = True
     settings.save(ignore_permissions=True)

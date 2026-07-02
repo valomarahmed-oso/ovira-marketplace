@@ -14,6 +14,7 @@ export type Vendor = {
   user?: string;
   supplier?: string;
   customer?: string;
+  commission_rate?: number;
   creation?: string;
 };
 
@@ -355,3 +356,99 @@ export async function retryOrderAccounting(
   if (!res.ok) throw new Error(await errorMessage(res, "تعذّر إعادة المحاولة."));
   return (await res.json()).message;
 }
+
+// --- COD / manual collection -------------------------------------------------
+
+export async function markOrderPaid(
+  name: string,
+): Promise<{ name: string; payment_status: PaymentStatus; accounting_status?: string }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("mark_order_paid"), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify({ name }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تسجيل التحصيل."));
+  return (await res.json()).message;
+}
+
+// --- Vendor commission -------------------------------------------------------
+
+export async function setVendorCommission(
+  name: string,
+  commissionRate: number | null,
+): Promise<{ name: string; commission_rate: number }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("set_vendor_commission"), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify({ name, commission_rate: commissionRate ?? "" }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر حفظ العمولة."));
+  return (await res.json()).message;
+}
+
+// --- Payment gateways & shipping providers -----------------------------------
+
+export type PaymentConnector = {
+  provider: "Cash on Delivery" | "Paymob" | "Fawry" | "Stripe";
+  configured: boolean;
+  enabled: boolean;
+  mode?: "Test" | "Live" | null;
+  public_key?: string | null;
+  integration_id?: string | null;
+  iframe_id?: string | null;
+  has_api_key?: boolean;
+  has_secret_key?: boolean;
+  has_hmac_secret?: boolean;
+};
+
+export type ShippingProviderConfig = {
+  provider: "Manual" | "Bosta" | "Aramex" | "Mylerz";
+  configured: boolean;
+  enabled: boolean;
+  mode?: "Test" | "Live" | null;
+  account_number?: string | null;
+  base_url?: string | null;
+  flat_rate?: number | null;
+  free_over?: number | null;
+  has_api_key?: boolean;
+  has_api_secret?: boolean;
+};
+
+async function getListOp<T>(method: string): Promise<T[]> {
+  if (!BASE) return [];
+  try {
+    const res = await fetch(opUrl(method), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return ((await res.json()).message ?? []) as T[];
+  } catch {
+    return [];
+  }
+}
+
+async function postOp<T>(method: string, body: Record<string, unknown>): Promise<T> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl(method), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر حفظ الإعدادات."));
+  return (await res.json()).message;
+}
+
+export const listPaymentConnectors = () => getListOp<PaymentConnector>("list_payment_connectors");
+export const updatePaymentConnector = (body: Record<string, unknown>) =>
+  postOp<PaymentConnector>("update_payment_connector", body);
+export const listShippingProviders = () =>
+  getListOp<ShippingProviderConfig>("list_shipping_providers");
+export const updateShippingProvider = (body: Record<string, unknown>) =>
+  postOp<ShippingProviderConfig>("update_shipping_provider", body);
