@@ -140,6 +140,16 @@ def _invoice_and_pay(order, reference, errors):
     from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
     from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
+    # A coupon is an operator-funded discount: spread it across the freshly-made
+    # vendor invoices so booked revenue + cash collected drop by the discount,
+    # while vendor settlement (from SO net_total) stays whole. Zero discount ⇒
+    # the original path runs unchanged.
+    discount_remaining = flt(order.get("discount_amount"))
+    if discount_remaining > 0:
+        # Retry safety: don't re-apply a discount already booked on an invoice
+        # from an earlier (partially failed) run — only the shortfall is left.
+        discount_remaining = _remaining_discount(order, discount_remaining)
+
     done = set()
     for row in order.items:
         so_name = row.sales_order
@@ -151,6 +161,8 @@ def _invoice_and_pay(order, reference, errors):
             if not invoice:
                 invoice = make_sales_invoice(so_name)
                 invoice.flags.ignore_permissions = True
+                if discount_remaining > 0:
+                    discount_remaining = _apply_invoice_discount(invoice, discount_remaining)
                 invoice.insert()
                 invoice.submit()
             _ensure_invoice_paid(get_payment_entry, invoice, reference or order.name)
@@ -160,6 +172,34 @@ def _invoice_and_pay(order, reference, errors):
                 title="Ovira: invoice/payment failed",
                 message=f"Order {order.name}, SO {so_name}\n{frappe.get_traceback()}",
             )
+
+
+def _remaining_discount(order, discount_total):
+    """Order discount minus what's already booked on this order's existing
+    invoices, so a retry after a partial failure never double-discounts."""
+    already = 0.0
+    seen = set()
+    for row in order.items:
+        so_name = row.sales_order
+        if not so_name or so_name in seen:
+            continue
+        seen.add(so_name)
+        invoice = _existing_invoice(so_name)
+        if invoice:
+            already += flt(invoice.discount_amount)
+    return max(0.0, discount_total - already)
+
+
+def _apply_invoice_discount(invoice, discount_remaining):
+    """Put as much of a remaining order discount as fits onto one (unsaved)
+    Sales Invoice, as a grand-total discount. Returns the leftover discount."""
+    invoice.run_method("calculate_taxes_and_totals")
+    grand_total = flt(invoice.grand_total)
+    take = min(discount_remaining, grand_total)
+    if take > 0:
+        invoice.apply_discount_on = "Grand Total"
+        invoice.discount_amount = take
+    return discount_remaining - take
 
 
 def _existing_invoice(so_name):

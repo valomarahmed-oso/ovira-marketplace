@@ -26,7 +26,7 @@ class MarketplaceOrder(Document):
             row.amount = flt(row.rate) * (row.qty or 0)
         self.subtotal = sum(flt(r.amount) for r in self.items)
         if self.total is None:
-            self.total = flt(self.subtotal) + flt(self.shipping_amount)
+            self.total = flt(self.subtotal) + flt(self.shipping_amount) - flt(self.discount_amount)
 
     def on_update(self):
         self._notify_status_change()

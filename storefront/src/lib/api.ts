@@ -209,10 +209,43 @@ export async function getShippingRate(
   }
 }
 
+/** Validate a coupon against a subtotal. Returns the discount, or an error
+ * message the shopper can act on (e.g. expired / below minimum). */
+export async function validateCoupon(
+  code: string,
+  subtotal: number,
+): Promise<{ discount: number } | { error: string }> {
+  if (!BASE) return { error: "الخدمة غير متاحة حاليًا." };
+  try {
+    const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.coupons.validate_coupon`, {
+      method: "POST",
+      headers: writeHeaders(),
+      body: JSON.stringify({ code, subtotal }),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      let error = "كوبون غير صالح.";
+      try {
+        const data = await res.json();
+        const raw = data?._server_messages && JSON.parse(data._server_messages)[0];
+        if (raw) error = JSON.parse(raw).message ?? error;
+      } catch {
+        /* ignore */
+      }
+      return { error };
+    }
+    const msg = (await res.json()).message;
+    return { discount: Number(msg?.discount) || 0 };
+  } catch {
+    return { error: "تعذّر التحقق من الكوبون." };
+  }
+}
+
 export type CheckoutPayload = {
   items: { slug: string; qty: number }[];
   customer: { name: string; phone: string; email?: string; gov: string; address: string };
   payment_method: string;
+  coupon?: string;
 };
 
 export async function placeOrder(

@@ -4,15 +4,18 @@ import { formatPrice } from "@/lib/utils";
 export function OrderSummary({
   subtotal,
   shipping: shippingOverride,
+  discount = 0,
   children,
 }: {
   subtotal: number;
   /** Live rate from the backend; null/undefined falls back to the local estimate. */
   shipping?: number | null;
+  /** Coupon discount applied to the order. */
+  discount?: number;
   children?: React.ReactNode;
 }) {
   const shipping = shippingOverride ?? shippingFor(subtotal);
-  const total = subtotal + shipping;
+  const total = subtotal + shipping - discount;
 
   return (
     <div className="card space-y-4 p-5">
@@ -32,6 +35,12 @@ export function OrderSummary({
           <p className="text-xs text-ink-400">
             أضف منتجات بقيمة {formatPrice(500 - subtotal)} للحصول على شحن مجاني.
           </p>
+        )}
+        {discount > 0 && (
+          <div className="flex justify-between text-mint">
+            <span>الخصم</span>
+            <span className="font-tech">−{formatPrice(discount)}</span>
+          </div>
         )}
       </div>
       <div className="flex justify-between border-t border-line pt-3 text-base font-medium text-ink">

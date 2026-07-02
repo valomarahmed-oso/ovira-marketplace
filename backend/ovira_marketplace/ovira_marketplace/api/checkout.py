@@ -20,12 +20,13 @@ FLAT_SHIPPING = 50
 
 @frappe.whitelist(allow_guest=True)
 @rate_limit(limit=30, seconds=60 * 60, methods="POST")
-def place_order(items, customer, payment_method="cod"):
+def place_order(items, customer, payment_method="cod", coupon=None):
     """Create a Marketplace Order from the storefront cart and split it into
     per-vendor ERPNext Sales Orders.
 
     `items`: [{"slug": "...", "qty": 1}, ...]
     `customer`: {"name", "phone", "email", "gov", "address"}
+    `coupon`: optional coupon code — re-validated and priced server-side.
     """
     items = _loads(items)
     customer = _loads(customer)
@@ -101,10 +102,24 @@ def place_order(items, customer, payment_method="cod"):
 
     order.subtotal = subtotal
     order.shipping_amount = _shipping_amount(subtotal, customer.get("gov"))
-    order.total = subtotal + order.shipping_amount
+
+    # Coupon discount is always recomputed here — the client's number is never
+    # trusted. An invalid/expired code surfaces its reason and stops checkout.
+    coupon_doc = None
+    discount = 0.0
+    if coupon:
+        from ovira_marketplace.api.coupons import resolve
+
+        coupon_doc, discount = resolve(coupon, subtotal)
+        order.coupon_code = coupon_doc.code
+        order.discount_amount = discount
+
+    order.total = subtotal + order.shipping_amount - discount
 
     order.insert(ignore_permissions=True)
     order.create_vendor_orders()
+    if coupon_doc:
+        _redeem_coupon(coupon_doc.name)
     frappe.db.commit()
 
     # `token` lets the storefront start payment for this specific order without
@@ -149,6 +164,15 @@ def _shipping_amount(subtotal, governorate=None):
     except Exception:
         frappe.log_error(title="Ovira: shipping rate lookup failed")
         return 0 if subtotal >= FREE_SHIPPING_THRESHOLD else FLAT_SHIPPING
+
+
+def _redeem_coupon(name):
+    """Bump a coupon's redemption count (best-effort; never blocks the order)."""
+    try:
+        used = int(frappe.db.get_value("Marketplace Coupon", name, "used_count") or 0)
+        frappe.db.set_value("Marketplace Coupon", name, "used_count", used + 1)
+    except Exception:
+        frappe.log_error(title="Ovira: coupon redeem failed")
 
 
 def _session_email():

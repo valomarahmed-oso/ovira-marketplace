@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CreditCard, MapPin, Plus, Truck } from "lucide-react";
-import { getShippingRate, initiatePayment, placeOrder as apiPlaceOrder } from "@/lib/api";
+import { CreditCard, Loader2, MapPin, Plus, Tag, Truck, X } from "lucide-react";
+import { getShippingRate, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
 import { getMyAddresses, upsertAddress, type BuyerAddress } from "@/lib/addresses-api";
 import { cartSubtotal, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
@@ -36,6 +36,13 @@ export default function CheckoutPage() {
   const [selectedAddr, setSelectedAddr] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
   const [saveAddr, setSaveAddr] = useState(false);
+
+  // Coupon: the discount is always re-priced server-side at checkout, so this
+  // is only a preview to show the shopper before they confirm.
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -96,6 +103,27 @@ export default function CheckoutPage() {
   // address yet, or when explicitly adding a new one.
   const showManualFields = !user || addresses.length === 0 || manual;
 
+  async function applyCoupon() {
+    const code = couponInput.trim();
+    if (!code || couponBusy) return;
+    setCouponBusy(true);
+    setCouponError(null);
+    const res = await validateCoupon(code, subtotal);
+    if ("discount" in res && res.discount > 0) {
+      setCoupon({ code: code.toUpperCase(), discount: res.discount });
+    } else {
+      setCoupon(null);
+      setCouponError("error" in res ? res.error : "كوبون غير صالح.");
+    }
+    setCouponBusy(false);
+  }
+
+  function removeCoupon() {
+    setCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  }
+
   async function placeOrder(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -129,6 +157,7 @@ export default function CheckoutPage() {
         address: form.address,
       },
       payment_method: pay,
+      coupon: coupon?.code,
     });
     const id = remote?.name ?? "OVR-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 
@@ -234,8 +263,46 @@ export default function CheckoutPage() {
           </section>
         </div>
 
-        <div className="h-fit">
-          <OrderSummary subtotal={subtotal} shipping={shipRate}>
+        <div className="h-fit space-y-4">
+          <section className="card space-y-2 p-5">
+            <h2 className="flex items-center gap-2 font-medium text-ink">
+              <Tag className="h-4 w-4 text-blue-600" /> كوبون الخصم
+            </h2>
+            {coupon ? (
+              <div className="flex items-center justify-between rounded-xl bg-mint/10 px-3 py-2 text-sm">
+                <span className="font-tech font-medium text-mint">{coupon.code}</span>
+                <button type="button" onClick={removeCoupon} className="text-ink-400 hover:text-coral" aria-label="إزالة الكوبون">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void applyCoupon();
+                    }
+                  }}
+                  placeholder="أدخل الكود"
+                  className="h-11 w-full rounded-xl border border-line bg-white px-4 text-sm uppercase outline-none focus:border-blue"
+                />
+                <button
+                  type="button"
+                  onClick={applyCoupon}
+                  disabled={couponBusy || !couponInput.trim()}
+                  className="btn btn-ghost shrink-0 disabled:opacity-50"
+                >
+                  {couponBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "تطبيق"}
+                </button>
+              </div>
+            )}
+            {couponError && <p className="text-xs text-coral">{couponError}</p>}
+          </section>
+
+          <OrderSummary subtotal={subtotal} shipping={shipRate} discount={coupon?.discount ?? 0}>
             <button type="submit" disabled={submitting} className="btn btn-primary w-full disabled:opacity-50">
               تأكيد الطلب
             </button>

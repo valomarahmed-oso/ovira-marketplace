@@ -26,6 +26,8 @@
   "totals_section",
   "subtotal",
   "shipping_amount",
+  "discount_amount",
+  "coupon_code",
   "column_break_totals",
   "total",
   "access_token"
@@ -152,6 +154,18 @@
    "fieldname": "shipping_amount",
    "fieldtype": "Currency",
    "label": "Shipping",
+   "read_only": 1
+  },
+  {
+   "fieldname": "discount_amount",
+   "fieldtype": "Currency",
+   "label": "Discount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "coupon_code",
+   "fieldtype": "Data",
+   "label": "Coupon code",
    "read_only": 1
   },
   {

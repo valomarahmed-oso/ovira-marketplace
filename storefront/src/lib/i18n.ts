@@ -216,6 +216,7 @@ const ar = {
 
   adminNavOrders: "الطلبات",
   adminNavReturns: "المرتجعات",
+  adminNavCoupons: "الكوبونات",
   adminNavPayouts: "المستحقات",
   payoutsTitle: "مستحقات البائعين",
   payoutsSubtitle: "اصرف للبائعين أرصدتهم المستحقة من المبيعات المدفوعة.",
@@ -518,6 +519,7 @@ const en: Dict = {
 
   adminNavOrders: "Orders",
   adminNavReturns: "Returns",
+  adminNavCoupons: "Coupons",
   adminNavPayouts: "Payouts",
   payoutsTitle: "Vendor payouts",
   payoutsSubtitle: "Pay vendors the balances owed to them from paid sales.",

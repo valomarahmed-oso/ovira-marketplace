@@ -1,0 +1,138 @@
+{
+ "actions": [],
+ "autoname": "field:code",
+ "creation": "2026-07-02 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "code",
+  "description",
+  "active",
+  "column_break_meta",
+  "discount_type",
+  "discount_value",
+  "max_discount",
+  "conditions_section",
+  "min_subtotal",
+  "expires_on",
+  "column_break_cond",
+  "usage_limit",
+  "used_count"
+ ],
+ "fields": [
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "Description"
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "fieldname": "column_break_meta",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Percentage",
+   "fieldname": "discount_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Discount type",
+   "options": "Percentage\nFixed"
+  },
+  {
+   "fieldname": "discount_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Discount value",
+   "reqd": 1
+  },
+  {
+   "description": "Cap for percentage coupons (0 = no cap).",
+   "fieldname": "max_discount",
+   "fieldtype": "Currency",
+   "label": "Max discount"
+  },
+  {
+   "fieldname": "conditions_section",
+   "fieldtype": "Section Break",
+   "label": "Conditions"
+  },
+  {
+   "description": "Minimum order subtotal to qualify (0 = none).",
+   "fieldname": "min_subtotal",
+   "fieldtype": "Currency",
+   "label": "Min subtotal"
+  },
+  {
+   "fieldname": "expires_on",
+   "fieldtype": "Date",
+   "label": "Expires on"
+  },
+  {
+   "fieldname": "column_break_cond",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Total redemptions allowed (0 = unlimited).",
+   "fieldname": "usage_limit",
+   "fieldtype": "Int",
+   "label": "Usage limit"
+  },
+  {
+   "default": "0",
+   "fieldname": "used_count",
+   "fieldtype": "Int",
+   "label": "Used count",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-02 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Coupon",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

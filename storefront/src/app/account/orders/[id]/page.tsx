@@ -149,6 +149,12 @@ export default function OrderDetailPage() {
                 {order.shipping_amount === 0 ? <span className="text-mint">مجاني</span> : formatPrice(order.shipping_amount, order.currency)}
               </span>
             </div>
+            {!!order.discount_amount && order.discount_amount > 0 && (
+              <div className="flex justify-between text-sm text-mint">
+                <span>الخصم{order.coupon_code ? ` (${order.coupon_code})` : ""}</span>
+                <span className="font-tech">−{formatPrice(order.discount_amount, order.currency)}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t border-line pt-2 font-medium text-ink">
               <span>الإجمالي</span>
               <span className="font-tech">{formatPrice(order.total, order.currency)}</span>

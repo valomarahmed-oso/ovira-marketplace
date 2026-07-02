@@ -37,6 +37,8 @@ export type BuyerOrder = Omit<BuyerOrderSummary, "item_count"> & {
   email?: string;
   governorate?: string;
   shipping_address?: string;
+  discount_amount?: number;
+  coupon_code?: string;
   items: BuyerOrderItem[];
 };
 
