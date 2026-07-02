@@ -8,6 +8,7 @@ import { Check, Loader2, MapPin, Package } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { OviraBars } from "@/components/ovira-bars";
 import { ShipmentTracking } from "@/components/shipment-tracking";
+import { OrderReturn } from "@/components/order-return";
 import { getOrder, ORDER_STEPS, type BuyerOrder } from "@/lib/orders-api";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -98,6 +99,8 @@ export default function OrderDetailPage() {
       )}
 
       <ShipmentTracking order={order.name} />
+
+      <OrderReturn order={order.name} status={order.status} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-3 lg:col-span-2">
