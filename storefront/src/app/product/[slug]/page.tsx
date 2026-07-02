@@ -6,6 +6,7 @@ import { ProductGallery } from "@/components/product-gallery";
 import { ProductPurchase } from "@/components/product-purchase";
 import { ProductGrid } from "@/components/product-grid";
 import { ProductReviews } from "@/components/product-reviews";
+import { ProductQA } from "@/components/product-qa";
 import { RecentlyViewed } from "@/components/recently-viewed";
 import { SectionHeading } from "@/components/section-heading";
 import { Rating } from "@/components/rating";
@@ -100,6 +101,8 @@ export default async function ProductPage({ params }: Props) {
       </div>
 
       <ProductReviews slug={p.slug} />
+
+      <ProductQA slug={p.slug} productVendor={p.vendor} />
 
       {related.length > 0 && (
         <section>
