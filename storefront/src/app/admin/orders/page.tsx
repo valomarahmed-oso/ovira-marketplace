@@ -5,6 +5,7 @@ import { AlertCircle, Banknote, ChevronDown, ClipboardList, Loader2, MapPin, Sea
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import { AccountingAlerts } from "@/components/accounting-alerts";
+import { OperatorShipments } from "@/components/operator-shipments";
 import {
   getOrder,
   listOrders,
@@ -325,6 +326,10 @@ export default function AdminOrdersPage() {
                           <span className="text-ink-400">
                             {t.ordTotal}: <span className="font-medium text-ink">{money(detail.total, o.currency)}</span>
                           </span>
+                        </div>
+
+                        <div className="border-t border-line pt-4">
+                          <OperatorShipments order={o.name} />
                         </div>
                       </div>
                     ) : (

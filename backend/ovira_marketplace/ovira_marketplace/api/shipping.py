@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
-from ovira_marketplace.api.admin import _require_operator
+from ovira_marketplace.api.admin import OPERATOR_ROLES, _require_operator
 from ovira_marketplace.shipping.connectors import default_provider, get_shipping_connector
 
 FREE_SHIPPING_THRESHOLD = 500
@@ -58,3 +58,132 @@ def track(shipment):
     doc = frappe.get_doc("Marketplace Shipment", shipment)
     doc.refresh_tracking()
     return {"status": doc.status, "events": [e.as_dict() for e in doc.events]}
+
+
+# -- tracking surface (buyer / operator / vendor) ---------------------------
+
+SHIPMENT_STATUSES = (
+    "Draft",
+    "Created",
+    "Picked Up",
+    "In Transit",
+    "Delivered",
+    "Returned",
+    "Cancelled",
+)
+
+
+def _shipment_flat(doc, with_events=True):
+    row = {
+        "name": doc.name,
+        "vendor": doc.vendor,
+        "vendor_name": frappe.db.get_value("Marketplace Vendor", doc.vendor, "vendor_name")
+        if doc.vendor
+        else None,
+        "status": doc.status,
+        "provider": doc.provider,
+        "tracking_number": doc.tracking_number,
+        "tracking_url": doc.tracking_url,
+        "shipping_cost": doc.shipping_cost,
+    }
+    if with_events:
+        row["events"] = [
+            {
+                "status": e.status,
+                "description": e.description,
+                "location": e.location,
+                "posted_at": str(e.posted_at) if e.posted_at else None,
+            }
+            for e in sorted(doc.events, key=lambda e: (str(e.posted_at or ""), e.idx))
+        ]
+    return row
+
+
+def _order_shipment_docs(order):
+    names = frappe.get_all(
+        "Marketplace Shipment",
+        filters={"marketplace_order": order},
+        pluck="name",
+        order_by="creation asc",
+        ignore_permissions=True,
+    )
+    return [frappe.get_doc("Marketplace Shipment", n) for n in names]
+
+
+def _owns_order(order_doc):
+    from ovira_marketplace.api.orders import _my_customers, _session_email
+
+    email = _session_email()
+    if not email:
+        return False
+    return order_doc.email == email or order_doc.customer in _my_customers(email)
+
+
+@frappe.whitelist()
+def order_tracking(order):
+    """Shipment timeline for an order the signed-in buyer owns."""
+    order_doc = frappe.get_doc("Marketplace Order", order)
+    if not _owns_order(order_doc):
+        frappe.throw(_("This order isn't yours."), frappe.PermissionError)
+    return {"shipments": [_shipment_flat(d) for d in _order_shipment_docs(order)]}
+
+
+@frappe.whitelist()
+def operator_order_shipments(order):
+    """All shipments for an order — operator view (create panel + timeline)."""
+    _require_operator()
+    return {"shipments": [_shipment_flat(d) for d in _order_shipment_docs(order)]}
+
+
+@frappe.whitelist()
+def update_shipment_status(shipment, status, note=None, location=None):
+    """Manually advance a shipment (operator, or the vendor who owns it) and log
+    an event. Intended for the Manual provider / offline carriers."""
+    if status not in SHIPMENT_STATUSES:
+        frappe.throw(_("Unknown shipment status."))
+    doc = frappe.get_doc("Marketplace Shipment", shipment)
+
+    if not _is_operator():
+        from ovira_marketplace.api.vendor import _my_vendor
+
+        if doc.vendor != _my_vendor():
+            frappe.throw(_("This shipment isn't yours."), frappe.PermissionError)
+
+    doc.status = status
+    doc.append(
+        "events",
+        {
+            "posted_at": frappe.utils.now_datetime(),
+            "status": status,
+            "description": note or _("Status updated to {0}").format(status),
+            "location": location,
+        },
+    )
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return _shipment_flat(doc)
+
+
+@frappe.whitelist()
+def vendor_shipment_statuses():
+    """Map of {marketplace_order: latest status} for the signed-in vendor, so the
+    vendor order list can show fulfilment state."""
+    from ovira_marketplace.api.vendor import _my_vendor
+
+    vendor = _my_vendor()
+    if not vendor:
+        return {}
+    rows = frappe.get_all(
+        "Marketplace Shipment",
+        filters={"vendor": vendor},
+        fields=["marketplace_order", "status"],
+        order_by="creation asc",
+        ignore_permissions=True,
+    )
+    # Last write wins if a vendor somehow has multiple shipments on one order.
+    return {r["marketplace_order"]: r["status"] for r in rows if r.get("marketplace_order")}
+
+
+def _is_operator():
+    user = frappe.session.user
+    return user != "Guest" and any(r in frappe.get_roles(user) for r in OPERATOR_ROLES)

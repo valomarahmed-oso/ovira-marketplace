@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, ShoppingBag } from "lucide-react";
+import { Loader2, ShoppingBag, Truck } from "lucide-react";
 import { getMyOrders, type VendorOrder } from "@/lib/vendor";
+import { getVendorShipmentStatuses, SHIPMENT_STATUS_LABEL } from "@/lib/shipments-api";
 import { cn, formatPrice } from "@/lib/utils";
 
 const STATUS_STYLE: Record<string, string> = {
@@ -29,12 +30,14 @@ function formatDate(iso: string) {
 
 export default function VendorOrdersPage() {
   const [orders, setOrders] = useState<VendorOrder[]>([]);
+  const [shipStatus, setShipStatus] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getMyOrders()
       .then(setOrders)
       .finally(() => setLoading(false));
+    getVendorShipmentStatuses().then(setShipStatus);
   }, []);
 
   if (loading) {
@@ -79,6 +82,12 @@ export default function VendorOrdersPage() {
                   <span className={cn("rounded-full px-2 py-0.5 text-xs", STATUS_STYLE[o.status] ?? "bg-blue-50 text-blue-600")}>
                     {STATUS_LABEL[o.status] ?? o.status}
                   </span>
+                  {shipStatus[o.name] && (
+                    <span className="mt-1 flex items-center gap-1 text-xs text-ink-400">
+                      <Truck className="h-3 w-3" />
+                      {SHIPMENT_STATUS_LABEL[shipStatus[o.name]] ?? shipStatus[o.name]}
+                    </span>
+                  )}
                 </span>
               </div>
             ))}

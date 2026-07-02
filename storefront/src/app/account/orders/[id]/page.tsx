@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Check, Loader2, MapPin, Package } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { OviraBars } from "@/components/ovira-bars";
+import { ShipmentTracking } from "@/components/shipment-tracking";
 import { getOrder, ORDER_STEPS, type BuyerOrder } from "@/lib/orders-api";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -95,6 +96,8 @@ export default function OrderDetailPage() {
           </div>
         </div>
       )}
+
+      <ShipmentTracking order={order.name} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-3 lg:col-span-2">
