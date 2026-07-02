@@ -120,6 +120,16 @@ export async function getProduct(slug: string): Promise<Product | null> {
   return USE_MOCKS ? mockDetail(slug) : null;
 }
 
+/** Products related to `slug` (same category → vendor → newest). */
+export async function getRelatedProducts(slug: string, limit = 8): Promise<Product[]> {
+  const live = await callMethod<Product[]>("ovira_marketplace.api.catalog.related_products", {
+    slug,
+    limit: String(limit),
+  });
+  if (live !== null) return live;
+  return USE_MOCKS ? mockProducts({ limit }).filter((p) => p.slug !== slug) : [];
+}
+
 export async function getCategories() {
   const live = await callMethod<Category[]>("ovira_marketplace.api.catalog.list_categories");
   if (live && live.length) return live;

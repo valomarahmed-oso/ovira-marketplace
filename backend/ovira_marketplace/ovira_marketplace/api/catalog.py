@@ -166,6 +166,52 @@ def get_product(slug):
 
 
 @frappe.whitelist(allow_guest=True)
+def related_products(slug, limit=8):
+    """Products related to one product: same category first, then same vendor,
+    then newest — deduped, excluding the product itself."""
+    base = frappe.db.get_value(
+        "Marketplace Product",
+        {"slug": slug, "approval_status": "Approved", "published": 1},
+        ["name", "category", "vendor"],
+        as_dict=True,
+    )
+    if not base:
+        return []
+
+    limit = cint(limit) or 8
+    picked: list = []
+    seen = {base.name}
+
+    def _take(extra_filters):
+        if len(picked) >= limit:
+            return
+        rows = frappe.get_all(
+            "Marketplace Product",
+            filters=[["approval_status", "=", "Approved"], ["published", "=", 1]] + extra_filters,
+            fields=PRODUCT_LIST_FIELDS,
+            order_by="creation desc",
+            limit_page_length=limit * 2,
+            ignore_permissions=True,
+        )
+        for r in rows:
+            if r.name in seen:
+                continue
+            seen.add(r.name)
+            picked.append(r)
+            if len(picked) >= limit:
+                break
+
+    if base.category:
+        _take([["category", "=", base.category]])
+    if base.vendor:
+        _take([["vendor", "=", base.vendor]])
+    _take([])  # top up with newest across the catalog
+
+    _attach_card_fields(picked)
+    return picked
+
+
+@frappe.whitelist(allow_guest=True)
 def list_categories(parent=None):
     """Public category tree level — children of `parent` (or roots)."""
     filters = {"parent_marketplace_category": parent or ""}

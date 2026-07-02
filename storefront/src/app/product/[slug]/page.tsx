@@ -6,9 +6,11 @@ import { ProductGallery } from "@/components/product-gallery";
 import { ProductPurchase } from "@/components/product-purchase";
 import { ProductGrid } from "@/components/product-grid";
 import { ProductReviews } from "@/components/product-reviews";
+import { RecentlyViewed } from "@/components/recently-viewed";
 import { SectionHeading } from "@/components/section-heading";
 import { Rating } from "@/components/rating";
-import { getProduct, getProducts } from "@/lib/api";
+import { getProduct, getRelatedProducts } from "@/lib/api";
+import { toViewed } from "@/lib/recently-viewed-store";
 import { t } from "@/lib/dict";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -31,7 +33,7 @@ export default async function ProductPage({ params }: Props) {
   const p = await getProduct(slug);
   if (!p) notFound();
 
-  const related = (await getProducts({ limit: 8 })).filter((x) => x.slug !== p.slug).slice(0, 4);
+  const related = (await getRelatedProducts(p.slug, 8)).slice(0, 4);
   const images = p.media?.map((m) => m.image) ?? (p.image ? [p.image] : []);
 
   return (
@@ -105,6 +107,8 @@ export default async function ProductPage({ params }: Props) {
           <ProductGrid products={related} />
         </section>
       )}
+
+      <RecentlyViewed current={toViewed(p)} />
     </div>
   );
 }
