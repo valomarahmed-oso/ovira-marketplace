@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { cartSubtotal, useCart } from "@/lib/cart-store";
+import { cartSubtotal, lineId, unitPrice, useCart } from "@/lib/cart-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { OrderSummary } from "@/components/order-summary";
 import { formatPrice } from "@/lib/utils";
@@ -46,8 +46,11 @@ export default function CartPage() {
       <h1 className="text-2xl font-medium text-ink">السلة ({items.length})</h1>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-3">
-          {items.map(({ product: p, qty }) => (
-            <div key={p.slug} className="card flex gap-4 p-3">
+          {items.map((item) => {
+            const { product: p, qty, variant } = item;
+            const id = lineId(item);
+            return (
+            <div key={id} className="card flex gap-4 p-3">
               <Link
                 href={`/product/${p.slug}`}
                 className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-blue-50"
@@ -61,19 +64,22 @@ export default function CartPage() {
                   </Link>
                   <button
                     type="button"
-                    onClick={() => remove(p.slug)}
+                    onClick={() => remove(id)}
                     aria-label="حذف من السلة"
                     className="text-ink-400 transition-colors hover:text-coral"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-                <span className="text-xs text-ink-400">{p.vendor_name}</span>
+                <span className="text-xs text-ink-400">
+                  {p.vendor_name}
+                  {variant && <span className="ms-2 text-ink-600">· {variant.value}</span>}
+                </span>
                 <div className="mt-auto flex items-center justify-between pt-2">
                   <div className="flex items-center rounded-xl border border-line">
                     <button
                       type="button"
-                      onClick={() => setQty(p.slug, qty - 1)}
+                      onClick={() => setQty(id, qty - 1)}
                       aria-label="إنقاص"
                       className="grid h-9 w-9 place-items-center text-ink-600 hover:text-blue-600"
                     >
@@ -82,18 +88,19 @@ export default function CartPage() {
                     <span className="w-9 text-center font-tech text-sm">{qty}</span>
                     <button
                       type="button"
-                      onClick={() => setQty(p.slug, qty + 1)}
+                      onClick={() => setQty(id, qty + 1)}
                       aria-label="زيادة"
                       className="grid h-9 w-9 place-items-center text-ink-600 hover:text-blue-600"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
-                  <span className="font-tech font-medium text-ink">{formatPrice(p.price * qty, p.currency)}</span>
+                  <span className="font-tech font-medium text-ink">{formatPrice(unitPrice(item) * qty, p.currency)}</span>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="h-fit">

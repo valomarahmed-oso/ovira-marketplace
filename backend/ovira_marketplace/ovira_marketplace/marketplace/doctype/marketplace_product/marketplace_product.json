@@ -33,6 +33,10 @@
   "stock_qty",
   "column_break_inventory",
   "low_stock_threshold",
+  "variants_section",
+  "has_variants",
+  "variant_option_name",
+  "variants",
   "ratings_section",
   "rating",
   "review_count",
@@ -220,6 +224,33 @@
    "fieldname": "low_stock_threshold",
    "fieldtype": "Int",
    "label": "Low stock threshold"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "variants_section",
+   "fieldtype": "Section Break",
+   "label": "Variants"
+  },
+  {
+   "default": "0",
+   "description": "Enable to sell this product in selectable variants (e.g. sizes).",
+   "fieldname": "has_variants",
+   "fieldtype": "Check",
+   "label": "Has variants"
+  },
+  {
+   "depends_on": "has_variants",
+   "description": "What the options represent, e.g. المقاس or اللون.",
+   "fieldname": "variant_option_name",
+   "fieldtype": "Data",
+   "label": "Option name"
+  },
+  {
+   "depends_on": "has_variants",
+   "fieldname": "variants",
+   "fieldtype": "Table",
+   "label": "Variants",
+   "options": "Marketplace Product Variant"
   },
   {
    "collapsible": 1,

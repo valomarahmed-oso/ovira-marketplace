@@ -148,7 +148,7 @@ export default function CheckoutPage() {
     // the order resolves to their account under "my orders". Guests still check
     // out; a local id keeps the success page flowing if the backend is offline.
     const remote = await apiPlaceOrder({
-      items: items.map((i) => ({ slug: i.product.slug, qty: i.qty })),
+      items: items.map((i) => ({ slug: i.product.slug, qty: i.qty, variant: i.variant?.sku })),
       customer: {
         name: form.name,
         phone: form.phone,

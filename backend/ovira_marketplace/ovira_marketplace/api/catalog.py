@@ -15,6 +15,7 @@ PRODUCT_LIST_FIELDS = [
     "stock_qty",
     "rating",
     "review_count",
+    "has_variants",
 ]
 
 SORT_MAP = {
@@ -162,6 +163,22 @@ def get_product(slug):
     )
     doc["image"] = primary.get("image") if primary else None
     doc["reviews"] = cint(doc.get("review_count"))
+
+    # Expose a clean, public variant shape (or none) — never the internal item code.
+    if doc.get("has_variants") and doc.get("variants"):
+        doc["variants"] = [
+            {
+                "option_value": v.get("option_value"),
+                "sku": v.get("sku") or v.get("name"),
+                "price": flt(v.get("price")) or flt(doc.get("price")),
+                "stock_qty": flt(v.get("stock_qty")),
+            }
+            for v in doc["variants"]
+            if v.get("option_value")
+        ]
+    else:
+        doc["has_variants"] = 0
+        doc["variants"] = []
     return doc
 
 

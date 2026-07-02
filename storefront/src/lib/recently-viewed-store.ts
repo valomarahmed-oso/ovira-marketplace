@@ -18,6 +18,7 @@ export type ViewedProduct = Pick<
   | "rating"
   | "reviews"
   | "stock_qty"
+  | "has_variants"
 >;
 
 const MAX = 12;
@@ -59,5 +60,6 @@ export function toViewed(p: Product): ViewedProduct {
     rating: p.rating,
     reviews: p.reviews,
     stock_qty: p.stock_qty,
+    has_variants: p.has_variants,
   };
 }

@@ -3,35 +3,51 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Minus, Plus, ShoppingCart, X, Zap } from "lucide-react";
-import type { Product } from "@/lib/api";
+import type { Product, ProductVariant } from "@/lib/api";
 import { OviraBars } from "@/components/ovira-bars";
 import { useCart } from "@/lib/cart-store";
-import { discountPercent, formatPrice } from "@/lib/utils";
+import { cn, discountPercent, formatPrice } from "@/lib/utils";
 
 export function ProductPurchase({ p }: { p: Product }) {
   const router = useRouter();
   const add = useCart((s) => s.add);
-  const soldOut = p.stock_qty <= 0;
-  const max = Math.max(1, p.stock_qty);
+
+  const variants = p.variants ?? [];
+  const hasVariants = !!p.has_variants && variants.length > 0;
+  const [sel, setSel] = useState<ProductVariant | null>(null);
+
+  // Effective price/stock reflect the chosen variant (if any).
+  const price = sel ? sel.price : p.price;
+  const stock = hasVariants ? (sel ? sel.stock_qty : 0) : p.stock_qty;
+  const needsChoice = hasVariants && !sel;
+  const soldOut = !needsChoice && stock <= 0;
+  const max = Math.max(1, stock);
+
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
-  const off = discountPercent(p.price, p.compare_at_price);
+  const off = discountPercent(price, p.compare_at_price);
+
+  function cartVariant() {
+    return sel ? { sku: sel.sku, value: sel.option_value, price: sel.price } : undefined;
+  }
 
   function addToCart() {
-    add(p, qty);
+    if (needsChoice || soldOut) return;
+    add(p, Math.min(qty, max), cartVariant());
     setAdded(true);
     setTimeout(() => setAdded(false), 1300);
   }
 
   function buyNow() {
-    add(p, qty);
+    if (needsChoice || soldOut) return;
+    add(p, Math.min(qty, max), cartVariant());
     router.push("/checkout");
   }
 
   return (
     <div className="card space-y-4 p-5">
       <div className="flex flex-wrap items-end gap-3">
-        <span className="font-tech text-3xl font-medium text-ink">{formatPrice(p.price, p.currency)}</span>
+        <span className="font-tech text-3xl font-medium text-ink">{formatPrice(price, p.currency)}</span>
         {p.compare_at_price && (
           <span className="font-tech text-base text-ink-400 line-through">
             {formatPrice(p.compare_at_price, p.currency)}
@@ -42,19 +58,51 @@ export function ProductPurchase({ p }: { p: Product }) {
         )}
       </div>
 
+      {hasVariants && (
+        <div className="space-y-2">
+          <span className="text-sm text-ink-600">{p.variant_option_name || "الخيار"}</span>
+          <div className="flex flex-wrap gap-2">
+            {variants.map((v) => {
+              const vSoldOut = v.stock_qty <= 0;
+              const active = sel?.sku === v.sku;
+              return (
+                <button
+                  key={v.sku}
+                  type="button"
+                  disabled={vSoldOut}
+                  onClick={() => {
+                    setSel(v);
+                    setQty(1);
+                  }}
+                  className={cn(
+                    "rounded-xl border px-4 py-2 text-sm transition-colors",
+                    active ? "border-blue bg-blue-50 text-blue-600" : "border-line text-ink-600 hover:border-blue",
+                    vSoldOut && "cursor-not-allowed text-ink-400 line-through opacity-60",
+                  )}
+                >
+                  {v.option_value}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="text-sm">
-        {soldOut ? (
+        {needsChoice ? (
+          <span className="text-ink-400">اختر {p.variant_option_name || "خيارًا"} لعرض التوفّر.</span>
+        ) : soldOut ? (
           <span className="inline-flex items-center gap-1 text-coral">
             <X className="h-4 w-4" /> غير متوفر حاليًا
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-mint">
-            <Check className="h-4 w-4" /> متوفر — {p.stock_qty} قطعة
+            <Check className="h-4 w-4" /> متوفر — {stock} قطعة
           </span>
         )}
       </div>
 
-      {!soldOut && (
+      {!soldOut && !needsChoice && (
         <div className="flex items-center gap-3">
           <span className="text-sm text-ink-600">الكمية</span>
           <div className="flex items-center rounded-xl border border-line">
@@ -83,16 +131,16 @@ export function ProductPurchase({ p }: { p: Product }) {
         <button
           type="button"
           onClick={addToCart}
-          disabled={soldOut}
+          disabled={soldOut || needsChoice}
           className="btn btn-primary w-full disabled:cursor-not-allowed disabled:opacity-40"
         >
           {added ? <Check className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
-          {added ? "تمت الإضافة للسلة" : "أضف للسلة"}
+          {added ? "تمت الإضافة للسلة" : needsChoice ? `اختر ${p.variant_option_name || "خيارًا"}` : "أضف للسلة"}
         </button>
         <button
           type="button"
           onClick={buyNow}
-          disabled={soldOut}
+          disabled={soldOut || needsChoice}
           className="btn btn-ghost w-full disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Zap className="h-5 w-5" /> اشترِ الآن

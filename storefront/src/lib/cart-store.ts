@@ -2,13 +2,24 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Product } from "@/lib/api";
 
-export type CartItem = { product: Product; qty: number };
+/** The variant a cart line was added for (a product may appear once per variant). */
+export type CartVariant = { sku: string; value: string; price: number };
+
+export type CartItem = { product: Product; qty: number; variant?: CartVariant };
+
+/** A cart line is identified by product + variant, so the same product can be in
+ * the cart under different variants. */
+export const lineId = (i: { product: Product; variant?: CartVariant }) =>
+  `${i.product.slug}::${i.variant?.sku ?? ""}`;
+
+/** Effective unit price — the variant's price when present, else the product's. */
+export const unitPrice = (i: CartItem) => i.variant?.price ?? i.product.price;
 
 type CartState = {
   items: CartItem[];
-  add: (product: Product, qty?: number) => void;
-  remove: (slug: string) => void;
-  setQty: (slug: string, qty: number) => void;
+  add: (product: Product, qty?: number, variant?: CartVariant) => void;
+  remove: (id: string) => void;
+  setQty: (id: string, qty: number) => void;
   clear: () => void;
 };
 
@@ -16,24 +27,21 @@ export const useCart = create<CartState>()(
   persist(
     (set) => ({
       items: [],
-      add: (product, qty = 1) =>
+      add: (product, qty = 1, variant) =>
         set((s) => {
-          const existing = s.items.find((i) => i.product.slug === product.slug);
+          const id = lineId({ product, variant });
+          const existing = s.items.find((i) => lineId(i) === id);
           if (existing) {
             return {
-              items: s.items.map((i) =>
-                i.product.slug === product.slug ? { ...i, qty: i.qty + qty } : i,
-              ),
+              items: s.items.map((i) => (lineId(i) === id ? { ...i, qty: i.qty + qty } : i)),
             };
           }
-          return { items: [...s.items, { product, qty }] };
+          return { items: [...s.items, { product, qty, variant }] };
         }),
-      remove: (slug) => set((s) => ({ items: s.items.filter((i) => i.product.slug !== slug) })),
-      setQty: (slug, qty) =>
+      remove: (id) => set((s) => ({ items: s.items.filter((i) => lineId(i) !== id) })),
+      setQty: (id, qty) =>
         set((s) => ({
-          items: s.items.map((i) =>
-            i.product.slug === slug ? { ...i, qty: Math.max(1, qty) } : i,
-          ),
+          items: s.items.map((i) => (lineId(i) === id ? { ...i, qty: Math.max(1, qty) } : i)),
         })),
       clear: () => set({ items: [] }),
     }),
@@ -43,7 +51,7 @@ export const useCart = create<CartState>()(
 
 export const cartCount = (items: CartItem[]) => items.reduce((n, i) => n + i.qty, 0);
 export const cartSubtotal = (items: CartItem[]) =>
-  items.reduce((sum, i) => sum + i.product.price * i.qty, 0);
+  items.reduce((sum, i) => sum + unitPrice(i) * i.qty, 0);
 
 export const SHIPPING_FREE_THRESHOLD = 500;
 export const SHIPPING_FLAT = 50;

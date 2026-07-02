@@ -24,6 +24,8 @@ export function ProductCard({ p }: { p: Product }) {
   const wished = hydrated && wishItems.some((i) => i.slug === p.slug);
   const off = discountPercent(p.price, p.compare_at_price);
   const soldOut = p.stock_qty <= 0;
+  // Products with variants must be configured on the detail page.
+  const needsOptions = !!p.has_variants;
 
   function addToCart() {
     add(p);
@@ -108,15 +110,26 @@ export function ProductCard({ p }: { p: Product }) {
           <OviraBars animated className="pb-1" />
         </div>
 
-        <button
-          type="button"
-          onClick={addToCart}
-          disabled={soldOut}
-          className="btn btn-primary mt-1 w-full text-sm disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {added ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
-          {added ? t.added : t.addToCart}
-        </button>
+        {needsOptions ? (
+          <Link
+            href={`/product/${p.slug}`}
+            className="btn btn-primary mt-1 w-full text-sm aria-disabled:cursor-not-allowed aria-disabled:opacity-40"
+            aria-disabled={soldOut}
+          >
+            <ShoppingCart className="h-4 w-4" />
+            اختر الخيارات
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={addToCart}
+            disabled={soldOut}
+            className="btn btn-primary mt-1 w-full text-sm disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {added ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+            {added ? t.added : t.addToCart}
+          </button>
+        )}
       </div>
     </div>
   );

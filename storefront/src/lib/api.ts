@@ -24,6 +24,16 @@ export type Product = {
   description?: string;
   media?: { image: string; alt_text?: string }[];
   attributes?: { attribute: string; value: string }[];
+  has_variants?: number | boolean;
+  variant_option_name?: string;
+  variants?: ProductVariant[];
+};
+
+export type ProductVariant = {
+  option_value: string;
+  sku: string;
+  price: number;
+  stock_qty: number;
 };
 
 export type Category = {
@@ -252,7 +262,7 @@ export async function validateCoupon(
 }
 
 export type CheckoutPayload = {
-  items: { slug: string; qty: number }[];
+  items: { slug: string; qty: number; variant?: string }[];
   customer: { name: string; phone: string; email?: string; gov: string; address: string };
   payment_method: string;
   coupon?: string;

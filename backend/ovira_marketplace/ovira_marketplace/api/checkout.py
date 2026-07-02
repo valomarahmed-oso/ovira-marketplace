@@ -52,7 +52,7 @@ def place_order(items, customer, payment_method="cod", coupon=None):
         product = frappe.db.get_value(
             "Marketplace Product",
             {"slug": line.get("slug"), "approval_status": "Approved", "published": 1},
-            ["name", "vendor", "price", "title", "stock_qty", "track_inventory"],
+            ["name", "vendor", "price", "title", "stock_qty", "track_inventory", "has_variants"],
             as_dict=True,
         )
         if not product:
@@ -65,31 +65,43 @@ def place_order(items, customer, payment_method="cod", coupon=None):
             qty = 1
         qty = max(1, qty)
 
-        # Block overselling for products that track inventory. `stock_qty` is the
-        # value synced from ERPNext and shown to the shopper, so we gate on it.
-        # Any shortage rejects the whole order (below) rather than silently
-        # trimming quantities the buyer didn't agree to.
-        if product.track_inventory:
-            available = int(flt(product.stock_qty))
+        # Resolve the price, stock and label — from the chosen variant when the
+        # product has variants (server-side, so the client's price is ignored).
+        rate = flt(product.price)
+        title = product.title
+        available = int(flt(product.stock_qty))
+        gate_stock = bool(product.track_inventory)
+
+        if product.has_variants:
+            variant = _resolve_variant(product.name, line.get("variant"))
+            if not variant:
+                shortages.append(_("Please choose an option for {0}.").format(product.title))
+                continue
+            rate = flt(variant.price) or flt(product.price)
+            title = f"{product.title} — {variant.option_value}"
+            available = int(flt(variant.stock_qty))
+            gate_stock = True  # variant stock is explicit — always enforce it
+
+        # Block overselling. Any shortage rejects the whole order (below) rather
+        # than silently trimming quantities the buyer didn't agree to.
+        if gate_stock:
             if available <= 0:
-                shortages.append(_("{0} is out of stock.").format(product.title))
+                shortages.append(_("{0} is out of stock.").format(title))
                 continue
             if qty > available:
-                shortages.append(
-                    _("Only {0} left of {1}.").format(available, product.title)
-                )
+                shortages.append(_("Only {0} left of {1}.").format(available, title))
                 continue
 
-        amount = flt(product.price) * qty
+        amount = rate * qty
         subtotal += amount
         order.append(
             "items",
             {
                 "marketplace_product": product.name,
-                "title": product.title,
+                "title": title,
                 "vendor": product.vendor,
                 "qty": qty,
-                "rate": product.price,
+                "rate": rate,
                 "amount": amount,
             },
         )
@@ -171,6 +183,23 @@ def _shipping_amount(subtotal, governorate=None):
     except Exception:
         frappe.log_error(title="Ovira: shipping rate lookup failed")
         return 0 if subtotal >= FREE_SHIPPING_THRESHOLD else FLAT_SHIPPING
+
+
+def _resolve_variant(product_name, sku):
+    """The chosen variant row of a product, matched by SKU or child-row name.
+    Returns a dict-like row or None."""
+    if not sku:
+        return None
+    rows = frappe.get_all(
+        "Marketplace Product Variant",
+        filters={"parent": product_name, "parenttype": "Marketplace Product"},
+        fields=["name", "option_value", "sku", "price", "stock_qty"],
+        ignore_permissions=True,
+    )
+    for r in rows:
+        if str(sku) in (r.get("sku"), r.get("name")):
+            return r
+    return None
 
 
 def _redeem_coupon(name):
