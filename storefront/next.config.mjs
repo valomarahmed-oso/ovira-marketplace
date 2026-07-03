@@ -34,6 +34,13 @@ const nextConfig = {
           { key: "Strict-Transport-Security", value: "max-age=31536000" },
         ],
       },
+      {
+        // Never cache the service worker script itself, so a fixed/updated SW
+        // reaches every browser on the next load instead of being pinned to a
+        // stale copy for hours (which can break auth, as it just did).
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }],
+      },
     ];
   },
 };
