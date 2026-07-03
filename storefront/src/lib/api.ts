@@ -140,6 +140,28 @@ export async function getRelatedProducts(slug: string, limit = 8): Promise<Produ
   return USE_MOCKS ? mockProducts({ limit }).filter((p) => p.slug !== slug) : [];
 }
 
+export type SearchSuggestion = {
+  products: { title: string; slug: string; price: number; currency: string; image?: string }[];
+  categories: { category_name: string; slug: string }[];
+};
+
+/** Autocomplete for the header search box. Returns empty for a too-short query or
+ * an unreachable backend (the dropdown just stays closed). */
+export async function getSearchSuggestions(q: string): Promise<SearchSuggestion> {
+  const empty: SearchSuggestion = { products: [], categories: [] };
+  if (!BASE || q.trim().length < 2) return empty;
+  try {
+    const res = await fetch(
+      `${BASE}/api/method/ovira_marketplace.api.catalog.search_suggestions?q=${encodeURIComponent(q.trim())}`,
+      { headers: { Accept: "application/json" }, cache: "no-store" },
+    );
+    if (!res.ok) return empty;
+    return ((await res.json()).message as SearchSuggestion) ?? empty;
+  } catch {
+    return empty;
+  }
+}
+
 export async function getCategories() {
   const live = await callMethod<Category[]>("ovira_marketplace.api.catalog.list_categories");
   if (live && live.length) return live;

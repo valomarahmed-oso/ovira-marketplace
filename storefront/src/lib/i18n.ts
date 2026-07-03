@@ -45,6 +45,9 @@ const ar = {
   searchPrompt: "اكتب كلمة في شريط البحث بالأعلى لعرض النتائج.",
   searchResultsFor: "نتائج البحث عن «{q}»",
   searchTitle: "ابحث عن منتجات",
+  searchInProducts: "منتجات",
+  searchInCategories: "أقسام",
+  searchViewAll: "عرض كل نتائج «{q}»",
   categoryIntro: "اكتشف أفضل المنتجات في {name} من بائعين موثوقين",
 
   filterTitle: "تصفية",
@@ -350,6 +353,9 @@ const en: Dict = {
   searchPrompt: "Type a keyword in the search bar above to see results.",
   searchResultsFor: "Search results for “{q}”",
   searchTitle: "Search for products",
+  searchInProducts: "Products",
+  searchInCategories: "Categories",
+  searchViewAll: "See all results for “{q}”",
   categoryIntro: "Discover the best products in {name} from trusted sellers",
 
   filterTitle: "Filter",

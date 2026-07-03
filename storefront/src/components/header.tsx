@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, Heart, MapPin, Menu, Search, ShoppingCart, User } from "lucide-react";
+import { Bell, Heart, MapPin, Menu, ShoppingCart, User } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { MobileMenu } from "@/components/mobile-menu";
 import { PrefsToggle } from "@/components/prefs-toggle";
+import { SearchBox } from "@/components/search-box";
 import { cartCount, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
 import { useWishlist } from "@/lib/wishlist-store";
@@ -16,10 +16,8 @@ import { useI18n } from "@/components/i18n-provider";
 import { useAppConfig } from "@/components/app-config-provider";
 
 export function Header() {
-  const router = useRouter();
   const { t } = useI18n();
   const { multiVendor } = useAppConfig();
-  const [q, setQ] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const items = useCart((s) => s.items);
   const user = useAuth((s) => s.user);
@@ -38,11 +36,6 @@ export function Header() {
     getUnreadCount().then(setUnread);
   }, [user]);
   const accountLabel = hydrated && user ? user.name.split(" ")[0] : t.account;
-
-  function onSearch(e: React.FormEvent) {
-    e.preventDefault();
-    router.push(q.trim() ? `/search?q=${encodeURIComponent(q.trim())}` : "/");
-  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface/85 backdrop-blur">
@@ -77,16 +70,7 @@ export function Header() {
 
         <Logo />
 
-        <form onSubmit={onSearch} className="relative hidden flex-1 md:block">
-          <Search className="pointer-events-none absolute end-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-400" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={t.searchPlaceholder}
-            aria-label={t.searchPlaceholder}
-            className="h-11 w-full rounded-xl border border-line bg-canvas pe-12 ps-4 text-sm text-ink outline-none transition-colors focus:border-blue focus:bg-surface"
-          />
-        </form>
+        <SearchBox className="hidden flex-1 md:block" />
 
         <nav className="flex items-center gap-1 md:gap-2">
           <Link href="/account" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-blue-50">
@@ -123,16 +107,9 @@ export function Header() {
         </nav>
       </div>
 
-      <form onSubmit={onSearch} className="container-ovira relative pb-3 md:hidden">
-        <Search className="pointer-events-none absolute end-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-400" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={t.searchPlaceholder}
-          aria-label={t.searchPlaceholder}
-          className="h-11 w-full rounded-xl border border-line bg-canvas pe-12 ps-4 text-sm outline-none focus:border-blue focus:bg-surface"
-        />
-      </form>
+      <div className="container-ovira pb-3 md:hidden">
+        <SearchBox />
+      </div>
     </header>
   );
 }

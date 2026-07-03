@@ -24,6 +24,141 @@ SORT_MAP = {
     "latest": "creation desc",
 }
 
+# Search ordering, aliased to the product table so it stays unambiguous once the
+# category/vendor tables are joined in (both of those also carry a `creation`).
+SEARCH_SORT = {
+    "price_asc": "p.price ASC",
+    "price_desc": "p.price DESC",
+    "latest": "p.creation DESC",
+}
+
+# Joined so search can match a product by its category or vendor display name,
+# not only the docname stored on the product.
+SEARCH_JOINS = (
+    " LEFT JOIN `tabMarketplace Category` c ON c.name = p.category"
+    " LEFT JOIN `tabMarketplace Vendor` v ON v.name = p.vendor"
+)
+
+
+def _search_tokens(search):
+    """Whitespace tokens of a query, capped so a pathological query can't blow up
+    the generated SQL. Empty when there's nothing to search."""
+    return [t for t in (search or "").strip().split() if t][:6]
+
+
+def _like_escape(term):
+    """Escape LIKE wildcards so a literal % or _ typed by a shopper is matched
+    literally, not treated as a wildcard."""
+    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _like_contains(term):
+    return f"%{_like_escape(term)}%"
+
+
+def _like_prefix(term):
+    return f"{_like_escape(term)}%"
+
+
+def _hard_where_sql(params, category, vendor, brand, min_price, max_price, in_stock):
+    """The non-text WHERE clauses (approval + published + facet filters) as raw SQL,
+    mirroring `_catalog_filters` for the search query builder. Values go through
+    `params` so nothing is interpolated into the SQL string."""
+    clauses = ["p.approval_status = 'Approved'", "p.published = 1"]
+    if category:
+        docname = frappe.db.get_value("Marketplace Category", {"slug": category}, "name")
+        params["f_category"] = docname or category
+        clauses.append("p.category = %(f_category)s")
+    if vendor:
+        params["f_vendor"] = vendor
+        clauses.append("p.vendor = %(f_vendor)s")
+    if brand:
+        brands = [b.strip() for b in str(brand).split(",") if b.strip()]
+        if brands:
+            params["f_brands"] = tuple(brands)
+            clauses.append("p.brand IN %(f_brands)s")
+    if min_price not in (None, ""):
+        params["f_min"] = flt(min_price)
+        clauses.append("p.price >= %(f_min)s")
+    if max_price not in (None, ""):
+        params["f_max"] = flt(max_price)
+        clauses.append("p.price <= %(f_max)s")
+    if cint(in_stock):
+        clauses.append("p.stock_qty > 0")
+    return " AND ".join(clauses)
+
+
+def _gate_sql(params, tokens):
+    """Every token must appear in at least one searched field (AND of ORs), so a
+    two-word query narrows results instead of widening them."""
+    clauses = []
+    for i, tok in enumerate(tokens):
+        key = f"c{i}"
+        params[key] = _like_contains(tok)
+        clauses.append(
+            f"(p.title LIKE %({key})s OR p.short_description LIKE %({key})s"
+            f" OR p.description LIKE %({key})s OR p.brand LIKE %({key})s"
+            f" OR c.category_name LIKE %({key})s OR v.vendor_name LIKE %({key})s)"
+        )
+    return " AND ".join(clauses)
+
+
+def _score_sql(params, search, tokens):
+    """Relevance score: whole-query title hits rank highest, then per-token title
+    hits, then brand/category/vendor, then descriptions. Assumes `_gate_sql` has
+    already registered the per-token `c{i}` contains params."""
+    params["q_exact"] = search
+    params["q_prefix"] = _like_prefix(search)
+    params["q_like"] = _like_contains(search)
+    parts = [
+        "CASE WHEN p.title = %(q_exact)s THEN 1000 ELSE 0 END",
+        "CASE WHEN p.title LIKE %(q_prefix)s THEN 300 ELSE 0 END",
+        "CASE WHEN p.title LIKE %(q_like)s THEN 120 ELSE 0 END",
+    ]
+    for i in range(len(tokens)):
+        key = f"c{i}"
+        pfx = f"c{i}p"
+        params[pfx] = _like_prefix(tokens[i])
+        parts += [
+            f"CASE WHEN p.title LIKE %({pfx})s THEN 40 ELSE 0 END",
+            f"CASE WHEN p.title LIKE %({key})s THEN 25 ELSE 0 END",
+            f"CASE WHEN p.brand LIKE %({key})s THEN 12 ELSE 0 END",
+            f"CASE WHEN c.category_name LIKE %({key})s THEN 10 ELSE 0 END",
+            f"CASE WHEN v.vendor_name LIKE %({key})s THEN 8 ELSE 0 END",
+            f"CASE WHEN p.short_description LIKE %({key})s THEN 5 ELSE 0 END",
+            f"CASE WHEN p.description LIKE %({key})s THEN 1 ELSE 0 END",
+        ]
+    return " + ".join(parts)
+
+
+def _search_products(
+    search, tokens, sort, limit, start,
+    category=None, vendor=None, brand=None, min_price=None, max_price=None, in_stock=None,
+):
+    """Relevance-ranked catalog search across title, descriptions, brand, category
+    and vendor name. Returns rows shaped like `PRODUCT_LIST_FIELDS`."""
+    params: dict = {}
+    hard = _hard_where_sql(params, category, vendor, brand, min_price, max_price, in_stock)
+    gate = _gate_sql(params, tokens)  # registers c{i}
+    score = _score_sql(params, search, tokens)  # registers q_* and c{i}p
+
+    cols = ", ".join(f"p.`{f}`" for f in PRODUCT_LIST_FIELDS)
+    order = SEARCH_SORT.get(sort) or "_score DESC, p.rating DESC, p.creation DESC"
+    params["limit"] = cint(limit) or 24
+    params["start"] = cint(start) or 0
+
+    query = (
+        f"SELECT {cols}, ({score}) AS _score"
+        f" FROM `tabMarketplace Product` p{SEARCH_JOINS}"
+        f" WHERE {hard} AND {gate}"
+        f" ORDER BY {order}"
+        f" LIMIT %(limit)s OFFSET %(start)s"
+    )
+    rows = frappe.db.sql(query, params, as_dict=True)
+    for r in rows:
+        r.pop("_score", None)
+    return rows
+
 
 @frappe.whitelist(allow_guest=True)
 def list_products(
@@ -42,20 +177,28 @@ def list_products(
 
     All filtering runs in ERPNext so it spans the whole catalog (not just the
     current page). `brand` may be a single value or a comma-separated list.
-    """
-    filters = _catalog_filters(category, vendor, brand, min_price, max_price, in_stock)
-    or_filters = {"title": ["like", f"%{search}%"]} if search else None
 
-    products = frappe.get_all(
-        "Marketplace Product",
-        filters=filters,
-        or_filters=or_filters,
-        fields=PRODUCT_LIST_FIELDS,
-        limit_page_length=cint(limit),
-        limit_start=cint(start),
-        order_by=SORT_MAP.get(sort, "creation desc"),
-        ignore_permissions=True,
-    )
+    A `search` term switches to a relevance-ranked query across title,
+    descriptions, brand, category and vendor name; without one, the plain
+    (indexed) listing path is used unchanged.
+    """
+    tokens = _search_tokens(search)
+    if tokens:
+        products = _search_products(
+            (search or "").strip(), tokens, sort, limit, start,
+            category, vendor, brand, min_price, max_price, in_stock,
+        )
+    else:
+        filters = _catalog_filters(category, vendor, brand, min_price, max_price, in_stock)
+        products = frappe.get_all(
+            "Marketplace Product",
+            filters=filters,
+            fields=PRODUCT_LIST_FIELDS,
+            limit_page_length=cint(limit),
+            limit_start=cint(start),
+            order_by=SORT_MAP.get(sort, "creation desc"),
+            ignore_permissions=True,
+        )
     _attach_card_fields(products)
     return products
 
@@ -63,26 +206,27 @@ def list_products(
 @frappe.whitelist(allow_guest=True)
 def catalog_facets(category=None, search=None):
     """Available filter facets (brands + price range) for a category/search,
-    so the storefront sidebar reflects the whole catalog, not one page."""
-    filters = _catalog_filters(category)
-    or_filters = {"title": ["like", f"%{search}%"]} if search else None
+    so the storefront sidebar reflects the whole catalog, not one page. When a
+    search term is present the facets span the same relevance-matched set the
+    listing returns (not a title-only match)."""
+    tokens = _search_tokens(search)
+    if tokens:
+        params: dict = {}
+        hard = _hard_where_sql(params, category, None, None, None, None, None)
+        gate = _gate_sql(params, tokens)
+        base = f"FROM `tabMarketplace Product` p{SEARCH_JOINS} WHERE {hard} AND {gate}"
+        brand_codes = [r[0] for r in frappe.db.sql(f"SELECT DISTINCT p.brand {base}", params)]
+        prices = [r[0] for r in frappe.db.sql(f"SELECT p.price {base}", params)]
+    else:
+        filters = _catalog_filters(category)
+        brand_codes = frappe.get_all(
+            "Marketplace Product", filters=filters, pluck="brand", ignore_permissions=True
+        )
+        prices = frappe.get_all(
+            "Marketplace Product", filters=filters, pluck="price", ignore_permissions=True
+        )
 
-    brand_codes = frappe.get_all(
-        "Marketplace Product",
-        filters=filters,
-        or_filters=or_filters,
-        pluck="brand",
-        ignore_permissions=True,
-    )
     brands = sorted({b for b in brand_codes if b})
-
-    prices = frappe.get_all(
-        "Marketplace Product",
-        filters=filters,
-        or_filters=or_filters,
-        pluck="price",
-        ignore_permissions=True,
-    )
     prices = [flt(p) for p in prices if p is not None]
 
     return {
@@ -226,6 +370,39 @@ def related_products(slug, limit=8):
 
     _attach_card_fields(picked)
     return picked
+
+
+@frappe.whitelist(allow_guest=True)
+def search_suggestions(q=None, limit=8):
+    """Lightweight autocomplete for the header search box: the top relevance-ranked
+    products (slim card fields) plus any categories whose name/slug matches."""
+    tokens = _search_tokens(q)
+    if not tokens:
+        return {"products": [], "categories": []}
+
+    limit = min(cint(limit) or 8, 12)
+    products = _search_products((q or "").strip(), tokens, None, limit, 0)
+    _attach_card_fields(products)
+    slim = [
+        {
+            "title": p.title,
+            "slug": p.slug,
+            "price": p.price,
+            "currency": p.currency,
+            "image": p.get("image"),
+        }
+        for p in products
+    ]
+
+    like = _like_contains(tokens[0])
+    cats = frappe.db.sql(
+        "SELECT category_name, slug FROM `tabMarketplace Category`"
+        " WHERE category_name LIKE %(like)s OR slug LIKE %(like)s"
+        " ORDER BY display_order ASC, category_name ASC LIMIT 5",
+        {"like": like},
+        as_dict=True,
+    )
+    return {"products": slim, "categories": [dict(c) for c in cats]}
 
 
 @frappe.whitelist(allow_guest=True)
