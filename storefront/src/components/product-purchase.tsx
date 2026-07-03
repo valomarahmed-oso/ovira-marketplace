@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Minus, Plus, ShoppingCart, X, Zap } from "lucide-react";
 import type { Product, ProductVariant } from "@/lib/api";
+import { Countdown } from "@/components/countdown";
 import { OviraBars } from "@/components/ovira-bars";
 import { useCart } from "@/lib/cart-store";
 import { cn, discountPercent, formatPrice } from "@/lib/utils";
@@ -44,8 +45,20 @@ export function ProductPurchase({ p }: { p: Product }) {
     router.push("/checkout");
   }
 
+  // A live flash deal (single-price products only) drives a countdown banner.
+  const deal = !hasVariants ? p.deal : undefined;
+
   return (
     <div className="card space-y-4 p-5">
+      {deal && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-coral-50 px-3 py-2 text-coral">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+            <Zap className="h-4 w-4 fill-coral" /> عرض فلاش
+          </span>
+          <Countdown endsOn={deal.ends_on} />
+        </div>
+      )}
+
       <div className="flex flex-wrap items-end gap-3">
         <span className="font-tech text-3xl font-medium text-ink">{formatPrice(price, p.currency)}</span>
         {p.compare_at_price && (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Bell, Heart, MapPin, Menu, ShoppingCart, User } from "lucide-react";
+import { Bell, Heart, MapPin, Menu, ShoppingCart, User, Zap } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { MobileMenu } from "@/components/mobile-menu";
 import { PrefsToggle } from "@/components/prefs-toggle";
@@ -46,6 +46,10 @@ export function Header() {
             {t.deliverTo} <strong className="font-medium text-ink">{t.egypt}</strong>
           </span>
           <div className="flex items-center gap-3">
+            <Link href="/deals" className="flex items-center gap-1 font-medium text-coral hover:opacity-80">
+              <Zap className="h-3.5 w-3.5 fill-coral" />
+              {t.dealsTitle}
+            </Link>
             {multiVendor && (
               <Link href="/sell" className="hidden items-center gap-1 hover:text-blue-600 sm:flex">
                 {t.becomeVendor}

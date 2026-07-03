@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Check, Heart, ShoppingCart, Star, Store } from "lucide-react";
+import { Check, Heart, ShoppingCart, Star, Store, Zap } from "lucide-react";
 import type { Product } from "@/lib/api";
+import { Countdown } from "@/components/countdown";
 import { OviraBars } from "@/components/ovira-bars";
 import { useCart } from "@/lib/cart-store";
 import { useWishlist } from "@/lib/wishlist-store";
@@ -26,6 +27,7 @@ export function ProductCard({ p }: { p: Product }) {
   const soldOut = p.stock_qty <= 0;
   // Products with variants must be configured on the detail page.
   const needsOptions = !!p.has_variants;
+  const hasDeal = !!p.deal_ends_on;
 
   function addToCart() {
     add(p);
@@ -48,10 +50,17 @@ export function ProductCard({ p }: { p: Product }) {
           )}
         </Link>
 
-        {off > 0 && (
-          <span className="absolute start-3 top-3 rounded-full bg-coral px-2 py-1 font-tech text-xs font-medium text-white">
-            {off}% {t.off}
+        {hasDeal ? (
+          <span className="absolute start-3 top-3 inline-flex items-center gap-1 rounded-full bg-coral px-2 py-1 font-tech text-xs font-medium text-white">
+            <Zap className="h-3.5 w-3.5 fill-white" />
+            {off > 0 ? `${off}% ${t.off}` : t.flashDeal}
           </span>
+        ) : (
+          off > 0 && (
+            <span className="absolute start-3 top-3 rounded-full bg-coral px-2 py-1 font-tech text-xs font-medium text-white">
+              {off}% {t.off}
+            </span>
+          )
         )}
 
         <button
@@ -109,6 +118,13 @@ export function ProductCard({ p }: { p: Product }) {
           </div>
           <OviraBars animated className="pb-1" />
         </div>
+
+        {hasDeal && p.deal_ends_on && (
+          <div className="flex items-center gap-1.5 text-xs text-coral">
+            <span>{t.dealEndsIn}</span>
+            <Countdown endsOn={p.deal_ends_on} />
+          </div>
+        )}
 
         {needsOptions ? (
           <Link

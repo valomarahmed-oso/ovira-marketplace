@@ -27,6 +27,10 @@ export type Product = {
   has_variants?: number | boolean;
   variant_option_name?: string;
   variants?: ProductVariant[];
+  // Set when a live flash deal overlays the price (single-price products only).
+  deal_ends_on?: string;
+  deal_remaining?: number | null;
+  deal?: { deal_price: number; ends_on: string; remaining: number | null };
 };
 
 export type ProductVariant = {
@@ -160,6 +164,14 @@ export async function getSearchSuggestions(q: string): Promise<SearchSuggestion>
   } catch {
     return empty;
   }
+}
+
+/** Products with a live flash deal, soonest to end first. */
+export async function getDeals(limit = 24): Promise<Product[]> {
+  const live = await callMethod<Product[]>("ovira_marketplace.api.deals.list_deals", {
+    limit: String(limit),
+  });
+  return live ?? [];
 }
 
 export async function getCategories() {

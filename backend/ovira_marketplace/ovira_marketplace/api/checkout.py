@@ -46,8 +46,11 @@ def place_order(items, customer, payment_method="cod", coupon=None):
     order.payment_status = "Unpaid"
     order.currency = settings.default_currency
 
+    from ovira_marketplace.api.deals import active_deal
+
     subtotal = 0.0
     shortages = []
+    deal_redemptions = []
     for line in items:
         product = frappe.db.get_value(
             "Marketplace Product",
@@ -82,6 +85,16 @@ def place_order(items, customer, payment_method="cod", coupon=None):
             available = int(flt(variant.stock_qty))
             gate_stock = True  # variant stock is explicit — always enforce it
 
+        # A live flash deal replaces the rate server-side (single-price products
+        # only). Vendor-funded: the lower rate flows into the SO and settlement,
+        # so the vendor is paid on the deal price — no operator absorption.
+        deal_name = None
+        if not product.has_variants:
+            deal = active_deal(product.name)
+            if deal and flt(deal["deal_price"]) < rate:
+                rate = flt(deal["deal_price"])
+                deal_name = deal["name"]
+
         # Block overselling. Any shortage rejects the whole order (below) rather
         # than silently trimming quantities the buyer didn't agree to.
         if gate_stock:
@@ -105,6 +118,8 @@ def place_order(items, customer, payment_method="cod", coupon=None):
                 "amount": amount,
             },
         )
+        if deal_name:
+            deal_redemptions.append((deal_name, qty))
 
     if shortages:
         frappe.throw("<br>".join(shortages), title=_("Stock unavailable"))
@@ -132,6 +147,11 @@ def place_order(items, customer, payment_method="cod", coupon=None):
     order.create_vendor_orders()
     if coupon_doc:
         _redeem_coupon(coupon_doc.name)
+    if deal_redemptions:
+        from ovira_marketplace.api.deals import redeem_deal
+
+        for deal_name, deal_qty in deal_redemptions:
+            redeem_deal(deal_name, deal_qty)
     frappe.db.commit()
 
     try:

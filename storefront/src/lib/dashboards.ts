@@ -14,6 +14,7 @@ import {
   Tag,
   Truck,
   Wallet,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import type { AuthUser } from "@/lib/auth-store";
@@ -57,6 +58,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/admin/orders", key: "adminNavOrders", icon: ClipboardList },
       { href: "/admin/returns", key: "adminNavReturns", icon: RotateCcw },
       { href: "/admin/coupons", key: "adminNavCoupons", icon: Tag },
+      { href: "/admin/deals", key: "adminNavDeals", icon: Zap },
       { href: "/admin/payouts", key: "adminNavPayouts", icon: Wallet },
       { href: "/admin/payments", key: "adminNavPayments", icon: CreditCard },
       { href: "/admin/shipping", key: "adminNavShipping", icon: Truck },

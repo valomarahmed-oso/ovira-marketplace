@@ -15,8 +15,8 @@ import {
   ShieldCheck,
   ShoppingBag,
   Store,
-  Tag,
   X,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -100,7 +100,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
           <Item href="/" icon={Home} label={t.brand} />
           <Item href="/categories" icon={Grid2x2} label={t.allCategories} />
           <Item href="/products" icon={Package} label={t.menuAllProducts} />
-          <Item href="/products?sort=price_asc" icon={Tag} label={t.deals} />
+          <Item href="/deals" icon={Zap} label={t.dealsTitle} />
 
           <div className={section}>{t.menuMyPages}</div>
           <Item href="/account" icon={LayoutDashboard} label={t.account} />

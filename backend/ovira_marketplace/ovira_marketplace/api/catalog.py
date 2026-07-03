@@ -291,6 +291,31 @@ def _attach_card_fields(products):
         p["vendor_name"] = vendor_names.get(p.vendor)
         p["reviews"] = cint(p.get("review_count"))
 
+    _attach_deals(products)
+
+
+def _attach_deals(products):
+    """Overlay a live flash-deal price on card rows: the deal price becomes the
+    shown price, the normal price moves to `compare_at_price` (struck through),
+    and `deal_ends_on`/`deal_remaining` drive the badge + countdown. Variant
+    products are skipped — they price per variant, not per deal."""
+    targets = [p for p in products if not cint(p.get("has_variants"))]
+    if not targets:
+        return
+    from ovira_marketplace.api.deals import active_deal_map
+
+    deals = active_deal_map([p.name for p in targets])
+    if not deals:
+        return
+    for p in targets:
+        deal = deals.get(p.name)
+        if not deal or flt(deal["deal_price"]) >= flt(p.get("price")):
+            continue
+        p["compare_at_price"] = flt(p.get("price"))
+        p["price"] = flt(deal["deal_price"])
+        p["deal_ends_on"] = deal["ends_on"]
+        p["deal_remaining"] = deal["remaining"]
+
 
 @frappe.whitelist(allow_guest=True)
 def get_product(slug):
@@ -323,6 +348,21 @@ def get_product(slug):
     else:
         doc["has_variants"] = 0
         doc["variants"] = []
+
+    # A live flash deal overlays the price (single-price products only) and
+    # exposes a `deal` block so the detail page can show a countdown.
+    if not doc["has_variants"]:
+        from ovira_marketplace.api.deals import active_deal
+
+        deal = active_deal(name)
+        if deal and flt(deal["deal_price"]) < flt(doc.get("price")):
+            doc["compare_at_price"] = flt(doc.get("price"))
+            doc["price"] = flt(deal["deal_price"])
+            doc["deal"] = {
+                "deal_price": flt(deal["deal_price"]),
+                "ends_on": deal["ends_on"],
+                "remaining": deal["remaining"],
+            }
     return doc
 
 
