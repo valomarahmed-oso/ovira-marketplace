@@ -59,9 +59,12 @@ function LoginForm() {
         <form onSubmit={submit} className="space-y-3">
           <div className={wrap}>
             <input
-              type="email"
+              // Not type="email": Frappe's `usr` accepts a username (e.g.
+              // "Administrator") too, which a strict email input would reject.
+              type="text"
+              autoComplete="username"
               required
-              placeholder={t.email}
+              placeholder={t.emailOrUsername}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={field}

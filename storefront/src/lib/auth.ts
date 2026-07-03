@@ -70,11 +70,22 @@ export async function signIn(email: string, password: string): Promise<AuthUser>
   const res = await fetch(`${BASE}/api/method/login`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ usr: email, pwd: password }),
+    body: new URLSearchParams({ usr: email.trim(), pwd: password }),
     credentials: "include",
   });
   if (!res.ok) {
-    throw new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
+    // Bad credentials get the friendly Arabic message; anything else (disabled
+    // account, too many attempts, …) surfaces the real server reason.
+    let msg = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+    try {
+      const data = await res.json();
+      if (data?.exc_type && data.exc_type !== "AuthenticationError") {
+        msg = (typeof data.message === "string" && data.message) || msg;
+      }
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
   }
 
   const user = await fetchMe();

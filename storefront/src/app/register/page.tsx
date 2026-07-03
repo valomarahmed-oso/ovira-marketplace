@@ -69,9 +69,10 @@ function RegisterForm() {
             <Phone className={icon} />
           </div>
           <div className={wrap}>
-            <input type="password" required minLength={6} placeholder={t.password} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={field} />
+            <input type="password" required minLength={8} placeholder={t.password} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={field} />
             <Lock className={icon} />
           </div>
+          <p className="text-xs text-ink-400">{t.passwordHint}</p>
           <button type="submit" disabled={busy} className="btn btn-primary w-full disabled:opacity-50">
             <UserPlus className="h-5 w-5" /> {busy ? t.creating : t.createAccountBtn}
           </button>
