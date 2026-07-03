@@ -1,10 +1,12 @@
 import frappe
 from frappe import _
-from frappe.utils import cint
+from frappe.utils import add_days, cint, flt, getdate, nowdate
 
 from ovira_marketplace.marketplace.doctype.marketplace_settings.marketplace_settings import (
     get_settings,
 )
+
+ANALYTICS_WINDOWS = (7, 30, 90, 365)
 
 
 def _my_vendor():
@@ -132,3 +134,126 @@ def my_orders(limit=100):
         )
     result.sort(key=lambda r: r["creation"] or "", reverse=True)
     return result[: cint(limit) or 100]
+
+
+def _empty_analytics(days):
+    return {
+        "currency": get_settings().default_currency,
+        "products": 0,
+        "totals": {
+            "gross_sales": 0.0,
+            "commission": 0.0,
+            "net_earnings": 0.0,
+            "units_sold": 0,
+            "orders": 0,
+            "avg_order_value": 0.0,
+        },
+        "period_days": days,
+        "period": {"revenue": 0.0, "units": 0, "orders": 0},
+        "trend": [{"date": str(getdate(add_days(nowdate(), -(days - 1) + i))), "revenue": 0.0} for i in range(days)],
+        "top_products": [],
+        "status_breakdown": [],
+    }
+
+
+@frappe.whitelist()
+def vendor_analytics(days=30):
+    """Read-only performance summary for the logged-in vendor: lifetime totals,
+    a paid-revenue trend over the last `days`, top products and an order-status
+    breakdown. Only the vendor's own lines (already split into Sales Orders) are
+    counted, so figures line up with the financial statement."""
+    vendor = _my_vendor()
+    days = cint(days) or 30
+    if days not in ANALYTICS_WINDOWS:
+        days = 30
+    if not vendor:
+        return _empty_analytics(days)
+
+    rows = frappe.db.sql(
+        """
+        SELECT oi.parent, oi.marketplace_product AS product, oi.title,
+               oi.qty, oi.amount, oi.commission_amount,
+               o.status, o.payment_status, o.creation
+        FROM `tabMarketplace Order Item` oi
+        INNER JOIN `tabMarketplace Order` o ON o.name = oi.parent
+        WHERE oi.vendor = %(vendor)s
+          AND oi.sales_order IS NOT NULL AND oi.sales_order != ''
+        """,
+        {"vendor": vendor},
+        as_dict=True,
+    )
+
+    gross = commission = units = 0.0
+    order_status = {}  # one status per order (for the breakdown)
+    prod_agg = {}
+    for r in rows:
+        gross += flt(r.amount)
+        commission += flt(r.commission_amount)
+        units += flt(r.qty)
+        order_status[r.parent] = r.status
+        pa = prod_agg.setdefault(
+            r.product, {"product": r.product, "title": r.title, "qty": 0.0, "revenue": 0.0}
+        )
+        pa["qty"] += flt(r.qty)
+        pa["revenue"] += flt(r.amount)
+
+    orders = len(order_status)
+    net = gross - commission
+
+    # Realized (paid) revenue by day over the selected window.
+    start = getdate(add_days(nowdate(), -(days - 1)))
+    trend_map = {}
+    period_rev = period_units = 0.0
+    period_orders = set()
+    for r in rows:
+        if r.payment_status != "Paid":
+            continue
+        d = getdate(r.creation)
+        if d < start:
+            continue
+        trend_map[str(d)] = trend_map.get(str(d), 0.0) + flt(r.amount)
+        period_rev += flt(r.amount)
+        period_units += flt(r.qty)
+        period_orders.add(r.parent)
+
+    trend = [
+        {
+            "date": str(getdate(add_days(nowdate(), -(days - 1) + i))),
+            "revenue": round(trend_map.get(str(getdate(add_days(nowdate(), -(days - 1) + i))), 0.0), 2),
+        }
+        for i in range(days)
+    ]
+
+    top_products = sorted(prod_agg.values(), key=lambda p: p["revenue"], reverse=True)[:5]
+    for p in top_products:
+        p["qty"] = int(p["qty"])
+        p["revenue"] = round(p["revenue"], 2)
+
+    counts = {}
+    for st in order_status.values():
+        counts[st] = counts.get(st, 0) + 1
+    status_breakdown = [
+        {"status": k, "count": v} for k, v in sorted(counts.items(), key=lambda x: -x[1])
+    ]
+
+    return {
+        "currency": get_settings().default_currency,
+        "products": frappe.db.count("Marketplace Product", {"vendor": vendor}),
+        "totals": {
+            "gross_sales": round(gross, 2),
+            "commission": round(commission, 2),
+            "net_earnings": round(net, 2),
+            "units_sold": int(units),
+            "orders": orders,
+            "avg_order_value": round(gross / orders, 2) if orders else 0.0,
+        },
+        "period_days": days,
+        "period": {
+            "revenue": round(period_rev, 2),
+            "units": int(period_units),
+            "orders": len(period_orders),
+        },
+        "trend": trend,
+        "top_products": top_products,
+        "status_breakdown": status_breakdown,
+    }

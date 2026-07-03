@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   Bell,
   ClipboardList,
   CreditCard,
@@ -73,6 +74,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
     can: (u) => !!u.isVendor,
     nav: [
       { href: "/vendor", key: "vendorNavOverview", icon: LayoutDashboard, exact: true },
+      { href: "/vendor/analytics", key: "vendorNavAnalytics", icon: BarChart3 },
       { href: "/vendor/products", key: "vendorNavProducts", icon: Package },
       { href: "/vendor/orders", key: "vendorNavOrders", icon: ShoppingBag },
       { href: "/vendor/settings", key: "vendorNavSettings", icon: Settings },

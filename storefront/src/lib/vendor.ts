@@ -141,6 +141,39 @@ export function getMyOrders() {
   return getList<VendorOrder>("ovira_marketplace.api.vendor.my_orders");
 }
 
+export type VendorAnalytics = {
+  currency: string;
+  products: number;
+  totals: {
+    gross_sales: number;
+    commission: number;
+    net_earnings: number;
+    units_sold: number;
+    orders: number;
+    avg_order_value: number;
+  };
+  period_days: number;
+  period: { revenue: number; units: number; orders: number };
+  trend: { date: string; revenue: number }[];
+  top_products: { product: string; title: string; qty: number; revenue: number }[];
+  status_breakdown: { status: string; count: number }[];
+};
+
+/** The logged-in vendor's performance summary for the last `days`. */
+export async function getVendorAnalytics(days = 30): Promise<VendorAnalytics | null> {
+  if (!BASE) return null;
+  try {
+    const res = await fetch(
+      `${BASE}/api/method/ovira_marketplace.api.vendor.vendor_analytics?days=${days}`,
+      { headers: { Accept: "application/json" }, credentials: "include", cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return ((await res.json()).message ?? null) as VendorAnalytics | null;
+  } catch {
+    return null;
+  }
+}
+
 export function updateMyStore(data: Partial<Record<string, string>>) {
   return postMethod<VendorStore>("ovira_marketplace.api.vendor.update_my_store", data);
 }
