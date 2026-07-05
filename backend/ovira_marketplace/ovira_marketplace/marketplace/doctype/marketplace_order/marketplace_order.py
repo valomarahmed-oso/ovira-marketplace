@@ -30,6 +30,25 @@ class MarketplaceOrder(Document):
 
     def on_update(self):
         self._notify_status_change()
+        self._maybe_issue_delivery_otp()
+
+    def _maybe_issue_delivery_otp(self):
+        """When an order goes out for delivery (→ Shipped), mint a one-time
+        delivery code once and push it to the buyer, so the courier can verify
+        the handover. Best-effort — never blocks the status change."""
+        before = self.get_doc_before_save()
+        if not before or before.status == self.status:
+            return
+        if self.status != "Shipped" or self.delivery_otp:
+            return
+        try:
+            from ovira_marketplace.api.shipping import dispatch_delivery_otp, new_delivery_otp
+
+            otp = new_delivery_otp()
+            self.db_set("delivery_otp", otp, update_modified=False)
+            dispatch_delivery_otp(self, otp)
+        except Exception:
+            frappe.log_error(title="Ovira: delivery OTP issue failed")
 
     def _notify_status_change(self):
         """On every status advance: raise an in-app notification for a registered

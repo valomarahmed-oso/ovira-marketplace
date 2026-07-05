@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import { AccountingAlerts } from "@/components/accounting-alerts";
 import { OperatorShipments } from "@/components/operator-shipments";
+import { DeliveryConfirm } from "@/components/delivery-confirm";
 import { SourceBreakdownCard } from "@/components/source-breakdown-card";
 import {
   getOrder,
@@ -333,6 +334,10 @@ export default function AdminOrdersPage() {
 
                         <div className="border-t border-line pt-4">
                           <OperatorShipments order={o.name} />
+                        </div>
+
+                        <div className="border-t border-line pt-4">
+                          <DeliveryConfirm order={o.name} confirmed={!!detail.delivery_confirmed} />
                         </div>
                       </div>
                     ) : (

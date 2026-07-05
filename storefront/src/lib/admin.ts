@@ -65,6 +65,7 @@ export type WhatsAppConfig = {
   template_order_confirmation?: string | null;
   template_order_status?: string | null;
   template_return_update?: string | null;
+  template_delivery_otp?: string | null;
   template_lang?: string | null;
   has_token?: boolean;
   configured?: boolean;

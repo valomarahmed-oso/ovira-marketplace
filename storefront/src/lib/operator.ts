@@ -232,6 +232,8 @@ export type AdminOrderDetail = AdminOrder & {
   payment_method?: string;
   subtotal?: number;
   shipping_amount?: number;
+  delivery_confirmed?: number;
+  delivered_on?: string;
   items: AdminOrderItem[];
 };
 

@@ -92,6 +92,22 @@ def send_order_status(order):
     _send(order.email, f"{subject} — {order.name}", _shell(subject, _order_lines(order)))
 
 
+def send_delivery_otp(order, otp):
+    """Email the buyer their delivery confirmation code."""
+    _send(
+        order.email,
+        f"رمز تأكيد استلام طلبك {order.name}",
+        _shell(
+            "رمز تأكيد الاستلام",
+            [
+                f"طلبك <b>{order.name}</b> في الطريق إليك.",
+                f"رمز الاستلام: <b style='font-size:20px;letter-spacing:3px'>{otp}</b>",
+                "أعطِ هذا الرمز لمندوب التوصيل عند استلام طلبك فقط.",
+            ],
+        ),
+    )
+
+
 def send_return_update(order_email, order_name, status, note=None):
     subject = RETURN_STATUS_SUBJECT.get(status)
     if not subject:

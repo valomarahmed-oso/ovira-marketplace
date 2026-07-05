@@ -108,6 +108,7 @@ WHATSAPP_FIELDS = [
     "template_order_confirmation",
     "template_order_status",
     "template_return_update",
+    "template_delivery_otp",
     "template_lang",
 ]
 
@@ -137,6 +138,7 @@ def update_whatsapp_config(
     template_order_confirmation=None,
     template_order_status=None,
     template_return_update=None,
+    template_delivery_otp=None,
     template_lang=None,
 ):
     _require_operator()
@@ -150,6 +152,7 @@ def update_whatsapp_config(
         "template_order_confirmation",
         "template_order_status",
         "template_return_update",
+        "template_delivery_otp",
         "template_lang",
     ):
         val = locals().get(field)

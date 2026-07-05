@@ -136,3 +136,11 @@ def notify_return_update(phone, order_name, status):
     if not label:
         return
     _send_template(phone, cfg.template_return_update, [order_name, label])
+
+
+def notify_delivery_otp(order, otp):
+    """Send the buyer their delivery confirmation code over WhatsApp."""
+    cfg = _config()
+    if not cfg:
+        return
+    _send_template(order.get("phone"), cfg.get("template_delivery_otp"), [order.name, str(otp)])

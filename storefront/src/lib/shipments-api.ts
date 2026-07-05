@@ -96,6 +96,14 @@ export const createOrderShipments = (order: string) =>
 export const updateShipmentStatus = (shipment: string, status: string, note?: string) =>
   post<Shipment>("update_shipment_status", { shipment, status, note });
 
+/** Operator: verify delivery with the buyer's one-time code → completes the order. */
+export const confirmDelivery = (order: string, otp: string) =>
+  post<{ confirmed: boolean; already?: boolean }>("confirm_delivery", { order, otp });
+
+/** Operator: (re)issue + resend the delivery code to the buyer. */
+export const resendDeliveryOtp = (order: string) =>
+  post<{ sent: boolean }>("resend_delivery_otp", { order });
+
 /** Vendor: map of { order: latest shipment status } for their shipments. */
 export async function getVendorShipmentStatuses(): Promise<Record<string, string>> {
   if (!BASE) return {};

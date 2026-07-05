@@ -21,6 +21,9 @@
   "shipping_section",
   "governorate",
   "shipping_address",
+  "delivery_confirmed",
+  "delivered_on",
+  "delivery_otp",
   "items_section",
   "items",
   "totals_section",
@@ -136,6 +139,29 @@
    "fieldname": "shipping_address",
    "fieldtype": "Small Text",
    "label": "Shipping address"
+  },
+  {
+   "default": "0",
+   "description": "Set when delivery was verified with the buyer's one-time code.",
+   "fieldname": "delivery_confirmed",
+   "fieldtype": "Check",
+   "label": "Delivery confirmed (OTP)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "delivered_on",
+   "fieldtype": "Datetime",
+   "label": "Delivered on",
+   "read_only": 1
+  },
+  {
+   "fieldname": "delivery_otp",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Delivery OTP",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1
   },
   {
    "fieldname": "items_section",

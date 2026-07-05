@@ -16,6 +16,7 @@
   "template_order_confirmation",
   "template_order_status",
   "template_return_update",
+  "template_delivery_otp",
   "template_lang"
  ],
  "fields": [
@@ -80,6 +81,12 @@
    "fieldname": "template_return_update",
    "fieldtype": "Data",
    "label": "Return update template"
+  },
+  {
+   "description": "Template with 2 body params: {{1}} order id, {{2}} the delivery code.",
+   "fieldname": "template_delivery_otp",
+   "fieldtype": "Data",
+   "label": "Delivery code template"
   },
   {
    "default": "ar",

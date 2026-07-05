@@ -1,6 +1,9 @@
+import secrets
+
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.rate_limiter import rate_limit
+from frappe.utils import flt, now_datetime
 
 from ovira_marketplace.api.admin import OPERATOR_ROLES, _require_operator
 from ovira_marketplace.shipping.connectors import default_provider, get_shipping_connector
@@ -187,3 +190,84 @@ def vendor_shipment_statuses():
 def _is_operator():
     user = frappe.session.user
     return user != "Guest" and any(r in frappe.get_roles(user) for r in OPERATOR_ROLES)
+
+
+# -- delivery confirmation (OTP) --------------------------------------------
+
+
+def new_delivery_otp():
+    return f"{secrets.randbelow(10000):04d}"
+
+
+def dispatch_delivery_otp(order, otp):
+    """Send the buyer their delivery code over every configured channel plus an
+    in-app notification. Each channel is best-effort — one failing never blocks
+    the others or the order."""
+    try:
+        from ovira_marketplace.emails import send_delivery_otp
+
+        send_delivery_otp(order, otp)
+    except Exception:
+        frappe.log_error(title="Ovira: delivery OTP email failed")
+    try:
+        from ovira_marketplace.whatsapp import notify_delivery_otp
+
+        notify_delivery_otp(order, otp)
+    except Exception:
+        frappe.log_error(title="Ovira: delivery OTP whatsapp failed")
+    if order.get("email") and frappe.db.exists("User", order.email):
+        try:
+            from ovira_marketplace.api.notifications import create_notification
+
+            create_notification(
+                user=order.email,
+                kind="order",
+                title="رمز تأكيد الاستلام",
+                message=f"رمز استلام طلبك {order.name}: {otp}",
+                reference_doctype="Marketplace Order",
+                reference_name=order.name,
+            )
+        except Exception:
+            frappe.log_error(title="Ovira: delivery OTP notification failed")
+
+
+@frappe.whitelist()
+@rate_limit(limit=25, seconds=60 * 10, methods="POST")
+def confirm_delivery(order, otp):
+    """Operator/courier verifies delivery with the buyer's one-time code, which
+    completes the order and stamps a verified-delivery flag."""
+    _require_operator()
+    doc = frappe.get_doc("Marketplace Order", order)
+    if doc.delivery_confirmed:
+        return {"confirmed": True, "already": True}
+    if not doc.delivery_otp:
+        frappe.throw(_("No delivery code was issued for this order yet."))
+    if str(otp or "").strip() != str(doc.delivery_otp):
+        frappe.throw(_("The delivery code doesn't match."))
+
+    doc.delivery_confirmed = 1
+    doc.delivered_on = now_datetime()
+    if doc.status != "Completed":
+        doc.status = "Completed"
+    doc.flags.ignore_permissions = True
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"confirmed": True}
+
+
+@frappe.whitelist()
+def resend_delivery_otp(order):
+    """Operator: (re)issue the delivery code and push it to the buyer's channels.
+    Handy when the order was already shipped before this feature, or the buyer
+    didn't receive it."""
+    _require_operator()
+    doc = frappe.get_doc("Marketplace Order", order)
+    if doc.delivery_confirmed:
+        frappe.throw(_("This delivery is already confirmed."))
+    otp = doc.delivery_otp
+    if not otp:
+        otp = new_delivery_otp()
+        doc.db_set("delivery_otp", otp, update_modified=False)
+    dispatch_delivery_otp(doc, otp)
+    frappe.db.commit()
+    return {"sent": True}

@@ -41,6 +41,7 @@ export function WhatsAppConfigCard() {
         template_order_confirmation: cfg.template_order_confirmation ?? "",
         template_order_status: cfg.template_order_status ?? "",
         template_return_update: cfg.template_return_update ?? "",
+        template_delivery_otp: cfg.template_delivery_otp ?? "",
         template_lang: cfg.template_lang ?? "",
         ...(token ? { access_token: token } : {}),
       });
@@ -123,8 +124,14 @@ export function WhatsAppConfigCard() {
         <input
           value={cfg.template_return_update ?? ""}
           onChange={(e) => set("template_return_update", e.target.value)}
-          className={`${fieldCls} sm:col-span-2`}
+          className={fieldCls}
           placeholder={t.waTplReturn}
+        />
+        <input
+          value={cfg.template_delivery_otp ?? ""}
+          onChange={(e) => set("template_delivery_otp", e.target.value)}
+          className={fieldCls}
+          placeholder={t.waTplDelivery}
         />
       </div>
 
