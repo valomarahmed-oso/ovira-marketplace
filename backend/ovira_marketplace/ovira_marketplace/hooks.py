@@ -36,10 +36,11 @@ after_migrate = "ovira_marketplace.setup.install.after_migrate"
 # ---------------------------------------------------------------------------
 # Scheduled jobs: settlements, payout runs, search reindex
 # ---------------------------------------------------------------------------
-# scheduler_events = {
-#     "daily": ["ovira_marketplace.vendor.settlement.run_due_payouts"],
-#     "cron": {"*/15 * * * *": ["ovira_marketplace.marketplace.search.reindex_dirty"]},
-# }
+scheduler_events = {
+    "daily": [
+        "ovira_marketplace.api.trust.recompute_all_vendor_trust",
+    ],
+}
 
 # ---------------------------------------------------------------------------
 # Multi-vendor isolation: a vendor only sees their own store and products

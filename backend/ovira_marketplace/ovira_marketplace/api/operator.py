@@ -28,6 +28,9 @@ VENDOR_LIST_FIELDS = [
     "supplier",
     "customer",
     "commission_rate",
+    "trust_score",
+    "trust_tier",
+    "rating",
     "creation",
 ]
 

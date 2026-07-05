@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Check, Heart, ShoppingCart, Star, Store, Zap } from "lucide-react";
 import type { Product } from "@/lib/api";
 import { Countdown } from "@/components/countdown";
+import { TrustBadge } from "@/components/trust-badge";
 import { OviraBars } from "@/components/ovira-bars";
 import { useCart } from "@/lib/cart-store";
 import { useWishlist } from "@/lib/wishlist-store";
@@ -86,7 +87,10 @@ export function ProductCard({ p }: { p: Product }) {
         {multiVendor && p.vendor_name && (
           <div className="flex items-center gap-1.5 text-xs text-ink-400">
             <Store className="h-3.5 w-3.5" />
-            <span>{p.vendor_name}</span>
+            <span className="truncate">{p.vendor_name}</span>
+            {p.vendor_trust_tier && p.vendor_trust_tier !== "new" && (
+              <TrustBadge tier={p.vendor_trust_tier} className="shrink-0" />
+            )}
           </div>
         )}
 

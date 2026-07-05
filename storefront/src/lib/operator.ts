@@ -16,6 +16,9 @@ export type Vendor = {
   supplier?: string;
   customer?: string;
   commission_rate?: number;
+  trust_score?: number;
+  trust_tier?: string;
+  rating?: number;
   creation?: string;
 };
 

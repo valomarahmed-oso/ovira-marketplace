@@ -276,19 +276,26 @@ def _attach_card_fields(products):
         image_by_product.setdefault(row.parent, row.image)
 
     vendors = {p.vendor for p in products if p.vendor}
-    vendor_names = dict(
-        frappe.get_all(
-            "Marketplace Vendor",
-            filters={"name": ["in", list(vendors)]},
-            fields=["name", "vendor_name"],
-            as_list=True,
-            ignore_permissions=True,
-        )
-    ) if vendors else {}
+    vendor_meta = (
+        {
+            v.name: v
+            for v in frappe.get_all(
+                "Marketplace Vendor",
+                filters={"name": ["in", list(vendors)]},
+                fields=["name", "vendor_name", "trust_tier", "trust_score"],
+                ignore_permissions=True,
+            )
+        }
+        if vendors
+        else {}
+    )
 
     for p in products:
         p["image"] = image_by_product.get(p.name)
-        p["vendor_name"] = vendor_names.get(p.vendor)
+        v = vendor_meta.get(p.vendor)
+        p["vendor_name"] = v.vendor_name if v else None
+        p["vendor_trust_tier"] = v.trust_tier if v else None
+        p["vendor_trust_score"] = v.trust_score if v else None
         p["reviews"] = cint(p.get("review_count"))
 
     _attach_deals(products)
@@ -326,7 +333,15 @@ def get_product(slug):
     if not name:
         frappe.throw(_("Product not found."), frappe.DoesNotExistError)
     doc = frappe.get_doc("Marketplace Product", name).as_dict()
-    doc["vendor_name"] = frappe.db.get_value("Marketplace Vendor", doc.get("vendor"), "vendor_name")
+    v = frappe.db.get_value(
+        "Marketplace Vendor",
+        doc.get("vendor"),
+        ["vendor_name", "trust_tier", "trust_score"],
+        as_dict=True,
+    )
+    doc["vendor_name"] = v.vendor_name if v else None
+    doc["vendor_trust_tier"] = v.trust_tier if v else None
+    doc["vendor_trust_score"] = v.trust_score if v else None
     primary = next((m for m in doc.get("media", []) if m.get("is_primary")), None) or (
         doc.get("media")[0] if doc.get("media") else None
     )

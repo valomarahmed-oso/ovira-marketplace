@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Loader2, Search, Store } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
+import { TrustBadge } from "@/components/trust-badge";
 import {
   listVendors,
   setVendorCommission,
@@ -205,6 +206,9 @@ export default function AdminVendorsPage() {
                       <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                       {statusLabel[v.status]}
                     </span>
+                    {v.trust_tier && v.trust_tier !== "new" && (
+                      <TrustBadge tier={v.trust_tier} score={v.trust_score} showScore />
+                    )}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-ink-400">
                     {v.email && <span className="truncate">{v.email}</span>}

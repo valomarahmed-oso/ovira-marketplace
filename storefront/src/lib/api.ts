@@ -15,6 +15,8 @@ export type Product = {
   currency: string;
   vendor: string;
   vendor_name?: string;
+  vendor_trust_tier?: string | null;
+  vendor_trust_score?: number | null;
   category?: string;
   brand?: string;
   stock_qty: number;

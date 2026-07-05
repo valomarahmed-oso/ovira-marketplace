@@ -19,6 +19,10 @@
   "column_break_linked",
   "commission_rate",
   "rating",
+  "ratings_count",
+  "trust_score",
+  "trust_tier",
+  "orders_count",
   "store_section",
   "description",
   "return_policy",
@@ -115,6 +119,33 @@
    "fieldtype": "Float",
    "label": "Rating",
    "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ratings_count",
+   "fieldtype": "Int",
+   "label": "Ratings count",
+   "read_only": 1
+  },
+  {
+   "description": "0–5 trust score, recomputed from ratings, fulfilment and returns.",
+   "fieldname": "trust_score",
+   "fieldtype": "Float",
+   "label": "Trust score",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "trust_tier",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Trust tier",
+   "read_only": 1
+  },
+  {
+   "fieldname": "orders_count",
+   "fieldtype": "Int",
+   "label": "Orders count",
    "read_only": 1
   },
   {

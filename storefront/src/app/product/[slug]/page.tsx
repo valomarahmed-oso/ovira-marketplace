@@ -10,6 +10,8 @@ import { ProductQA } from "@/components/product-qa";
 import { RecentlyViewed } from "@/components/recently-viewed";
 import { SectionHeading } from "@/components/section-heading";
 import { Rating } from "@/components/rating";
+import { TrustBadge } from "@/components/trust-badge";
+import { VendorTrust } from "@/components/vendor-trust";
 import { getProduct, getRelatedProducts } from "@/lib/api";
 import { toViewed } from "@/lib/recently-viewed-store";
 import { t } from "@/lib/dict";
@@ -51,9 +53,14 @@ export default async function ProductPage({ params }: Props) {
         <ProductGallery images={images} title={p.title} />
 
         <div className="space-y-5">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-600">
-            <Store className="h-3.5 w-3.5" /> {p.vendor_name}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-600">
+              <Store className="h-3.5 w-3.5" /> {p.vendor_name}
+            </span>
+            {p.vendor_trust_tier && p.vendor_trust_tier !== "new" && (
+              <TrustBadge tier={p.vendor_trust_tier} score={p.vendor_trust_score} showScore />
+            )}
+          </div>
 
           <h1 className="text-2xl font-medium leading-snug text-ink md:text-3xl">{p.title}</h1>
 
@@ -62,6 +69,8 @@ export default async function ProductPage({ params }: Props) {
           {p.short_description && <p className="leading-7 text-ink-600">{p.short_description}</p>}
 
           <ProductPurchase p={p} />
+
+          <VendorTrust vendor={p.vendor} />
 
           <div className="grid gap-2 sm:grid-cols-3">
             {assurances.map((a) => (
