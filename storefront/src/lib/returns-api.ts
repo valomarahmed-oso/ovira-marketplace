@@ -92,6 +92,8 @@ async function post<T>(method: string, body: Record<string, unknown>): Promise<T
 export const getOrderReturn = (order: string) =>
   get<ReturnRequest | null>("order_return", `?order=${encodeURIComponent(order)}`, null);
 
+export const getMyReturns = () => get<ReturnRequest[]>("my_returns", "", []);
+
 export const requestReturn = (order: string, reason: string, details?: string) =>
   post<ReturnRequest>("request_return", { order, reason, details });
 

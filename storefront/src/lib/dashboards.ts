@@ -93,6 +93,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
     nav: [
       { href: "/account", key: "buyerNavOverview", icon: LayoutDashboard, exact: true },
       { href: "/account/orders", key: "myOrders", icon: Package },
+      { href: "/account/returns", key: "buyerNavReturns", icon: RotateCcw },
       { href: "/account/wallet", key: "walletNav", icon: Wallet },
       { href: "/wishlist", key: "wishlist", icon: Heart },
       { href: "/account/addresses", key: "addresses", icon: MapPin },

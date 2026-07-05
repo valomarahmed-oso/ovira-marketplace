@@ -58,6 +58,7 @@ export default function AdminSettingsPage() {
         sync_website_item: settings.sync_website_item,
         deal_product: settings.deal_product ?? "",
         sales_tax_template: settings.sales_tax_template ?? "",
+        store_credit_account: settings.store_credit_account ?? "",
       });
       setSettings(next);
       setSaved(true);
@@ -186,6 +187,16 @@ export default function AdminSettingsPage() {
             className={fieldCls}
             placeholder="Ovira VAT 14% - O"
           />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ink">{t.fieldStoreCreditAccount}</label>
+          <input
+            value={s.store_credit_account ?? ""}
+            onChange={(e) => set("store_credit_account", e.target.value)}
+            className={fieldCls}
+            placeholder="Store Credit Liability - O"
+          />
+          <p className="text-xs text-ink-400">{t.fieldStoreCreditAccountHint}</p>
         </div>
       </section>
 

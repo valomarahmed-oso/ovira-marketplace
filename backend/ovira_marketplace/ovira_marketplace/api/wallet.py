@@ -63,7 +63,81 @@ def _post(user, entry_type, amount, reason, reference_doctype=None, reference_na
     doc.balance_after = round(new_balance, 2)
     doc.flags.ignore_permissions = True
     doc.insert(ignore_permissions=True)
+    _book_wallet_je(doc)
     return doc
+
+
+def _book_wallet_je(entry):
+    """Mirror one wallet ledger row into the general ledger, so outstanding store
+    credit shows as a real liability instead of living only in the app ledger.
+
+    Gated on `Marketplace Settings.store_credit_account` (blank = ledger-only
+    mode, no GL entries — same pattern as shipping_account). Mapping:
+
+      Credit / Refund         → Dr income (revenue reversal)  Cr liability
+      Credit / other reasons  → Dr expense (promo/goodwill)   Cr liability
+      Debit  / Order payment  → Dr liability  Cr income  (pairs with the
+                                 wallet_applied invoice discount, restoring
+                                 revenue to the full sale amount)
+      Debit  / other reasons  → Dr liability  Cr expense (correction)
+
+    Idempotent (one JE per wallet entry, keyed by remark) and best-effort —
+    a GL failure is logged, never blocks the wallet movement.
+    """
+    try:
+        from ovira_marketplace.marketplace.doctype.marketplace_settings.marketplace_settings import (
+            get_settings,
+        )
+
+        settings = get_settings()
+        liability = settings.get("store_credit_account")
+        if not liability:
+            return None
+
+        remark = f"Ovira wallet {entry.name} | {entry.entry_type} {entry.reason} | {entry.user}"
+        if frappe.db.exists("Journal Entry", {"user_remark": remark, "docstatus": 1}):
+            return None
+
+        company = settings.get("operator_company") or frappe.db.get_value(
+            "Account", liability, "company"
+        )
+        income = frappe.db.get_value("Company", company, "default_income_account")
+        expense = frappe.db.get_value("Company", company, "default_expense_account")
+        cost_center = frappe.db.get_value("Company", company, "cost_center") or frappe.db.get_value(
+            "Cost Center", {"company": company, "is_group": 0}, "name"
+        )
+
+        counter = (
+            income if entry.reason in ("Refund", "Order payment") else expense
+        )
+        if not (company and counter):
+            return None
+
+        if entry.entry_type == "Credit":
+            debit_acc, credit_acc = counter, liability
+        else:
+            debit_acc, credit_acc = liability, counter
+
+        amount = flt(entry.amount)
+        je = frappe.new_doc("Journal Entry")
+        je.company = company
+        je.posting_date = frappe.utils.nowdate()
+        je.user_remark = remark
+        je.append(
+            "accounts",
+            {"account": debit_acc, "debit_in_account_currency": amount, "cost_center": cost_center},
+        )
+        je.append(
+            "accounts",
+            {"account": credit_acc, "credit_in_account_currency": amount, "cost_center": cost_center},
+        )
+        je.flags.ignore_permissions = True
+        je.insert(ignore_permissions=True)
+        je.submit()
+        return je.name
+    except Exception:
+        frappe.log_error(title="Ovira: wallet GL entry failed")
+        return None
 
 
 def credit(user, amount, reason="Adjustment", **kwargs):

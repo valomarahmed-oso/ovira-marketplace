@@ -17,6 +17,7 @@
   "sync_website_item",
   "sales_tax_template",
   "shipping_account",
+  "store_credit_account",
   "homepage_section",
   "deal_product"
  ],
@@ -99,6 +100,13 @@
    "fieldname": "shipping_account",
    "fieldtype": "Link",
    "label": "Shipping income account",
+   "options": "Account"
+  },
+  {
+   "description": "Liability account tracking outstanding customer store credit. Leave blank to keep wallet movements out of the general ledger (ledger-only mode).",
+   "fieldname": "store_credit_account",
+   "fieldtype": "Link",
+   "label": "Store credit liability account",
    "options": "Account"
   },
   {
