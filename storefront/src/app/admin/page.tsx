@@ -60,6 +60,10 @@ export default function AdminSettingsPage() {
         deal_product: settings.deal_product ?? "",
         sales_tax_template: settings.sales_tax_template ?? "",
         store_credit_account: settings.store_credit_account ?? "",
+        loyalty_enabled: settings.loyalty_enabled ?? 0,
+        loyalty_earn_rate: settings.loyalty_earn_rate ?? 0,
+        loyalty_redeem_value: settings.loyalty_redeem_value ?? 0,
+        loyalty_min_redeem: settings.loyalty_min_redeem ?? 0,
       });
       setSettings(next);
       setSaved(true);
@@ -198,6 +202,51 @@ export default function AdminSettingsPage() {
             placeholder="Store Credit Liability - O"
           />
           <p className="text-xs text-ink-400">{t.fieldStoreCreditAccountHint}</p>
+        </div>
+      </section>
+
+      {/* Loyalty */}
+      <section className="card space-y-3 p-6">
+        <div className="font-medium text-ink">{t.secLoyalty}</div>
+        <Toggle label={t.fieldLoyaltyEnabled} on={!!s.loyalty_enabled} onClick={() => toggle("loyalty_enabled")} />
+        <p className="text-xs text-ink-400">{t.fieldLoyaltyHint}</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink">{t.fieldLoyaltyEarnRate}</label>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              value={s.loyalty_earn_rate ?? 0}
+              onChange={(e) => set("loyalty_earn_rate", Number(e.target.value))}
+              className={fieldCls}
+              placeholder="1"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink">{t.fieldLoyaltyRedeemValue}</label>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              value={s.loyalty_redeem_value ?? 0}
+              onChange={(e) => set("loyalty_redeem_value", Number(e.target.value))}
+              className={fieldCls}
+              placeholder="0.01"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink">{t.fieldLoyaltyMinRedeem}</label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={s.loyalty_min_redeem ?? 0}
+              onChange={(e) => set("loyalty_min_redeem", Number(e.target.value))}
+              className={fieldCls}
+              placeholder="0"
+            />
+          </div>
         </div>
       </section>
 

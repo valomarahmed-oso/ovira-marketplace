@@ -1,4 +1,5 @@
 import {
+  Award,
   BarChart3,
   Bell,
   ClipboardList,
@@ -97,6 +98,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/account/orders", key: "myOrders", icon: Package },
       { href: "/account/returns", key: "buyerNavReturns", icon: RotateCcw },
       { href: "/account/wallet", key: "walletNav", icon: Wallet },
+      { href: "/account/loyalty", key: "loyaltyNav", icon: Award },
       { href: "/wishlist", key: "wishlist", icon: Heart },
       { href: "/account/addresses", key: "addresses", icon: MapPin },
       { href: "/account/notifications", key: "notifications", icon: Bell },

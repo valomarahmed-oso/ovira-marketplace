@@ -14,6 +14,10 @@ export type AdminSettings = {
   sales_tax_template?: string | null;
   shipping_account?: string | null;
   store_credit_account?: string | null;
+  loyalty_enabled?: number;
+  loyalty_earn_rate?: number;
+  loyalty_redeem_value?: number;
+  loyalty_min_redeem?: number;
   /** Read-only: whether outgoing email is configured (drives the email hint). */
   email_configured?: boolean;
 };

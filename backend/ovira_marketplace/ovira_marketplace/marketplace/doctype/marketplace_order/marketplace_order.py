@@ -31,6 +31,23 @@ class MarketplaceOrder(Document):
     def on_update(self):
         self._notify_status_change()
         self._maybe_issue_delivery_otp()
+        self._maybe_award_loyalty()
+
+    def _maybe_award_loyalty(self):
+        """When an order reaches Completed, award loyalty points to the buyer
+        (once). Gated + idempotent inside the loyalty layer; best-effort here so
+        it can never block completion."""
+        before = self.get_doc_before_save()
+        if not before or before.status == self.status:
+            return
+        if self.status != "Completed":
+            return
+        try:
+            from ovira_marketplace.api.loyalty import award_for_order
+
+            award_for_order(self)
+        except Exception:
+            frappe.log_error(title="Ovira: loyalty award failed")
 
     def _maybe_issue_delivery_otp(self):
         """When an order goes out for delivery (→ Shipped), mint a one-time

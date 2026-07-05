@@ -25,6 +25,10 @@ ADMIN_FIELDS = [
     "sales_tax_template",
     "shipping_account",
     "store_credit_account",
+    "loyalty_enabled",
+    "loyalty_earn_rate",
+    "loyalty_redeem_value",
+    "loyalty_min_redeem",
 ]
 
 OPERATOR_ROLES = ("System Manager", "Marketplace Operator")
@@ -66,6 +70,10 @@ def update_admin_settings(
     sales_tax_template=None,
     shipping_account=None,
     store_credit_account=None,
+    loyalty_enabled=None,
+    loyalty_earn_rate=None,
+    loyalty_redeem_value=None,
+    loyalty_min_redeem=None,
 ):
     _require_operator()
     settings = frappe.get_doc("Marketplace Settings")
@@ -92,6 +100,14 @@ def update_admin_settings(
         settings.shipping_account = shipping_account or None
     if store_credit_account is not None:
         settings.store_credit_account = store_credit_account or None
+    if loyalty_enabled is not None:
+        settings.loyalty_enabled = cint(loyalty_enabled)
+    if loyalty_earn_rate is not None:
+        settings.loyalty_earn_rate = flt(loyalty_earn_rate)
+    if loyalty_redeem_value is not None:
+        settings.loyalty_redeem_value = flt(loyalty_redeem_value)
+    if loyalty_min_redeem is not None:
+        settings.loyalty_min_redeem = cint(loyalty_min_redeem)
 
     settings.flags.ignore_permissions = True
     settings.save(ignore_permissions=True)

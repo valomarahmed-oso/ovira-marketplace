@@ -18,6 +18,12 @@
   "sales_tax_template",
   "shipping_account",
   "store_credit_account",
+  "loyalty_section",
+  "loyalty_enabled",
+  "loyalty_earn_rate",
+  "column_break_loyalty",
+  "loyalty_redeem_value",
+  "loyalty_min_redeem",
   "homepage_section",
   "deal_product"
  ],
@@ -108,6 +114,45 @@
    "fieldtype": "Link",
    "label": "Store credit liability account",
    "options": "Account"
+  },
+  {
+   "fieldname": "loyalty_section",
+   "fieldtype": "Section Break",
+   "label": "Loyalty points"
+  },
+  {
+   "default": "0",
+   "description": "Let shoppers earn points on completed orders and redeem them for store credit. Off by default.",
+   "fieldname": "loyalty_enabled",
+   "fieldtype": "Check",
+   "label": "Enable loyalty points"
+  },
+  {
+   "default": "0",
+   "description": "Points earned per 1 unit of net goods spend (subtotal minus discount). E.g. 1 = one point per EGP.",
+   "fieldname": "loyalty_earn_rate",
+   "fieldtype": "Float",
+   "label": "Earn rate (points per currency)",
+   "precision": "3"
+  },
+  {
+   "fieldname": "column_break_loyalty",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Store-credit value of one point at redemption. E.g. 0.01 = 100 points is worth 1 EGP.",
+   "fieldname": "loyalty_redeem_value",
+   "fieldtype": "Float",
+   "label": "Redeem value (currency per point)",
+   "precision": "4"
+  },
+  {
+   "default": "0",
+   "description": "Fewest points a shopper can redeem at once (0 = no minimum).",
+   "fieldname": "loyalty_min_redeem",
+   "fieldtype": "Int",
+   "label": "Minimum redeemable points"
   },
   {
    "fieldname": "homepage_section",
