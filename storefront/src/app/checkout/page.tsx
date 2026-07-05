@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CreditCard, Loader2, MapPin, Plus, Tag, Truck, X } from "lucide-react";
+import { CreditCard, Loader2, MapPin, Plus, Tag, Truck, Wallet, X } from "lucide-react";
 import { getShippingRate, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
 import { getMyAddresses, upsertAddress, type BuyerAddress } from "@/lib/addresses-api";
-import { cartSubtotal, useCart } from "@/lib/cart-store";
+import { getWallet } from "@/lib/wallet-api";
+import { cartSubtotal, shippingFor, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
+import { useI18n } from "@/components/i18n-provider";
 import { useHydrated } from "@/lib/use-hydrated";
 import { OrderSummary } from "@/components/order-summary";
-import { cn } from "@/lib/utils";
+import { formatPrice, cn } from "@/lib/utils";
 
 const GOVERNORATES = ["القاهرة", "الجيزة", "الإسكندرية", "الدقهلية", "الشرقية", "القليوبية", "أخرى"];
 
@@ -21,6 +23,7 @@ const PAYMENTS = [
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const items = useCart((s) => s.items);
   const clear = useCart((s) => s.clear);
   const user = useAuth((s) => s.user);
@@ -43,6 +46,24 @@ export default function CheckoutPage() {
   const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponBusy, setCouponBusy] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
+
+  // Store credit: the buyer can spend their wallet balance on this order. The
+  // amount actually spent is re-computed and capped server-side at checkout.
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [useWallet, setUseWallet] = useState(false);
+  useEffect(() => {
+    if (!user) {
+      setWalletBalance(0);
+      return;
+    }
+    let cancelled = false;
+    getWallet().then((w) => {
+      if (!cancelled && w) setWalletBalance(w.balance || 0);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -103,6 +124,12 @@ export default function CheckoutPage() {
   // address yet, or when explicitly adding a new one.
   const showManualFields = !user || addresses.length === 0 || manual;
 
+  // Store-credit preview: cap the spend at what's payable after the coupon. The
+  // server re-computes and caps this again, so this is display-only.
+  const effShipping = shipRate ?? shippingFor(subtotal);
+  const payableBeforeWallet = Math.max(0, subtotal + effShipping - (coupon?.discount ?? 0));
+  const walletApplied = useWallet ? Math.min(walletBalance, payableBeforeWallet) : 0;
+
   async function applyCoupon() {
     const code = couponInput.trim();
     if (!code || couponBusy) return;
@@ -158,6 +185,7 @@ export default function CheckoutPage() {
       },
       payment_method: pay,
       coupon: coupon?.code,
+      use_wallet: useWallet && walletBalance > 0,
     });
     const id = remote?.name ?? "OVR-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 
@@ -302,7 +330,33 @@ export default function CheckoutPage() {
             {couponError && <p className="text-xs text-coral">{couponError}</p>}
           </section>
 
-          <OrderSummary subtotal={subtotal} shipping={shipRate} discount={coupon?.discount ?? 0}>
+          {user && walletBalance > 0 && (
+            <section className="card p-5">
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={useWallet}
+                  onChange={(e) => setUseWallet(e.target.checked)}
+                  className="accent-blue"
+                />
+                <Wallet className="h-5 w-5 text-blue-600" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-ink">{t.walletUseAtCheckout}</span>
+                  <span className="block text-xs text-ink-400">
+                    {t.walletBalance}: {formatPrice(walletBalance)}
+                  </span>
+                </span>
+              </label>
+            </section>
+          )}
+
+          <OrderSummary
+            subtotal={subtotal}
+            shipping={shipRate}
+            discount={coupon?.discount ?? 0}
+            walletApplied={walletApplied}
+            walletLabel={t.walletApplied}
+          >
             <button type="submit" disabled={submitting} className="btn btn-primary w-full disabled:opacity-50">
               تأكيد الطلب
             </button>

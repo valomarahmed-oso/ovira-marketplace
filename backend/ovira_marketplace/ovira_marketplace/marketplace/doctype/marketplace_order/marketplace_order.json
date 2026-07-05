@@ -28,6 +28,7 @@
   "shipping_amount",
   "discount_amount",
   "coupon_code",
+  "wallet_applied",
   "column_break_totals",
   "total",
   "access_token",
@@ -174,6 +175,13 @@
    "fieldname": "coupon_code",
    "fieldtype": "Data",
    "label": "Coupon code",
+   "read_only": 1
+  },
+  {
+   "description": "Store credit spent on this order (operator-funded, like a coupon).",
+   "fieldname": "wallet_applied",
+   "fieldtype": "Currency",
+   "label": "Store credit applied",
    "read_only": 1
   },
   {

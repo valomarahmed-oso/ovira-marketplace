@@ -5,6 +5,8 @@ export function OrderSummary({
   subtotal,
   shipping: shippingOverride,
   discount = 0,
+  walletApplied = 0,
+  walletLabel = "رصيد المتجر",
   children,
 }: {
   subtotal: number;
@@ -12,10 +14,13 @@ export function OrderSummary({
   shipping?: number | null;
   /** Coupon discount applied to the order. */
   discount?: number;
+  /** Store credit spent on the order. */
+  walletApplied?: number;
+  walletLabel?: string;
   children?: React.ReactNode;
 }) {
   const shipping = shippingOverride ?? shippingFor(subtotal);
-  const total = subtotal + shipping - discount;
+  const total = Math.max(0, subtotal + shipping - discount - walletApplied);
 
   return (
     <div className="card space-y-4 p-5">
@@ -40,6 +45,12 @@ export function OrderSummary({
           <div className="flex justify-between text-mint">
             <span>الخصم</span>
             <span className="font-tech">−{formatPrice(discount)}</span>
+          </div>
+        )}
+        {walletApplied > 0 && (
+          <div className="flex justify-between text-mint">
+            <span>{walletLabel}</span>
+            <span className="font-tech">−{formatPrice(walletApplied)}</span>
           </div>
         )}
       </div>

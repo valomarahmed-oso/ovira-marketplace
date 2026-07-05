@@ -140,11 +140,11 @@ def _invoice_and_pay(order, reference, errors):
     from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
     from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
-    # A coupon is an operator-funded discount: spread it across the freshly-made
-    # vendor invoices so booked revenue + cash collected drop by the discount,
-    # while vendor settlement (from SO net_total) stays whole. Zero discount ⇒
-    # the original path runs unchanged.
-    discount_remaining = flt(order.get("discount_amount"))
+    # Coupon discount AND store credit spent are both operator-funded: spread
+    # them across the freshly-made vendor invoices so booked revenue + cash
+    # collected drop by the total, while vendor settlement (from SO net_total)
+    # stays whole. Zero of both ⇒ the original path runs unchanged.
+    discount_remaining = flt(order.get("discount_amount")) + flt(order.get("wallet_applied"))
     if discount_remaining > 0:
         # Retry safety: don't re-apply a discount already booked on an invoice
         # from an earlier (partially failed) run — only the shortfall is left.

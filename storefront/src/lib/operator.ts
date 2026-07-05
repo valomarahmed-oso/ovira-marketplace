@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import type { WalletEntry } from "@/lib/wallet-api";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
@@ -482,3 +483,41 @@ export const listShippingProviders = () =>
   getListOp<ShippingProviderConfig>("list_shipping_providers");
 export const updateShippingProvider = (body: Record<string, unknown>) =>
   postOp<ShippingProviderConfig>("update_shipping_provider", body);
+
+// -- store credit (wallet) ----------------------------------------------------
+
+export type UserWallet = { user: string; balance: number; entries: WalletEntry[] };
+
+/** Operator: look up a user's store-credit balance + ledger by their login email. */
+export async function getUserWallet(user: string): Promise<UserWallet | null> {
+  if (!BASE || !user) return null;
+  const qs = new URLSearchParams({ user });
+  try {
+    const res = await fetch(opUrl("user_wallet", qs), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return ((await res.json()).message ?? null) as UserWallet | null;
+  } catch {
+    return null;
+  }
+}
+
+/** Operator: credit or debit a user's store credit. */
+export async function adjustWallet(
+  user: string,
+  amount: number,
+  direction: "Credit" | "Debit",
+  note?: string,
+): Promise<{ balance: number; entry: string | null }> {
+  const res = await fetch(opUrl("adjust_wallet"), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify({ user, amount, direction, note }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تعديل الرصيد."));
+  return (await res.json()).message;
+}

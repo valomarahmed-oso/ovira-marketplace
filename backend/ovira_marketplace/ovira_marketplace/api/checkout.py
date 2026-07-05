@@ -20,7 +20,9 @@ FLAT_SHIPPING = 50
 
 @frappe.whitelist(allow_guest=True)
 @rate_limit(limit=30, seconds=60 * 60, methods="POST")
-def place_order(items, customer, payment_method="cod", coupon=None, attribution=None):
+def place_order(
+    items, customer, payment_method="cod", coupon=None, attribution=None, use_wallet=False
+):
     """Create a Marketplace Order from the storefront cart and split it into
     per-vendor ERPNext Sales Orders.
 
@@ -29,6 +31,8 @@ def place_order(items, customer, payment_method="cod", coupon=None, attribution=
     `coupon`: optional coupon code — re-validated and priced server-side.
     `attribution`: optional {utm_source, utm_medium, utm_campaign, referrer,
       landing_page} captured by the storefront; the channel is derived here.
+    `use_wallet`: when true, spend the signed-in buyer's store credit (capped at
+      the payable) — booked as an operator-funded discount, like a coupon.
     """
     items = _loads(items)
     customer = _loads(customer)
@@ -144,10 +148,33 @@ def place_order(items, customer, payment_method="cod", coupon=None, attribution=
         order.coupon_code = coupon_doc.code
         order.discount_amount = discount
 
-    order.total = subtotal + order.shipping_amount - discount
+    # Store credit is applied after the coupon, capped at what's still payable.
+    # It's booked as an operator-funded discount (see payment._invoice_and_pay),
+    # so vendor settlement stays whole. Debited from the ledger once the order
+    # exists (needs the order name as the reference).
+    wallet_applied = 0.0
+    user = frappe.session.user
+    if _truthy(use_wallet) and user and user != "Guest":
+        from ovira_marketplace.api.wallet import balance as wallet_balance
+
+        payable = subtotal + order.shipping_amount - discount
+        wallet_applied = max(0.0, min(flt(wallet_balance(user)), flt(payable)))
+    order.wallet_applied = wallet_applied
+    order.total = subtotal + order.shipping_amount - discount - wallet_applied
 
     order.insert(ignore_permissions=True)
     order.create_vendor_orders()
+    if wallet_applied > 0:
+        from ovira_marketplace.api.wallet import debit as wallet_debit
+
+        wallet_debit(
+            user,
+            wallet_applied,
+            reason="Order payment",
+            reference_doctype="Marketplace Order",
+            reference_name=order.name,
+            note=order.name,
+        )
     if coupon_doc:
         _redeem_coupon(coupon_doc.name)
     if deal_redemptions:
@@ -321,3 +348,10 @@ def _session_email():
 
 def _loads(value):
     return json.loads(value) if isinstance(value, str) else value
+
+
+def _truthy(value):
+    """A whitelisted flag may arrive as a real bool (JSON body) or a string."""
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "on")
+    return bool(value)

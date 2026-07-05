@@ -3,6 +3,7 @@ import {
   Bell,
   ClipboardList,
   CreditCard,
+  Gift,
   Heart,
   LayoutDashboard,
   MapPin,
@@ -60,6 +61,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/admin/returns", key: "adminNavReturns", icon: RotateCcw },
       { href: "/admin/coupons", key: "adminNavCoupons", icon: Tag },
       { href: "/admin/deals", key: "adminNavDeals", icon: Zap },
+      { href: "/admin/wallets", key: "adminNavWallets", icon: Gift },
       { href: "/admin/payouts", key: "adminNavPayouts", icon: Wallet },
       { href: "/admin/payments", key: "adminNavPayments", icon: CreditCard },
       { href: "/admin/shipping", key: "adminNavShipping", icon: Truck },
@@ -91,6 +93,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
     nav: [
       { href: "/account", key: "buyerNavOverview", icon: LayoutDashboard, exact: true },
       { href: "/account/orders", key: "myOrders", icon: Package },
+      { href: "/account/wallet", key: "walletNav", icon: Wallet },
       { href: "/wishlist", key: "wishlist", icon: Heart },
       { href: "/account/addresses", key: "addresses", icon: MapPin },
       { href: "/account/notifications", key: "notifications", icon: Bell },

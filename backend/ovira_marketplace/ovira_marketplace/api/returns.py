@@ -155,6 +155,30 @@ def list_returns(status=None):
     return rows
 
 
+def _refund_to_wallet(doc):
+    """Credit the buyer's store credit with the approved refund — idempotent, so
+    re-saving a completed return never double-refunds."""
+    email = doc.customer_email
+    if not email or not frappe.db.exists("User", email):
+        return
+    if frappe.db.exists(
+        "Marketplace Wallet Entry",
+        {"reference_doctype": "Marketplace Return", "reference_name": doc.name},
+    ):
+        return
+    from ovira_marketplace.api.wallet import credit
+
+    credit(
+        email,
+        flt(doc.refund_amount),
+        reason="Refund",
+        reference_doctype="Marketplace Return",
+        reference_name=doc.name,
+        note=_("Refund for return {0}").format(doc.name),
+    )
+    frappe.db.commit()
+
+
 @frappe.whitelist()
 def set_return_status(name, status, note=None, refund_amount=None):
     """Operator decision on a return."""
@@ -170,6 +194,11 @@ def set_return_status(name, status, note=None, refund_amount=None):
     doc.flags.ignore_permissions = True
     doc.save(ignore_permissions=True)
     frappe.db.commit()
+
+    # A completed return with an approved refund tops up the buyer's store
+    # credit (once). Guests without a login just don't get a wallet.
+    if status == "Completed" and flt(doc.refund_amount) > 0:
+        _refund_to_wallet(doc)
 
     try:
         from ovira_marketplace.emails import send_return_update

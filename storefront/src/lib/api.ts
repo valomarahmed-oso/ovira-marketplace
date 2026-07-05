@@ -301,6 +301,7 @@ export type CheckoutPayload = {
   customer: { name: string; phone: string; email?: string; gov: string; address: string };
   payment_method: string;
   coupon?: string;
+  use_wallet?: boolean;
 };
 
 export async function placeOrder(
