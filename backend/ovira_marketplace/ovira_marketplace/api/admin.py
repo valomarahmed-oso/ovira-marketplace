@@ -100,6 +100,73 @@ def update_admin_settings(
     return _serialize(settings)
 
 
+WHATSAPP_FIELDS = [
+    "enabled",
+    "api_base",
+    "phone_number_id",
+    "default_country_code",
+    "template_order_confirmation",
+    "template_order_status",
+    "template_return_update",
+    "template_lang",
+]
+
+
+@frappe.whitelist()
+def get_whatsapp_config():
+    """WhatsApp settings for the operator console. The access token is
+    write-only: we only report whether one is stored, never its value."""
+    _require_operator()
+    doc = frappe.get_single("Marketplace WhatsApp Settings")
+    data = {f: doc.get(f) for f in WHATSAPP_FIELDS}
+    token = doc.get_password("access_token", raise_exception=False)
+    data["has_token"] = bool(token)
+    from ovira_marketplace.whatsapp import whatsapp_configured
+
+    data["configured"] = whatsapp_configured()
+    return data
+
+
+@frappe.whitelist()
+def update_whatsapp_config(
+    enabled=None,
+    api_base=None,
+    phone_number_id=None,
+    access_token=None,
+    default_country_code=None,
+    template_order_confirmation=None,
+    template_order_status=None,
+    template_return_update=None,
+    template_lang=None,
+):
+    _require_operator()
+    doc = frappe.get_single("Marketplace WhatsApp Settings")
+    if enabled is not None:
+        doc.enabled = cint(enabled)
+    for field in (
+        "api_base",
+        "phone_number_id",
+        "default_country_code",
+        "template_order_confirmation",
+        "template_order_status",
+        "template_return_update",
+        "template_lang",
+    ):
+        val = locals().get(field)
+        if val is not None:
+            doc.set(field, val or None)
+    # Only overwrite the token when a fresh non-empty value is supplied, so
+    # saving other fields never wipes the stored secret.
+    if access_token:
+        doc.access_token = access_token
+
+    doc.flags.ignore_permissions = True
+    doc.save(ignore_permissions=True)
+    frappe.clear_cache(doctype="Marketplace WhatsApp Settings")
+    frappe.db.commit()
+    return get_whatsapp_config()
+
+
 @frappe.whitelist()
 def product_options(limit=200):
     """Approved products for the 'deal of the day' selector."""

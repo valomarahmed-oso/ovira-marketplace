@@ -191,6 +191,13 @@ def place_order(
     except Exception:
         frappe.log_error(title="Ovira: order confirmation email failed")
 
+    try:
+        from ovira_marketplace.whatsapp import notify_order_confirmation
+
+        notify_order_confirmation(order)
+    except Exception:
+        frappe.log_error(title="Ovira: order confirmation whatsapp failed")
+
     # `token` lets the storefront start payment for this specific order without
     # exposing every order to any guest who can guess an id.
     return {

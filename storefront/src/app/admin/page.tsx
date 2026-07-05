@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, ShieldCheck, Store } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
+import { WhatsAppConfigCard } from "@/components/whatsapp-config-card";
 import {
   getAdminSettings,
   getProductOptions,
@@ -199,6 +200,8 @@ export default function AdminSettingsPage() {
           <p className="text-xs text-ink-400">{t.fieldStoreCreditAccountHint}</p>
         </div>
       </section>
+
+      <WhatsAppConfigCard />
 
       {/* Save bar */}
       <div className="sticky bottom-4 flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface/95 p-3 backdrop-blur">

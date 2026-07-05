@@ -1,0 +1,116 @@
+{
+ "actions": [],
+ "creation": "2026-07-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "issingle": 1,
+ "field_order": [
+  "connection_section",
+  "enabled",
+  "api_base",
+  "phone_number_id",
+  "access_token",
+  "column_break_conn",
+  "default_country_code",
+  "templates_section",
+  "template_order_confirmation",
+  "template_order_status",
+  "template_return_update",
+  "template_lang"
+ ],
+ "fields": [
+  {
+   "fieldname": "connection_section",
+   "fieldtype": "Section Break",
+   "label": "WhatsApp Business API (Meta Cloud API)"
+  },
+  {
+   "default": "0",
+   "description": "Off until credentials + approved templates are in place. While off, all sends silently no-op.",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "default": "https://graph.facebook.com/v21.0",
+   "fieldname": "api_base",
+   "fieldtype": "Data",
+   "label": "API base URL"
+  },
+  {
+   "fieldname": "phone_number_id",
+   "fieldtype": "Data",
+   "label": "Phone number ID"
+  },
+  {
+   "fieldname": "access_token",
+   "fieldtype": "Password",
+   "label": "Access token"
+  },
+  {
+   "fieldname": "column_break_conn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "20",
+   "description": "Digits only, no +. Prepended to local numbers that don't already carry a country code (Egypt = 20).",
+   "fieldname": "default_country_code",
+   "fieldtype": "Data",
+   "label": "Default country code"
+  },
+  {
+   "fieldname": "templates_section",
+   "fieldtype": "Section Break",
+   "label": "Approved template names"
+  },
+  {
+   "description": "Meta-approved template with 2 body params: {{1}} order id, {{2}} total.",
+   "fieldname": "template_order_confirmation",
+   "fieldtype": "Data",
+   "label": "Order confirmation template"
+  },
+  {
+   "description": "Template with 2 body params: {{1}} order id, {{2}} status.",
+   "fieldname": "template_order_status",
+   "fieldtype": "Data",
+   "label": "Order status template"
+  },
+  {
+   "description": "Template with 2 body params: {{1}} order id, {{2}} status.",
+   "fieldname": "template_return_update",
+   "fieldtype": "Data",
+   "label": "Return update template"
+  },
+  {
+   "default": "ar",
+   "fieldname": "template_lang",
+   "fieldtype": "Data",
+   "label": "Template language code"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace WhatsApp Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

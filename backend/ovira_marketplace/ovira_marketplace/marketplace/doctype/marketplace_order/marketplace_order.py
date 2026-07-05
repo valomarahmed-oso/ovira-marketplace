@@ -66,6 +66,13 @@ class MarketplaceOrder(Document):
         except Exception:
             frappe.log_error(title="Ovira order status email failed")
 
+        try:
+            from ovira_marketplace.whatsapp import notify_order_status
+
+            notify_order_status(self)
+        except Exception:
+            frappe.log_error(title="Ovira order status whatsapp failed")
+
     def create_vendor_orders(self):
         """Split the order into one ERPNext Sales Order per vendor and book
         the commission on each line. Idempotent per line (skips linked rows)."""

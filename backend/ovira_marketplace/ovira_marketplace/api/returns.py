@@ -207,4 +207,12 @@ def set_return_status(name, status, note=None, refund_amount=None):
     except Exception:
         frappe.log_error(title="Ovira: return email failed")
 
+    try:
+        from ovira_marketplace.whatsapp import notify_return_update
+
+        phone = frappe.db.get_value("Marketplace Order", doc.marketplace_order, "phone")
+        notify_return_update(phone, doc.marketplace_order, doc.status)
+    except Exception:
+        frappe.log_error(title="Ovira: return whatsapp failed")
+
     return _to_flat(doc)

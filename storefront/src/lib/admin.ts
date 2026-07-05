@@ -57,6 +57,46 @@ export async function updateAdminSettings(data: Partial<AdminSettings>): Promise
   return (await res.json()).message;
 }
 
+export type WhatsAppConfig = {
+  enabled?: number;
+  api_base?: string | null;
+  phone_number_id?: string | null;
+  default_country_code?: string | null;
+  template_order_confirmation?: string | null;
+  template_order_status?: string | null;
+  template_return_update?: string | null;
+  template_lang?: string | null;
+  has_token?: boolean;
+  configured?: boolean;
+};
+
+export async function getWhatsAppConfig(): Promise<WhatsAppConfig | null> {
+  if (!BASE) return null;
+  try {
+    const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.admin.get_whatsapp_config`, {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return ((await res.json()).message ?? null) as WhatsAppConfig | null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateWhatsAppConfig(data: Record<string, unknown>): Promise<WhatsAppConfig> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.admin.update_whatsapp_config`, {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر حفظ إعدادات واتساب."));
+  return (await res.json()).message;
+}
+
 export async function getProductOptions(): Promise<{ name: string; title: string }[]> {
   if (!BASE) return [];
   try {
