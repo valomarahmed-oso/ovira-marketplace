@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, CheckCheck, Loader2, Package, Settings, Tag } from "lucide-react";
+import { Bell, CheckCheck, Loader2, MessageCircle, Package, Settings, Tag } from "lucide-react";
 import {
   getMyNotifications,
   KIND_LABEL,
@@ -16,6 +16,7 @@ const ICONS: Record<NotificationKind, typeof Bell> = {
   order: Package,
   promo: Tag,
   system: Settings,
+  message: MessageCircle,
 };
 
 function formatDate(iso: string) {

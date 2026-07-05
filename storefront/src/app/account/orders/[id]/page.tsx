@@ -9,6 +9,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { OviraBars } from "@/components/ovira-bars";
 import { ShipmentTracking } from "@/components/shipment-tracking";
 import { OrderReturn } from "@/components/order-return";
+import { OrderContact } from "@/components/order-contact";
 import { getOrder, ORDER_STEPS, type BuyerOrder } from "@/lib/orders-api";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -99,6 +100,8 @@ export default function OrderDetailPage() {
       )}
 
       <ShipmentTracking order={order.name} />
+
+      <OrderContact order={order.name} />
 
       <OrderReturn order={order.name} status={order.status} />
 

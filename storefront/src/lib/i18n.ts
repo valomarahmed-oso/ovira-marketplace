@@ -164,6 +164,13 @@ const ar = {
   sponsoredDeleteConfirm: "حذف هذا الإعلان؟",
   sponsoredSaveErr: "تعذّر حفظ الإعلان.",
 
+  chatContactSeller: "تواصل مع البائع",
+  chatMessages: "الرسائل",
+  chatEmpty: "لا توجد رسائل بعد. ابدأ المحادثة.",
+  chatPlaceholder: "اكتب رسالتك…",
+  chatSend: "إرسال",
+  chatSendErr: "تعذّر إرسال الرسالة.",
+
   categoryIntro: "اكتشف أفضل المنتجات في {name} من بائعين موثوقين",
 
   filterTitle: "تصفية",
@@ -610,6 +617,13 @@ const en: Dict = {
   sponsoredCtr: "CTR",
   sponsoredDeleteConfirm: "Delete this placement?",
   sponsoredSaveErr: "Could not save the placement.",
+
+  chatContactSeller: "Contact seller",
+  chatMessages: "Messages",
+  chatEmpty: "No messages yet. Start the conversation.",
+  chatPlaceholder: "Write your message…",
+  chatSend: "Send",
+  chatSendErr: "Couldn't send the message.",
 
   categoryIntro: "Discover the best products in {name} from trusted sellers",
 

@@ -2,7 +2,7 @@ import { writeHeaders } from "@/lib/frappe-client";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
-export type NotificationKind = "order" | "promo" | "system";
+export type NotificationKind = "order" | "promo" | "system" | "message";
 
 export type BuyerNotification = {
   name: string;
@@ -19,6 +19,7 @@ export const KIND_LABEL: Record<NotificationKind, string> = {
   order: "طلب",
   promo: "عرض",
   system: "النظام",
+  message: "رسالة",
 };
 
 async function post(method: string, body: Record<string, unknown> = {}): Promise<void> {

@@ -32,7 +32,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Kind",
-   "options": "order\npromo\nsystem"
+   "options": "order\npromo\nsystem\nmessage"
   },
   {
    "default": "0",
