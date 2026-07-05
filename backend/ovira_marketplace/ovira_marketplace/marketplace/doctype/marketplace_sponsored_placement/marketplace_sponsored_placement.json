@@ -1,0 +1,152 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-07-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "product",
+  "active",
+  "priority",
+  "target_category",
+  "column_break_meta",
+  "starts_on",
+  "ends_on",
+  "billing_section",
+  "budget",
+  "cpc",
+  "column_break_billing",
+  "clicks",
+  "impressions",
+  "spend"
+ ],
+ "fields": [
+  {
+   "fieldname": "product",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Product",
+   "options": "Marketplace Product",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "default": "0",
+   "description": "Higher priority placements appear first among sponsored products.",
+   "fieldname": "priority",
+   "fieldtype": "Int",
+   "label": "Priority"
+  },
+  {
+   "description": "Show only when browsing this category. Blank = shown across the whole catalog.",
+   "fieldname": "target_category",
+   "fieldtype": "Link",
+   "label": "Target category",
+   "options": "Marketplace Category"
+  },
+  {
+   "fieldname": "column_break_meta",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "When the placement becomes live (blank = immediately).",
+   "fieldname": "starts_on",
+   "fieldtype": "Datetime",
+   "label": "Starts on"
+  },
+  {
+   "fieldname": "ends_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Ends on",
+   "reqd": 1
+  },
+  {
+   "fieldname": "billing_section",
+   "fieldtype": "Section Break",
+   "label": "Billing & performance"
+  },
+  {
+   "default": "0",
+   "description": "Total ad budget cap. When spend reaches it, the placement pauses. 0 = unlimited.",
+   "fieldname": "budget",
+   "fieldtype": "Currency",
+   "label": "Budget"
+  },
+  {
+   "default": "0",
+   "description": "Amount charged to the campaign each time a shopper clicks the sponsored card.",
+   "fieldname": "cpc",
+   "fieldtype": "Currency",
+   "label": "Cost per click"
+  },
+  {
+   "fieldname": "column_break_billing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "clicks",
+   "fieldtype": "Int",
+   "label": "Clicks",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "impressions",
+   "fieldtype": "Int",
+   "label": "Impressions",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "spend",
+   "fieldtype": "Currency",
+   "label": "Spend",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Sponsored Placement",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

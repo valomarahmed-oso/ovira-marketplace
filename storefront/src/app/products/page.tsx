@@ -1,6 +1,7 @@
 import { Breadcrumb } from "@/components/breadcrumb";
 import { ProductFilters } from "@/components/product-filters";
 import { ProductGrid } from "@/components/product-grid";
+import { SponsoredStrip } from "@/components/sponsored-strip";
 import { getFacets, getProducts, searchParamsToQuery } from "@/lib/api";
 import { getDict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
@@ -26,6 +27,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         <h1 className="text-2xl font-medium text-ink md:text-3xl">{t.allProducts}</h1>
         <p className="mt-1 text-sm text-ink-400">{t.allProductsSub}</p>
       </div>
+      <SponsoredStrip />
       <ProductFilters facets={facets} total={products.length}>
         {products.length ? (
           <ProductGrid products={products} />

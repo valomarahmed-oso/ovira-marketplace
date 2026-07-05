@@ -34,6 +34,9 @@ export type Product = {
   deal_ends_on?: string;
   deal_remaining?: number | null;
   deal?: { deal_price: number; ends_on: string; remaining: number | null };
+  // Set on cards returned by the sponsored strip: `placement` attributes a click.
+  sponsored?: boolean;
+  placement?: string;
 };
 
 export type ProductVariant = {

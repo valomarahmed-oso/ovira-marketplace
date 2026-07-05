@@ -84,6 +84,11 @@ export function ProductCard({ p }: { p: Product }) {
       </div>
 
       <div className="flex grow flex-col gap-2 p-3">
+        {p.sponsored && (
+          <span className="w-fit rounded bg-ink-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-400">
+            {t.sponsoredTag}
+          </span>
+        )}
         {multiVendor && p.vendor_name && (
           <div className="flex items-center gap-1.5 text-xs text-ink-400">
             <Store className="h-3.5 w-3.5" />
