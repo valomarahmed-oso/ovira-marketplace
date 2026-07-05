@@ -20,13 +20,15 @@ FLAT_SHIPPING = 50
 
 @frappe.whitelist(allow_guest=True)
 @rate_limit(limit=30, seconds=60 * 60, methods="POST")
-def place_order(items, customer, payment_method="cod", coupon=None):
+def place_order(items, customer, payment_method="cod", coupon=None, attribution=None):
     """Create a Marketplace Order from the storefront cart and split it into
     per-vendor ERPNext Sales Orders.
 
     `items`: [{"slug": "...", "qty": 1}, ...]
     `customer`: {"name", "phone", "email", "gov", "address"}
     `coupon`: optional coupon code — re-validated and priced server-side.
+    `attribution`: optional {utm_source, utm_medium, utm_campaign, referrer,
+      landing_page} captured by the storefront; the channel is derived here.
     """
     items = _loads(items)
     customer = _loads(customer)
@@ -45,6 +47,7 @@ def place_order(items, customer, payment_method="cod", coupon=None):
     order.status = "Pending Payment"
     order.payment_status = "Unpaid"
     order.currency = settings.default_currency
+    _apply_attribution(order, attribution)
 
     from ovira_marketplace.api.deals import active_deal
 
@@ -191,6 +194,86 @@ def _ensure_customer(info):
     customer.flags.ignore_permissions = True
     customer.insert(ignore_permissions=True)
     return customer.name
+
+
+_PAID_MEDIA = {"cpc", "ppc", "paid", "paidsearch", "display", "cpm", "banner", "retargeting"}
+_EMAIL_MEDIA = {"email", "e-mail", "newsletter"}
+_SOCIAL_MEDIA = {"social", "social-media", "social-network", "sm", "paid-social", "paidsocial"}
+_SEARCH_HOSTS = ("google.", "bing.", "yahoo.", "duckduckgo.", "yandex.", "baidu.", "ecosia.")
+_SOCIAL_HOSTS = (
+    "facebook.", "instagram.", "twitter.", "t.co", "x.com", "tiktok.", "linkedin.",
+    "youtube.", "youtu.be", "pinterest.", "snapchat.", "reddit.", "whatsapp.", "wa.me", "telegram.", "t.me",
+)
+
+
+def _host_of(url):
+    """Bare hostname of a URL, lowercased, without the leading www. Empty on junk."""
+    try:
+        from urllib.parse import urlparse
+
+        host = (urlparse(url).hostname or "").lower()
+        return host[4:] if host.startswith("www.") else host
+    except Exception:
+        return ""
+
+
+def _derive_source(utm_source, utm_medium, referrer):
+    """Collapse raw UTM + referrer into one normalized marketing channel so
+    orders group cleanly in reporting. Derived server-side (never client-trusted).
+    """
+    medium = (utm_medium or "").strip().lower()
+    src = (utm_source or "").strip().lower()
+    if medium:
+        if medium in _PAID_MEDIA:
+            return "paid"
+        if medium in _EMAIL_MEDIA:
+            return "email"
+        if medium in _SOCIAL_MEDIA:
+            return "social"
+        if medium == "organic":
+            return "organic"
+        if medium == "referral":
+            return "referral"
+    if src:
+        if any(src.startswith(h.rstrip(".")) for h in _SEARCH_HOSTS):
+            return "organic"
+        if any(s.rstrip(".") in src for s in ("facebook", "instagram", "twitter", "tiktok", "linkedin", "youtube", "pinterest", "snapchat", "reddit", "whatsapp", "telegram")):
+            return "social"
+        return "referral" if not medium else "other"
+
+    host = _host_of(referrer)
+    if host:
+        own = _host_of(frappe.utils.get_url())
+        if own and host == own:
+            return "direct"  # internal navigation, not a real referral
+        if any(h in host for h in _SEARCH_HOSTS):
+            return "organic"
+        if any(h in host for h in _SOCIAL_HOSTS):
+            return "social"
+        return "referral"
+    return "direct"
+
+
+def _apply_attribution(order, attribution):
+    """Store the storefront-captured first-touch attribution on the order and
+    stamp the normalized `source` channel. Best-effort — never blocks checkout."""
+    try:
+        data = _loads(attribution) if attribution else {}
+        if not isinstance(data, dict):
+            data = {}
+
+        def clip(key, n):
+            v = data.get(key)
+            return (str(v).strip()[:n]) if v else None
+
+        order.utm_source = clip("utm_source", 140)
+        order.utm_medium = clip("utm_medium", 140)
+        order.utm_campaign = clip("utm_campaign", 140)
+        order.referrer = clip("referrer", 500)
+        order.landing_page = clip("landing_page", 500)
+        order.source = _derive_source(order.utm_source, order.utm_medium, order.referrer)
+    except Exception:
+        order.source = "direct"
 
 
 def _shipping_amount(subtotal, governorate=None):

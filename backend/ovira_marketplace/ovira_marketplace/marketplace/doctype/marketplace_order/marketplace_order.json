@@ -30,7 +30,15 @@
   "coupon_code",
   "column_break_totals",
   "total",
-  "access_token"
+  "access_token",
+  "source_section",
+  "source",
+  "utm_source",
+  "utm_medium",
+  "column_break_source",
+  "utm_campaign",
+  "referrer",
+  "landing_page"
  ],
  "fields": [
   {
@@ -186,6 +194,53 @@
    "label": "Access token",
    "no_copy": 1,
    "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Attribution"
+  },
+  {
+   "description": "Normalized channel: direct, organic, paid, social, email, referral, other",
+   "fieldname": "source",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Source",
+   "read_only": 1
+  },
+  {
+   "fieldname": "utm_source",
+   "fieldtype": "Data",
+   "label": "UTM source",
+   "read_only": 1
+  },
+  {
+   "fieldname": "utm_medium",
+   "fieldtype": "Data",
+   "label": "UTM medium",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_source",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "utm_campaign",
+   "fieldtype": "Data",
+   "label": "UTM campaign",
+   "read_only": 1
+  },
+  {
+   "fieldname": "referrer",
+   "fieldtype": "Small Text",
+   "label": "Referrer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "landing_page",
+   "fieldtype": "Small Text",
+   "label": "Landing page",
    "read_only": 1
   }
  ],

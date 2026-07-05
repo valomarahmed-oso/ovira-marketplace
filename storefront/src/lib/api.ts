@@ -1,3 +1,4 @@
+import { getAttribution } from "@/lib/attribution";
 import { writeHeaders } from "@/lib/frappe-client";
 import { MOCK_CATEGORIES, mockDetail, mockHomepage, mockProducts } from "@/lib/mock-data";
 
@@ -307,10 +308,13 @@ export async function placeOrder(
 ): Promise<{ name: string; token?: string } | null> {
   if (!BASE) return null;
   try {
+    // Attach first-touch marketing attribution (best-effort) so the order is
+    // credited to the channel that acquired the shopper.
+    const attribution = getAttribution();
     const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.checkout.place_order`, {
       method: "POST",
       headers: writeHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(attribution ? { ...payload, attribution } : payload),
       credentials: "include",
     });
     if (!res.ok) return null;

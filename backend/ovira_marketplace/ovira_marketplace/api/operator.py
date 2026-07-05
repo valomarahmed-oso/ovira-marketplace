@@ -216,8 +216,12 @@ ORDER_LIST_FIELDS = [
     "payment_status",
     "total",
     "currency",
+    "source",
     "creation",
 ]
+
+# Paid states count as revenue for source ROI; the rest are pipeline only.
+PAID_ORDER_STATUSES = ("Paid", "Processing", "Shipped", "Completed")
 
 
 @frappe.whitelist()
@@ -263,6 +267,47 @@ def order_status_counts():
     for status in ORDER_STATUSES:
         counts[status] = frappe.db.count("Marketplace Order", {"status": status})
     return counts
+
+
+@frappe.whitelist()
+def source_breakdown(days=30):
+    """Order attribution rolled up by channel over the last `days` days.
+
+    Marketing view: how many orders each source drove and how much of that is
+    paid revenue, so the operator can see which channels actually convert.
+    """
+    _require_operator()
+    from frappe.utils import add_to_date, now_datetime
+
+    days = max(1, min(cint(days) or 30, 365))
+    cutoff = add_to_date(now_datetime(), days=-days)
+    rows = frappe.get_all(
+        "Marketplace Order",
+        filters={"creation": [">=", cutoff]},
+        fields=["source", "status", "total"],
+        ignore_permissions=True,
+        limit_page_length=0,
+    )
+
+    buckets = {}
+    for r in rows:
+        key = (r.get("source") or "direct")
+        b = buckets.setdefault(key, {"source": key, "orders": 0, "revenue": 0.0, "paid_revenue": 0.0})
+        b["orders"] += 1
+        total = flt(r.get("total"))
+        b["revenue"] += total
+        if r.get("status") in PAID_ORDER_STATUSES:
+            b["paid_revenue"] += total
+
+    breakdown = sorted(buckets.values(), key=lambda b: b["orders"], reverse=True)
+    for b in breakdown:
+        b["revenue"] = round(b["revenue"], 2)
+        b["paid_revenue"] = round(b["paid_revenue"], 2)
+    return {
+        "days": days,
+        "total_orders": len(rows),
+        "breakdown": breakdown,
+    }
 
 
 @frappe.whitelist()

@@ -177,9 +177,39 @@ export type AdminOrder = {
   payment_status?: PaymentStatus;
   total?: number;
   currency?: string;
+  source?: string;
   creation?: string;
   item_count?: number;
 };
+
+export type SourceRow = {
+  source: string;
+  orders: number;
+  revenue: number;
+  paid_revenue: number;
+};
+
+export type SourceBreakdown = {
+  days: number;
+  total_orders: number;
+  breakdown: SourceRow[];
+};
+
+export async function getSourceBreakdown(days = 30): Promise<SourceBreakdown | null> {
+  if (!BASE) return null;
+  const qs = new URLSearchParams({ days: String(days) });
+  try {
+    const res = await fetch(opUrl("source_breakdown", qs), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return ((await res.json()).message ?? null) as SourceBreakdown | null;
+  } catch {
+    return null;
+  }
+}
 
 export type AdminOrderItem = {
   marketplace_product?: string;
