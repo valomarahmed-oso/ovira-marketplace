@@ -90,16 +90,63 @@ def upsert_product(
     if image:
         _set_primary_image(doc, image)
 
+    old_stock = flt(doc.get("stock_qty")) if name else 0.0
     doc.save(ignore_permissions=True)
 
-    # ``stock_qty`` is read-only (synced from ERPNext Bin once an Item exists on
-    # approval). Until then, store the vendor's declared quantity so the store
-    # shows availability. The ERPNext sync takes over after approval.
-    if stock_qty not in (None, "") and not doc.item:
-        doc.db_set("stock_qty", flt(stock_qty))
+    # ``stock_qty`` is a read-only field (ERPNext-synced only once the Item
+    # carries real inventory — see MarketplaceProduct.refresh_stock). Until then
+    # the vendor manages it directly here: this is how stock is set, edited and
+    # restocked, and it survives approval.
+    if stock_qty not in (None, ""):
+        new_stock = flt(stock_qty)
+        doc.db_set("stock_qty", new_stock)
+        # Restocked from empty → alert anyone waiting (best-effort).
+        if old_stock <= 0 < new_stock:
+            try:
+                from ovira_marketplace.api.stock_alerts import notify_back_in_stock
+
+                notify_back_in_stock(doc.name)
+            except Exception:
+                frappe.log_error("back-in-stock notify failed")
 
     frappe.db.commit()
     return {"name": doc.name, "approval_status": doc.approval_status}
+
+
+@frappe.whitelist()
+def get_my_product(name):
+    """One of the vendor's own products with its editable fields (any status),
+    for the edit form."""
+    vendor = vendor_for_user()
+    if not vendor:
+        frappe.throw(_("Only registered vendors can manage products."), frappe.PermissionError)
+    doc = frappe.get_doc("Marketplace Product", name)
+    if doc.vendor != vendor:
+        frappe.throw(_("This product belongs to another vendor."), frappe.PermissionError)
+
+    image = None
+    for m in doc.get("media") or []:
+        if m.is_primary:
+            image = m.image
+            break
+    if not image and doc.get("media"):
+        image = doc.media[0].image
+
+    return {
+        "name": doc.name,
+        "title": doc.title,
+        "price": doc.price,
+        "compare_at_price": doc.compare_at_price,
+        "category": doc.category,
+        "condition": doc.condition,
+        "currency": doc.currency,
+        "stock_qty": doc.stock_qty,
+        "short_description": doc.short_description,
+        "description": doc.description,
+        "image": image,
+        "approval_status": doc.approval_status,
+        "published": doc.published,
+    }
 
 
 @frappe.whitelist()

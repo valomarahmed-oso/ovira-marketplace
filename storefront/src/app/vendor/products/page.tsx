@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Loader2, Package, Plus, Trash2 } from "lucide-react";
+import { Loader2, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   APPROVAL_LABEL,
   APPROVAL_STYLE,
@@ -80,6 +80,13 @@ export default function VendorProductsPage() {
                 <span className={cn("rounded-full px-2 py-0.5 text-xs", APPROVAL_STYLE[p.approval_status])}>
                   {APPROVAL_LABEL[p.approval_status]}
                 </span>
+                <Link
+                  href={`/vendor/products/new?id=${encodeURIComponent(p.name)}`}
+                  aria-label="تعديل المنتج"
+                  className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Link>
                 <button
                   type="button"
                   onClick={() => remove(p.name)}

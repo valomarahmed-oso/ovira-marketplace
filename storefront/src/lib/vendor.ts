@@ -130,6 +130,37 @@ export function upsertProduct(input: ProductInput) {
   );
 }
 
+export type ProductDetail = {
+  name: string;
+  title: string;
+  price: number;
+  compare_at_price?: number | null;
+  category?: string | null;
+  condition?: "New" | "Used" | "Refurbished" | null;
+  currency?: string | null;
+  stock_qty: number;
+  short_description?: string | null;
+  description?: string | null;
+  image?: string | null;
+  approval_status: VendorApprovalStatus;
+  published?: number;
+};
+
+/** Load one of the vendor's own products (any status) for the edit form. */
+export async function getMyProduct(name: string): Promise<ProductDetail | null> {
+  if (!BASE) return null;
+  try {
+    const res = await fetch(
+      `${BASE}/api/method/ovira_marketplace.api.products.get_my_product?name=${encodeURIComponent(name)}`,
+      { headers: { Accept: "application/json" }, credentials: "include", cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return ((await res.json()).message ?? null) as ProductDetail | null;
+  } catch {
+    return null;
+  }
+}
+
 export function deleteProduct(name: string) {
   return postMethod<{ deleted: string }>(
     "ovira_marketplace.api.products.delete_product",

@@ -90,10 +90,17 @@ class MarketplaceProduct(Document):
     def refresh_stock(self):
         if not self.item:
             return
-        quantities = frappe.get_all(
-            "Bin", filters={"item_code": self.item}, pluck="actual_qty"
-        )
-        new_qty = sum(q or 0 for q in quantities)
+        # Marketplace stock is managed directly on the product until the Item
+        # actually carries ERPNext inventory. Only overwrite stock_qty from
+        # ERPNext when it's a stock item that HAS Bin rows (real stock
+        # movements); otherwise keep the vendor's declared/restocked number so a
+        # plain save never zeroes it out.
+        if not frappe.db.get_value("Item", self.item, "is_stock_item"):
+            return
+        bins = frappe.get_all("Bin", filters={"item_code": self.item}, pluck="actual_qty")
+        if not bins:
+            return
+        new_qty = sum(q or 0 for q in bins)
         old_qty = self.stock_qty or 0
         self.db_set("stock_qty", new_qty)
         # Back in stock: tell anyone waiting on this product (best-effort).
