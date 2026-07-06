@@ -517,6 +517,11 @@ const ar = {
   anSnapshotsTitle: "لقطة حالية",
   anExportOrders: "تصدير الطلبات",
   anExportProducts: "تصدير المبيعات",
+  installTitle: "ثبّت تطبيق أوفيرا",
+  installSubtitle: "وصول أسرع وتجربة زي التطبيقات — من غير متجر تطبيقات.",
+  installIosHint: "افتح قائمة المشاركة ثم اختر «إضافة إلى الشاشة الرئيسية».",
+  installAction: "تثبيت",
+  installDismiss: "إغلاق",
   switchDashboard: "لوحات أخرى",
   viewStore: "عرض المتجر",
 };
@@ -1036,6 +1041,11 @@ const en: Dict = {
   anSnapshotsTitle: "Current snapshot",
   anExportOrders: "Export orders",
   anExportProducts: "Export sales",
+  installTitle: "Install the Ovira app",
+  installSubtitle: "Faster access and an app-like experience — no app store needed.",
+  installIosHint: "Open the Share menu, then tap “Add to Home Screen”.",
+  installAction: "Install",
+  installDismiss: "Dismiss",
   switchDashboard: "Other dashboards",
   viewStore: "View store",
 };

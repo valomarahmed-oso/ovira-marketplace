@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { PwaRegister } from "@/components/pwa-register";
+import { InstallPrompt } from "@/components/install-prompt";
 import { AttributionCapture } from "@/components/attribution-capture";
 import { SessionSync } from "@/components/session-sync";
 import { I18nProvider } from "@/components/i18n-provider";
@@ -55,6 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AppConfigProvider config={config}>
           <I18nProvider locale={locale}>
             <PwaRegister />
+            <InstallPrompt />
             <AttributionCapture />
             <SessionSync />
             <Header />
