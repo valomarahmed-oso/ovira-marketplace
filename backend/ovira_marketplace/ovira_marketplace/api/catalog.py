@@ -282,7 +282,7 @@ def _attach_card_fields(products):
             for v in frappe.get_all(
                 "Marketplace Vendor",
                 filters={"name": ["in", list(vendors)]},
-                fields=["name", "vendor_name", "trust_tier", "trust_score"],
+                fields=["name", "vendor_name", "slug", "trust_tier", "trust_score"],
                 ignore_permissions=True,
             )
         }
@@ -294,6 +294,7 @@ def _attach_card_fields(products):
         p["image"] = image_by_product.get(p.name)
         v = vendor_meta.get(p.vendor)
         p["vendor_name"] = v.vendor_name if v else None
+        p["vendor_slug"] = v.slug if v else None
         p["vendor_trust_tier"] = v.trust_tier if v else None
         p["vendor_trust_score"] = v.trust_score if v else None
         p["reviews"] = cint(p.get("review_count"))
@@ -336,10 +337,11 @@ def get_product(slug):
     v = frappe.db.get_value(
         "Marketplace Vendor",
         doc.get("vendor"),
-        ["vendor_name", "trust_tier", "trust_score"],
+        ["vendor_name", "slug", "trust_tier", "trust_score"],
         as_dict=True,
     )
     doc["vendor_name"] = v.vendor_name if v else None
+    doc["vendor_slug"] = v.slug if v else None
     doc["vendor_trust_tier"] = v.trust_tier if v else None
     doc["vendor_trust_score"] = v.trust_score if v else None
     primary = next((m for m in doc.get("media", []) if m.get("is_primary")), None) or (

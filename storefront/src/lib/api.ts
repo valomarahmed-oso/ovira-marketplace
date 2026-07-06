@@ -15,6 +15,7 @@ export type Product = {
   currency: string;
   vendor: string;
   vendor_name?: string;
+  vendor_slug?: string | null;
   vendor_trust_tier?: string | null;
   vendor_trust_score?: number | null;
   category?: string;
@@ -74,6 +75,7 @@ async function callMethod<T>(method: string, params: Record<string, string> = {}
 
 export type ProductQuery = {
   category?: string;
+  vendor?: string;
   search?: string;
   brand?: string;
   minPrice?: number;
@@ -88,6 +90,7 @@ export type Facets = { brands: string[]; price_min: number; price_max: number };
 export async function getProducts(params: ProductQuery = {}): Promise<Product[]> {
   const qs: Record<string, string> = { limit: String(params.limit ?? 24) };
   if (params.category) qs.category = params.category;
+  if (params.vendor) qs.vendor = params.vendor;
   if (params.search) qs.search = params.search;
   if (params.brand) qs.brand = params.brand;
   if (params.minPrice != null) qs.min_price = String(params.minPrice);
@@ -138,6 +141,29 @@ export async function getProduct(slug: string): Promise<Product | null> {
   const live = await callMethod<Product>("ovira_marketplace.api.catalog.get_product", { slug });
   if (live) return live;
   return USE_MOCKS ? mockDetail(slug) : null;
+}
+
+export type VendorStore = {
+  name: string;
+  vendor_name: string;
+  slug: string;
+  logo?: string | null;
+  banner?: string | null;
+  description?: string | null;
+  return_policy?: string | null;
+  shipping_policy?: string | null;
+  rating?: number | null;
+  ratings_count?: number | null;
+  trust_score?: number | null;
+  trust_tier?: string | null;
+  orders_count?: number | null;
+  product_count: number;
+  creation: string;
+};
+
+/** Public seller storefront by slug (Active stores only). Null when not found. */
+export async function getVendorStore(slug: string): Promise<VendorStore | null> {
+  return callMethod<VendorStore>("ovira_marketplace.api.vendor.vendor_storefront", { slug });
 }
 
 /** Products related to `slug` (same category → vendor → newest). */

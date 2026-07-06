@@ -14,6 +14,40 @@ def _my_vendor():
     return frappe.db.get_value("Marketplace Vendor", {"user": frappe.session.user}, "name")
 
 
+STOREFRONT_FIELDS = [
+    "name",
+    "vendor_name",
+    "slug",
+    "logo",
+    "banner",
+    "description",
+    "return_policy",
+    "shipping_policy",
+    "rating",
+    "ratings_count",
+    "trust_score",
+    "trust_tier",
+    "orders_count",
+    "creation",
+]
+
+
+@frappe.whitelist(allow_guest=True)
+def vendor_storefront(slug):
+    """Public seller profile by slug (Active stores only) — safe fields plus a
+    live count of the store's approved, published products."""
+    v = frappe.db.get_value(
+        "Marketplace Vendor", {"slug": slug, "status": "Active"}, STOREFRONT_FIELDS, as_dict=True
+    )
+    if not v:
+        frappe.throw(_("Store not found."), frappe.DoesNotExistError)
+    v["product_count"] = frappe.db.count(
+        "Marketplace Product",
+        {"vendor": v.name, "approval_status": "Approved", "published": 1},
+    )
+    return v
+
+
 @frappe.whitelist()
 def register(vendor_name, email=None, phone=None, description=None):
     """Storefront endpoint: the logged-in user opens a vendor store.

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RotateCcw, ShieldCheck, Store, Truck } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
@@ -57,9 +58,18 @@ export default async function ProductPage({ params }: Props) {
 
         <div className="space-y-5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-600">
-              <Store className="h-3.5 w-3.5" /> {p.vendor_name}
-            </span>
+            {p.vendor_slug ? (
+              <Link
+                href={`/store/${p.vendor_slug}`}
+                className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-600 transition-colors hover:bg-blue-100"
+              >
+                <Store className="h-3.5 w-3.5" /> {p.vendor_name}
+              </Link>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-600">
+                <Store className="h-3.5 w-3.5" /> {p.vendor_name}
+              </span>
+            )}
             {p.vendor_trust_tier && p.vendor_trust_tier !== "new" && (
               <TrustBadge tier={p.vendor_trust_tier} score={p.vendor_trust_score} showScore />
             )}
