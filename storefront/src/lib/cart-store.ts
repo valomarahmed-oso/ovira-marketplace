@@ -21,7 +21,23 @@ type CartState = {
   remove: (id: string) => void;
   setQty: (id: string, qty: number) => void;
   clear: () => void;
+  /** Replace the whole cart (used by cross-device sync after a merge). */
+  replaceAll: (items: CartItem[]) => void;
 };
+
+/** Merge two carts by line id, keeping the greater qty for shared lines so
+ * repeated syncs stay idempotent (no runaway doubling). */
+export function mergeCarts(a: CartItem[], b: CartItem[]): CartItem[] {
+  const byId = new Map<string, CartItem>();
+  for (const it of a) byId.set(lineId(it), { ...it });
+  for (const it of b) {
+    const id = lineId(it);
+    const existing = byId.get(id);
+    if (existing) existing.qty = Math.max(existing.qty, it.qty);
+    else byId.set(id, { ...it });
+  }
+  return [...byId.values()];
+}
 
 export const useCart = create<CartState>()(
   persist(
@@ -44,6 +60,7 @@ export const useCart = create<CartState>()(
           items: s.items.map((i) => (lineId(i) === id ? { ...i, qty: Math.max(1, qty) } : i)),
         })),
       clear: () => set({ items: [] }),
+      replaceAll: (items) => set({ items }),
     }),
     { name: "ovira-cart" },
   ),
