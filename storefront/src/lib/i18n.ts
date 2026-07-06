@@ -192,6 +192,8 @@ const ar = {
   loyaltyRedeemedLabel: "نقاط مستبدلة",
   loyaltyBalanceShort: "الرصيد",
 
+  recForYou: "مرشّح لك خصيصًا",
+
   secLoyalty: "نقاط الولاء",
   fieldLoyaltyEnabled: "تفعيل نقاط الولاء",
   fieldLoyaltyHint: "خلّي العملاء يكسبوا نقاط على الطلبات المكتملة ويستبدلوها برصيد محفظة.",
@@ -673,6 +675,8 @@ const en: Dict = {
   loyaltyEarned: "Points earned",
   loyaltyRedeemedLabel: "Points redeemed",
   loyaltyBalanceShort: "Balance",
+
+  recForYou: "Recommended for you",
 
   secLoyalty: "Loyalty points",
   fieldLoyaltyEnabled: "Enable loyalty points",

@@ -6,6 +6,7 @@ import { Bell, Heart, LogOut, MapPin, Package } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { signOutServer } from "@/lib/auth";
 import { useI18n } from "@/components/i18n-provider";
+import { RecommendedForYou } from "@/components/recommended-for-you";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -57,6 +58,8 @@ export default function AccountPage() {
           </Link>
         ))}
       </div>
+
+      <RecommendedForYou />
     </div>
   );
 }

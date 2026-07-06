@@ -12,7 +12,7 @@ import { SectionHeading } from "@/components/section-heading";
 import { Rating } from "@/components/rating";
 import { TrustBadge } from "@/components/trust-badge";
 import { VendorTrust } from "@/components/vendor-trust";
-import { getProduct, getRelatedProducts } from "@/lib/api";
+import { getFrequentlyBoughtTogether, getProduct, getRelatedProducts } from "@/lib/api";
 import { toViewed } from "@/lib/recently-viewed-store";
 import { t } from "@/lib/dict";
 
@@ -36,7 +36,10 @@ export default async function ProductPage({ params }: Props) {
   const p = await getProduct(slug);
   if (!p) notFound();
 
-  const related = (await getRelatedProducts(p.slug, 8)).slice(0, 4);
+  const [related, boughtTogether] = await Promise.all([
+    getRelatedProducts(p.slug, 8).then((r) => r.slice(0, 4)),
+    getFrequentlyBoughtTogether(p.slug, 4),
+  ]);
   const images = p.media?.map((m) => m.image) ?? (p.image ? [p.image] : []);
 
   return (
@@ -108,6 +111,13 @@ export default async function ProductPage({ params }: Props) {
           </section>
         )}
       </div>
+
+      {boughtTogether.length > 0 && (
+        <section>
+          <SectionHeading title="يُشترى عادةً معًا" />
+          <ProductGrid products={boughtTogether} />
+        </section>
+      )}
 
       <ProductReviews slug={p.slug} />
 

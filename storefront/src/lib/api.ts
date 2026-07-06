@@ -150,6 +150,16 @@ export async function getRelatedProducts(slug: string, limit = 8): Promise<Produ
   return USE_MOCKS ? mockProducts({ limit }).filter((p) => p.slug !== slug) : [];
 }
 
+/** Products frequently bought together with `slug` (order co-occurrence). Empty
+ * when there isn't enough purchase history yet. */
+export async function getFrequentlyBoughtTogether(slug: string, limit = 4): Promise<Product[]> {
+  const live = await callMethod<Product[]>(
+    "ovira_marketplace.api.recommendations.frequently_bought_together",
+    { slug, limit: String(limit) },
+  );
+  return live ?? [];
+}
+
 export type SearchSuggestion = {
   products: { title: string; slug: string; price: number; currency: string; image?: string }[];
   categories: { category_name: string; slug: string }[];

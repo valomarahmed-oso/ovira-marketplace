@@ -4,6 +4,7 @@ import { Hero } from "@/components/hero";
 import { CategoryRail } from "@/components/category-rail";
 import { ProductGrid } from "@/components/product-grid";
 import { SectionHeading } from "@/components/section-heading";
+import { RecommendedForYou } from "@/components/recommended-for-you";
 import { getAppConfig, getCategories, getHomepage } from "@/lib/api";
 import { bannerTone } from "@/lib/utils";
 import { getDict } from "@/lib/i18n";
@@ -51,6 +52,8 @@ export default async function HomePage() {
           <ProductGrid products={section.products} />
         </section>
       ))}
+
+      <RecommendedForYou limit={8} />
     </div>
   );
 }
