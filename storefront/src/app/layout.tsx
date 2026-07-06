@@ -8,6 +8,7 @@ import { InstallPrompt } from "@/components/install-prompt";
 import { AttributionCapture } from "@/components/attribution-capture";
 import { SessionSync } from "@/components/session-sync";
 import { CartSync } from "@/components/cart-sync";
+import { WishlistSync } from "@/components/wishlist-sync";
 import { I18nProvider } from "@/components/i18n-provider";
 import { AppConfigProvider } from "@/components/app-config-provider";
 import { getAppConfig } from "@/lib/api";
@@ -61,6 +62,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <AttributionCapture />
             <SessionSync />
             <CartSync />
+            <WishlistSync />
             <Header />
             <main>{children}</main>
             <Footer />

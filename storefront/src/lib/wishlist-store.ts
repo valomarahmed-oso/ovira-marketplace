@@ -6,7 +6,15 @@ type WishlistState = {
   items: Product[];
   toggle: (p: Product) => void;
   remove: (slug: string) => void;
+  /** Replace the whole wishlist (used by cross-device sync after a merge). */
+  replaceAll: (items: Product[]) => void;
 };
+
+/** Merge two wishlists by slug (union, local order first). Idempotent. */
+export function mergeWishlists(a: Product[], b: Product[]): Product[] {
+  const seen = new Set(a.map((i) => i.slug));
+  return [...a, ...b.filter((i) => !seen.has(i.slug))];
+}
 
 export const useWishlist = create<WishlistState>()(
   persist(
@@ -19,6 +27,7 @@ export const useWishlist = create<WishlistState>()(
             : { items: [p, ...s.items] },
         ),
       remove: (slug) => set((s) => ({ items: s.items.filter((i) => i.slug !== slug) })),
+      replaceAll: (items) => set({ items }),
     }),
     { name: "ovira-wishlist" },
   ),
