@@ -73,6 +73,69 @@ def alert_status(slug):
     return {"authenticated": True, "subscribed": subscribed}
 
 
+@frappe.whitelist()
+def my_alerts():
+    """The signed-in shopper's back-in-stock subscriptions, enriched with the
+    product's title, price, image and current availability."""
+    user = _session_user()
+    if not user:
+        return []
+    rows = frappe.get_all(
+        "Marketplace Stock Alert",
+        filters={"user": user},
+        fields=["name", "product", "notified", "creation"],
+        order_by="creation desc",
+        ignore_permissions=True,
+    )
+    if not rows:
+        return []
+
+    names = [r["product"] for r in rows]
+    products = {
+        p["name"]: p
+        for p in frappe.get_all(
+            "Marketplace Product",
+            filters={"name": ["in", names]},
+            fields=[
+                "name", "title", "slug", "price", "currency",
+                "stock_qty", "track_inventory", "published", "approval_status",
+            ],
+            ignore_permissions=True,
+        )
+    }
+    images = {}
+    for m in frappe.get_all(
+        "Marketplace Product Media",
+        filters={"parenttype": "Marketplace Product", "parent": ["in", names]},
+        fields=["parent", "image"],
+        order_by="is_primary desc, idx asc",
+        ignore_permissions=True,
+    ):
+        images.setdefault(m["parent"], m["image"])
+
+    out = []
+    for r in rows:
+        p = products.get(r["product"])
+        if not p:
+            continue
+        in_stock = (not p["track_inventory"]) or (p["stock_qty"] or 0) > 0
+        available = bool(in_stock and p["published"] and p["approval_status"] == "Approved")
+        out.append(
+            {
+                "alert": r["name"],
+                "product": p["name"],
+                "title": p["title"],
+                "slug": p["slug"],
+                "price": p["price"],
+                "currency": p["currency"],
+                "image": images.get(p["name"]),
+                "available": available,
+                "notified": r["notified"],
+            }
+        )
+    return out
+
+
 def notify_back_in_stock(product):
     """Alert every pending subscriber that `product` is back in stock (in-app).
     Trusted backend caller only. Returns the number of shoppers notified."""

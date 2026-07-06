@@ -5,6 +5,35 @@ const M = "ovira_marketplace.api.stock_alerts";
 
 export type AlertStatus = { authenticated: boolean; subscribed: boolean };
 
+export type StockAlert = {
+  alert: string;
+  product: string;
+  title: string;
+  slug: string;
+  price: number;
+  currency: string;
+  image?: string | null;
+  available: boolean;
+  notified: number;
+};
+
+/** The signed-in shopper's back-in-stock subscriptions with product info. */
+export async function getMyAlerts(): Promise<StockAlert[]> {
+  if (!BASE) return [];
+  try {
+    const res = await fetch(`${BASE}/api/method/${M}.my_alerts`, {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const items = (await res.json())?.message;
+    return Array.isArray(items) ? (items as StockAlert[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 /** Whether the signed-in shopper has a pending back-in-stock alert. */
 export async function getAlertStatus(slug: string): Promise<AlertStatus> {
   if (!BASE) return { authenticated: false, subscribed: false };
