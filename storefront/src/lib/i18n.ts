@@ -532,6 +532,9 @@ const ar = {
   storeNotFoundTitle: "المتجر غير موجود",
   storeNotFoundBody: "قد يكون هذا المتجر غير نشط أو تم تغيير رابطه.",
   storeVisit: "زيارة المتجر",
+  storesTitle: "المتاجر",
+  storesSubtitle: "تصفّح بائعي أوفيرا الموثوقين واكتشف متاجرهم.",
+  storesEmpty: "لا توجد متاجر متاحة حاليًا.",
   switchDashboard: "لوحات أخرى",
   viewStore: "عرض المتجر",
 };
@@ -1066,6 +1069,9 @@ const en: Dict = {
   storeNotFoundTitle: "Store not found",
   storeNotFoundBody: "This store may be inactive or its link may have changed.",
   storeVisit: "Visit store",
+  storesTitle: "Stores",
+  storesSubtitle: "Browse Ovira's trusted sellers and explore their stores.",
+  storesEmpty: "No stores are available right now.",
   switchDashboard: "Other dashboards",
   viewStore: "View store",
 };

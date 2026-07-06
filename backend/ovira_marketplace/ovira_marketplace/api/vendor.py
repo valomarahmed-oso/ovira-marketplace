@@ -48,6 +48,55 @@ def vendor_storefront(slug):
     return v
 
 
+STORE_CARD_FIELDS = [
+    "name",
+    "vendor_name",
+    "slug",
+    "logo",
+    "rating",
+    "ratings_count",
+    "trust_score",
+    "trust_tier",
+    "orders_count",
+]
+
+
+@frappe.whitelist(allow_guest=True)
+def list_stores(search=None, limit=60):
+    """Public directory of Active seller storefronts that have at least one
+    approved, published product. Best-established first."""
+    or_filters = [["vendor_name", "like", f"%{search}%"]] if search else None
+    vendors = frappe.get_all(
+        "Marketplace Vendor",
+        filters={"status": "Active"},
+        or_filters=or_filters,
+        fields=STORE_CARD_FIELDS,
+        order_by="orders_count desc, rating desc, creation desc",
+        limit_page_length=cint(limit) or 60,
+        ignore_permissions=True,
+    )
+    if not vendors:
+        return []
+
+    names = [v["name"] for v in vendors]
+    counts = {}
+    for r in frappe.get_all(
+        "Marketplace Product",
+        filters={"vendor": ["in", names], "approval_status": "Approved", "published": 1},
+        fields=["vendor"],
+        ignore_permissions=True,
+        limit_page_length=0,
+    ):
+        counts[r["vendor"]] = counts.get(r["vendor"], 0) + 1
+
+    out = []
+    for v in vendors:
+        v["product_count"] = counts.get(v["name"], 0)
+        if v["product_count"] > 0:
+            out.append(v)
+    return out
+
+
 @frappe.whitelist()
 def register(vendor_name, email=None, phone=None, description=None):
     """Storefront endpoint: the logged-in user opens a vendor store.

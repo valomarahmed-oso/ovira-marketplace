@@ -22,6 +22,7 @@ export function Footer() {
       title: t.footShop,
       links: [
         { label: t.allCategories, href: "/categories" },
+        { label: t.storesTitle, href: "/stores" },
         { label: t.deals, href: "/products?sort=price_asc" },
         { label: t.bestSellers, href: "/products" },
         { label: t.newArrivals, href: "/products" },

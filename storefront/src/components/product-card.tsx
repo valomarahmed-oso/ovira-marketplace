@@ -92,7 +92,13 @@ export function ProductCard({ p }: { p: Product }) {
         {multiVendor && p.vendor_name && (
           <div className="flex items-center gap-1.5 text-xs text-ink-400">
             <Store className="h-3.5 w-3.5" />
-            <span className="truncate">{p.vendor_name}</span>
+            {p.vendor_slug ? (
+              <Link href={`/store/${p.vendor_slug}`} className="truncate transition-colors hover:text-blue-600">
+                {p.vendor_name}
+              </Link>
+            ) : (
+              <span className="truncate">{p.vendor_name}</span>
+            )}
             {p.vendor_trust_tier && p.vendor_trust_tier !== "new" && (
               <TrustBadge tier={p.vendor_trust_tier} className="shrink-0" />
             )}

@@ -166,6 +166,28 @@ export async function getVendorStore(slug: string): Promise<VendorStore | null> 
   return callMethod<VendorStore>("ovira_marketplace.api.vendor.vendor_storefront", { slug });
 }
 
+export type StoreCard = {
+  name: string;
+  vendor_name: string;
+  slug: string;
+  logo?: string | null;
+  rating?: number | null;
+  ratings_count?: number | null;
+  trust_score?: number | null;
+  trust_tier?: string | null;
+  orders_count?: number | null;
+  product_count: number;
+};
+
+/** Public directory of Active stores that have at least one published product. */
+export async function getStores(search?: string): Promise<StoreCard[]> {
+  const live = await callMethod<StoreCard[]>(
+    "ovira_marketplace.api.vendor.list_stores",
+    search ? { search } : {},
+  );
+  return live ?? [];
+}
+
 /** Products related to `slug` (same category → vendor → newest). */
 export async function getRelatedProducts(slug: string, limit = 8): Promise<Product[]> {
   const live = await callMethod<Product[]>("ovira_marketplace.api.catalog.related_products", {
