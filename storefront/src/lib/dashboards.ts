@@ -60,6 +60,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
     can: (u) => !!u.isOperator,
     nav: [
       { href: "/admin", key: "adminNavSettings", icon: Settings, exact: true },
+      { href: "/admin/analytics", key: "adminNavAnalytics", icon: BarChart3 },
       { href: "/admin/vendors", key: "adminNavVendors", icon: Store },
       { href: "/admin/products", key: "adminNavProducts", icon: Package },
       { href: "/admin/orders", key: "adminNavOrders", icon: ClipboardList },
