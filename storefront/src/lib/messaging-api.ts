@@ -33,6 +33,25 @@ export type VendorThread = {
   unread: number;
 };
 
+export type BuyerThread = {
+  order: string;
+  vendor: string;
+  vendor_name: string;
+  last_body: string;
+  last_date: string;
+  unread: number;
+};
+
+export type OperatorThread = {
+  order: string;
+  vendor: string;
+  vendor_name: string;
+  customer_name?: string | null;
+  last_body: string;
+  last_date: string;
+  messages: number;
+};
+
 async function errorMessage(res: Response, fallback: string): Promise<string> {
   try {
     const data = await res.json();
@@ -68,6 +87,10 @@ export const getThread = (order: string, vendor: string) =>
   get<ChatThread | null>("thread", { order, vendor }, null);
 
 export const getVendorThreads = () => get<VendorThread[]>("vendor_threads", {}, []);
+
+export const getBuyerThreads = () => get<BuyerThread[]>("buyer_threads", {}, []);
+
+export const getAllThreads = () => get<OperatorThread[]>("all_threads", {}, []);
 
 export const getUnreadTotal = () => get<number>("unread_total", {}, 0);
 

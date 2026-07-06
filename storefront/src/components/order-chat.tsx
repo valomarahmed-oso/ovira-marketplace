@@ -12,6 +12,7 @@ export function OrderChat({ order, vendor }: { order: string; vendor: string }) 
   const { t } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [readOnly, setReadOnly] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,10 @@ export function OrderChat({ order, vendor }: { order: string; vendor: string }) 
     setLoading(true);
     getThread(order, vendor)
       .then((res) => {
-        if (alive) setMessages(res?.messages ?? []);
+        if (!alive) return;
+        setMessages(res?.messages ?? []);
+        // The operator can read any thread for moderation but can't post in it.
+        setReadOnly(res?.role === "operator");
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -89,7 +93,12 @@ export function OrderChat({ order, vendor }: { order: string; vendor: string }) 
 
       {error && <div className="mt-2 text-xs text-coral">{error}</div>}
 
-      <form onSubmit={send} className="mt-3 flex items-end gap-2">
+      {readOnly ? (
+        <div className="mt-3 rounded-xl bg-[#f1efe8] px-4 py-2.5 text-center text-xs text-ink-400">
+          {t.chatModerationView}
+        </div>
+      ) : (
+        <form onSubmit={send} className="mt-3 flex items-end gap-2">
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -111,7 +120,8 @@ export function OrderChat({ order, vendor }: { order: string; vendor: string }) 
         >
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </button>
-      </form>
+        </form>
+      )}
     </div>
   );
 }

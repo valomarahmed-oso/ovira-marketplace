@@ -316,7 +316,114 @@ def unread_total():
     return total
 
 
+@frappe.whitelist()
+def buyer_threads(limit=100):
+    """The signed-in shopper's conversations across all their orders: one row per
+    (order, vendor), newest activity first, with unread + the vendor's name."""
+    email = _session_email()
+    if not email:
+        return []
+    orders = frappe.get_all(
+        "Marketplace Order",
+        or_filters=_buyer_or_filters(email),
+        pluck="name",
+        ignore_permissions=True,
+    )
+    if not orders:
+        return []
+    rows = frappe.get_all(
+        "Marketplace Message",
+        filters={"order": ["in", orders]},
+        fields=["order", "vendor", "body", "sender_role", "creation", "read_by_buyer"],
+        order_by="creation desc",
+        limit_page_length=2000,
+        ignore_permissions=True,
+    )
+    threads: dict = {}
+    for r in rows:
+        key = (r.order, r.vendor)
+        t = threads.get(key)
+        if not t:
+            t = threads[key] = {
+                "order": r.order,
+                "vendor": r.vendor,
+                "last_body": r.body,
+                "last_date": str(r.creation),
+                "unread": 0,
+            }
+        if not r.read_by_buyer and (r.sender_role or "") != "Buyer":
+            t["unread"] += 1
+    if not threads:
+        return []
+    _attach_vendor_names(threads.values())
+    out = sorted(threads.values(), key=lambda t: t["last_date"], reverse=True)
+    return out[: cint(limit) or 100]
+
+
+@frappe.whitelist()
+def all_threads(limit=150):
+    """Operator moderation feed: the most recently active (order, vendor) threads
+    across the whole marketplace, with the buyer + vendor names."""
+    if not _is_operator():
+        frappe.throw(_("This view is for operators only."), frappe.PermissionError)
+    rows = frappe.get_all(
+        "Marketplace Message",
+        fields=["order", "vendor", "body", "creation"],
+        order_by="creation desc",
+        limit_page_length=3000,
+        ignore_permissions=True,
+    )
+    threads: dict = {}
+    for r in rows:
+        key = (r.order, r.vendor)
+        if key in threads:  # rows are newest-first, so the first per key is latest
+            threads[key]["messages"] += 1
+            continue
+        threads[key] = {
+            "order": r.order,
+            "vendor": r.vendor,
+            "last_body": r.body,
+            "last_date": str(r.creation),
+            "messages": 1,
+        }
+    if not threads:
+        return []
+    _attach_vendor_names(threads.values())
+    order_names = {t["order"] for t in threads.values()}
+    customers = {
+        o.name: o.customer_name
+        for o in frappe.get_all(
+            "Marketplace Order",
+            filters={"name": ["in", list(order_names)]},
+            fields=["name", "customer_name"],
+            ignore_permissions=True,
+        )
+    }
+    for t in threads.values():
+        t["customer_name"] = customers.get(t["order"])
+    out = sorted(threads.values(), key=lambda t: t["last_date"], reverse=True)
+    return out[: cint(limit) or 150]
+
+
 # -- helpers ----------------------------------------------------------------
+
+
+def _attach_vendor_names(threads):
+    """Stamp `vendor_name` onto thread dicts that carry a `vendor` code."""
+    codes = {t["vendor"] for t in threads if t.get("vendor")}
+    if not codes:
+        return
+    names = {
+        v.name: v.vendor_name
+        for v in frappe.get_all(
+            "Marketplace Vendor",
+            filters={"name": ["in", list(codes)]},
+            fields=["name", "vendor_name"],
+            ignore_permissions=True,
+        )
+    }
+    for t in threads:
+        t["vendor_name"] = names.get(t.get("vendor")) or t.get("vendor")
 
 
 def _buyer_or_filters(email):

@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   MapPin,
   Megaphone,
+  MessagesSquare,
   Package,
   RotateCcw,
   Settings,
@@ -33,6 +34,8 @@ export type DashNavItem = {
   icon: LucideIcon;
   /** When true the link is active only on an exact path match. */
   exact?: boolean;
+  /** Show a live count badge sourced from this feed (currently only unread chat). */
+  badge?: "messages";
 };
 
 export type DashboardDef = {
@@ -64,6 +67,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/admin/coupons", key: "adminNavCoupons", icon: Tag },
       { href: "/admin/deals", key: "adminNavDeals", icon: Zap },
       { href: "/admin/sponsored", key: "adminNavSponsored", icon: Megaphone },
+      { href: "/admin/messages", key: "adminNavMessages", icon: MessagesSquare },
       { href: "/admin/wallets", key: "adminNavWallets", icon: Gift },
       { href: "/admin/payouts", key: "adminNavPayouts", icon: Wallet },
       { href: "/admin/payments", key: "adminNavPayments", icon: CreditCard },
@@ -82,6 +86,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/vendor/analytics", key: "vendorNavAnalytics", icon: BarChart3 },
       { href: "/vendor/products", key: "vendorNavProducts", icon: Package },
       { href: "/vendor/orders", key: "vendorNavOrders", icon: ShoppingBag },
+      { href: "/vendor/messages", key: "vendorNavMessages", icon: MessagesSquare, badge: "messages" },
       { href: "/vendor/settings", key: "vendorNavSettings", icon: Settings },
     ],
   },
@@ -97,6 +102,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/account", key: "buyerNavOverview", icon: LayoutDashboard, exact: true },
       { href: "/account/orders", key: "myOrders", icon: Package },
       { href: "/account/returns", key: "buyerNavReturns", icon: RotateCcw },
+      { href: "/account/messages", key: "messagesNav", icon: MessagesSquare, badge: "messages" },
       { href: "/account/wallet", key: "walletNav", icon: Wallet },
       { href: "/account/loyalty", key: "loyaltyNav", icon: Award },
       { href: "/wishlist", key: "wishlist", icon: Heart },

@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
 import { useAuth } from "@/lib/auth-store";
 import { dashboardsFor, type DashboardDef, type DashNavItem } from "@/lib/dashboards";
+import { getUnreadTotal } from "@/lib/messaging-api";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,6 +26,13 @@ export function DashboardShell({
   const { t } = useI18n();
   const pathname = usePathname();
   const user = useAuth((s) => s.user);
+  const [unread, setUnread] = useState(0);
+
+  const hasMessageBadge = def.nav.some((i) => i.badge === "messages");
+  useEffect(() => {
+    if (!hasMessageBadge) return;
+    getUnreadTotal().then(setUnread);
+  }, [hasMessageBadge, pathname]);
 
   const isActive = (item: DashNavItem) =>
     item.exact
@@ -62,7 +71,17 @@ export function DashboardShell({
                   )}
                 >
                   <ItemIcon className="h-4 w-4" />
-                  {t[item.key]}
+                  <span className="flex-1">{t[item.key]}</span>
+                  {item.badge === "messages" && unread > 0 && (
+                    <span
+                      className={cn(
+                        "grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[10px] font-medium",
+                        active ? "bg-white text-blue" : "bg-coral text-white",
+                      )}
+                    >
+                      {unread}
+                    </span>
+                  )}
                 </Link>
               );
             })}
