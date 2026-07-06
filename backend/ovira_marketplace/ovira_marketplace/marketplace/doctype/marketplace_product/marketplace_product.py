@@ -93,7 +93,17 @@ class MarketplaceProduct(Document):
         quantities = frappe.get_all(
             "Bin", filters={"item_code": self.item}, pluck="actual_qty"
         )
-        self.db_set("stock_qty", sum(q or 0 for q in quantities))
+        new_qty = sum(q or 0 for q in quantities)
+        old_qty = self.stock_qty or 0
+        self.db_set("stock_qty", new_qty)
+        # Back in stock: tell anyone waiting on this product (best-effort).
+        if old_qty <= 0 < new_qty:
+            try:
+                from ovira_marketplace.api.stock_alerts import notify_back_in_stock
+
+                notify_back_in_stock(self.name)
+            except Exception:
+                frappe.log_error("back-in-stock notify failed")
 
 
 def _website_item_available():

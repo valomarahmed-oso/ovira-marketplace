@@ -7,6 +7,7 @@ import type { Product, ProductVariant } from "@/lib/api";
 import { Countdown } from "@/components/countdown";
 import { OviraBars } from "@/components/ovira-bars";
 import { useCart } from "@/lib/cart-store";
+import { StockAlertButton } from "@/components/stock-alert-button";
 import { cn, discountPercent, formatPrice } from "@/lib/utils";
 
 export function ProductPurchase({ p }: { p: Product }) {
@@ -141,23 +142,29 @@ export function ProductPurchase({ p }: { p: Product }) {
       )}
 
       <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={addToCart}
-          disabled={soldOut || needsChoice}
-          className="btn btn-primary w-full disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {added ? <Check className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
-          {added ? "تمت الإضافة للسلة" : needsChoice ? `اختر ${p.variant_option_name || "خيارًا"}` : "أضف للسلة"}
-        </button>
-        <button
-          type="button"
-          onClick={buyNow}
-          disabled={soldOut || needsChoice}
-          className="btn btn-ghost w-full disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Zap className="h-5 w-5" /> اشترِ الآن
-        </button>
+        {soldOut ? (
+          <StockAlertButton slug={p.slug} />
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={addToCart}
+              disabled={needsChoice}
+              className="btn btn-primary w-full disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {added ? <Check className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
+              {added ? "تمت الإضافة للسلة" : needsChoice ? `اختر ${p.variant_option_name || "خيارًا"}` : "أضف للسلة"}
+            </button>
+            <button
+              type="button"
+              onClick={buyNow}
+              disabled={needsChoice}
+              className="btn btn-ghost w-full disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Zap className="h-5 w-5" /> اشترِ الآن
+            </button>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-2 pt-1 text-xs text-ink-400">

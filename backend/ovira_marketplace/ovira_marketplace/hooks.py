@@ -39,6 +39,7 @@ after_migrate = "ovira_marketplace.setup.install.after_migrate"
 scheduler_events = {
     "daily": [
         "ovira_marketplace.api.trust.recompute_all_vendor_trust",
+        "ovira_marketplace.api.stock_alerts.sweep_back_in_stock",
     ],
 }
 
