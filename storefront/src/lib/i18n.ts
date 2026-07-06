@@ -204,6 +204,17 @@ const ar = {
 
   recForYou: "مرشّح لك خصيصًا",
 
+  shipRatesTitle: "أسعار الشحن حسب المحافظة",
+  shipRatesHint: "حدّد سعر شحن لكل محافظة. يُطبَّق تلقائيًا عند الدفع (للشحن الداخلي). المحافظات بدون سعر تستخدم السعر الافتراضي.",
+  shipRateGov: "المحافظة",
+  shipRateFee: "السعر",
+  shipRateFree: "مجاني فوق",
+  shipRateEta: "أيام التوصيل",
+  shipRateOn: "مُفعّل",
+  shipRateSave: "حفظ",
+  shipRateSaveErr: "تعذّر حفظ سعر الشحن.",
+  shipEtaHint: "التوصيل المتوقّع خلال {days} أيام",
+
   secLoyalty: "نقاط الولاء",
   fieldLoyaltyEnabled: "تفعيل نقاط الولاء",
   fieldLoyaltyHint: "خلّي العملاء يكسبوا نقاط على الطلبات المكتملة ويستبدلوها برصيد محفظة.",
@@ -709,6 +720,17 @@ const en: Dict = {
   loyaltyBalanceShort: "Balance",
 
   recForYou: "Recommended for you",
+
+  shipRatesTitle: "Shipping rates by governorate",
+  shipRatesHint: "Set a shipping fee per governorate. Applied automatically at checkout (for in-house shipping). Governorates with no rate use the default.",
+  shipRateGov: "Governorate",
+  shipRateFee: "Fee",
+  shipRateFree: "Free over",
+  shipRateEta: "ETA (days)",
+  shipRateOn: "On",
+  shipRateSave: "Save",
+  shipRateSaveErr: "Couldn't save the shipping rate.",
+  shipEtaHint: "Estimated delivery in {days} days",
 
   secLoyalty: "Loyalty points",
   fieldLoyaltyEnabled: "Enable loyalty points",

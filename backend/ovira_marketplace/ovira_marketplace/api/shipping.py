@@ -3,7 +3,7 @@ import secrets
 import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
-from frappe.utils import flt, now_datetime
+from frappe.utils import cint, flt, now_datetime
 
 from ovira_marketplace.api.admin import OPERATOR_ROLES, _require_operator
 from ovira_marketplace.shipping.connectors import default_provider, get_shipping_connector
@@ -14,12 +14,102 @@ FLAT_SHIPPING = 50
 
 @frappe.whitelist(allow_guest=True)
 def get_rate(subtotal, governorate=None):
-    """Shipping fee for a subtotal, from the default provider (with a safe fallback)."""
+    """Shipping fee for a subtotal + destination.
+
+    A real carrier (Bosta/Aramex) prices its own shipments, so its connector wins
+    when enabled. Otherwise (in-house "Manual" shipping, or no provider) the
+    operator's per-governorate rate table applies, falling back to the Manual
+    provider's flat config and finally the built-in constants."""
     provider = default_provider()
-    connector = get_shipping_connector(provider) if provider else None
-    if not connector:
-        return 0 if flt(subtotal) >= FREE_SHIPPING_THRESHOLD else FLAT_SHIPPING
-    return connector.rate(flt(subtotal), governorate)
+    if provider and provider != "Manual":
+        connector = get_shipping_connector(provider)
+        if connector:
+            return connector.rate(flt(subtotal), governorate)
+    return _resolve_local_rate(flt(subtotal), governorate)
+
+
+def _resolve_local_rate(subtotal, governorate):
+    """In-house rate: a per-governorate override first, then the Manual provider's
+    flat config, then the built-in free-over/flat constants."""
+    if governorate:
+        rate = frappe.db.get_value(
+            "Marketplace Shipping Rate",
+            {"governorate": governorate, "enabled": 1},
+            ["fee", "free_threshold"],
+            as_dict=True,
+        )
+        if rate:
+            threshold = flt(rate.free_threshold)
+            if threshold and flt(subtotal) >= threshold:
+                return 0
+            return flt(rate.fee)
+
+    connector = get_shipping_connector("Manual")
+    if connector:
+        return connector.rate(flt(subtotal), governorate)
+    return 0 if flt(subtotal) >= FREE_SHIPPING_THRESHOLD else FLAT_SHIPPING
+
+
+RATE_FIELDS = ["name", "governorate", "fee", "free_threshold", "eta_days", "enabled"]
+
+
+@frappe.whitelist(allow_guest=True)
+def shipping_rates():
+    """Public: enabled per-governorate rates (fee + free threshold + ETA) so the
+    checkout can preview cost and delivery time per destination."""
+    return frappe.get_all(
+        "Marketplace Shipping Rate",
+        filters={"enabled": 1},
+        fields=["governorate", "fee", "free_threshold", "eta_days"],
+        order_by="governorate asc",
+        ignore_permissions=True,
+    )
+
+
+@frappe.whitelist()
+def list_shipping_rates():
+    """Operator: every governorate rate row (enabled or not) for the manager."""
+    _require_operator()
+    return frappe.get_all(
+        "Marketplace Shipping Rate",
+        fields=RATE_FIELDS,
+        order_by="governorate asc",
+        ignore_permissions=True,
+    )
+
+
+@frappe.whitelist()
+def upsert_shipping_rate(governorate, fee, free_threshold=0, eta_days=0, enabled=1, name=None):
+    """Operator: create or update the rate for one governorate (keyed by name)."""
+    _require_operator()
+    governorate = (governorate or "").strip()
+    if not governorate:
+        frappe.throw(_("Enter a governorate."))
+
+    existing = name or frappe.db.get_value("Marketplace Shipping Rate", {"governorate": governorate})
+    doc = (
+        frappe.get_doc("Marketplace Shipping Rate", existing)
+        if existing and frappe.db.exists("Marketplace Shipping Rate", existing)
+        else frappe.new_doc("Marketplace Shipping Rate")
+    )
+    doc.governorate = governorate
+    doc.fee = flt(fee)
+    doc.free_threshold = flt(free_threshold)
+    doc.eta_days = cint(eta_days)
+    doc.enabled = 1 if cint(enabled) else 0
+    doc.flags.ignore_permissions = True
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {f: doc.get(f) for f in RATE_FIELDS}
+
+
+@frappe.whitelist()
+def delete_shipping_rate(name):
+    _require_operator()
+    if frappe.db.exists("Marketplace Shipping Rate", name):
+        frappe.delete_doc("Marketplace Shipping Rate", name, ignore_permissions=True)
+        frappe.db.commit()
+    return {"deleted": name}
 
 
 @frappe.whitelist()

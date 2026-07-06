@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { CreditCard, Loader2, MapPin, Plus, Tag, Truck, Wallet, X } from "lucide-react";
 import { getShippingRate, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
 import { getMyAddresses, upsertAddress, type BuyerAddress } from "@/lib/addresses-api";
+import { getShippingRates } from "@/lib/shipping-rates-api";
 import { getWallet } from "@/lib/wallet-api";
 import { cartSubtotal, shippingFor, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
@@ -106,6 +107,17 @@ export default function CheckoutPage() {
       cancelled = true;
     };
   }, [subtotal, form.gov]);
+
+  // Estimated delivery time per governorate (from the operator's rate table).
+  const [etaByGov, setEtaByGov] = useState<Record<string, number>>({});
+  useEffect(() => {
+    getShippingRates().then((rates) => {
+      const map: Record<string, number> = {};
+      for (const r of rates) if (r.eta_days) map[r.governorate] = r.eta_days;
+      setEtaByGov(map);
+    });
+  }, []);
+  const govEta = etaByGov[form.gov];
 
   if (hydrated && !items.length) {
     return (
@@ -254,11 +266,16 @@ export default function CheckoutPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <input required placeholder="الاسم بالكامل" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={field} />
                 <input required placeholder="رقم الموبايل" inputMode="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={field} />
-                <select value={form.gov} onChange={(e) => setForm({ ...form, gov: e.target.value })} className={field}>
-                  {GOVERNORATES.map((g) => (
-                    <option key={g}>{g}</option>
-                  ))}
-                </select>
+                <div>
+                  <select value={form.gov} onChange={(e) => setForm({ ...form, gov: e.target.value })} className={field}>
+                    {GOVERNORATES.map((g) => (
+                      <option key={g}>{g}</option>
+                    ))}
+                  </select>
+                  {govEta ? (
+                    <p className="mt-1 text-xs text-mint">{t.shipEtaHint.replace("{days}", String(govEta))}</p>
+                  ) : null}
+                </div>
                 <input required placeholder="العنوان بالتفصيل" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={`${field} sm:col-span-2`} />
                 {user && (
                   <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-600 sm:col-span-2">

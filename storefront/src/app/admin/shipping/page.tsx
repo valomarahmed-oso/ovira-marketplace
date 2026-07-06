@@ -10,6 +10,7 @@ import {
   updateShippingProvider,
   type ShippingProviderConfig,
 } from "@/lib/operator";
+import { ShippingRatesCard } from "@/components/shipping-rates-card";
 
 type Provider = ShippingProviderConfig["provider"];
 
@@ -243,6 +244,8 @@ export default function AdminShippingPage() {
               </button>
             </div>
           </div>
+
+          <ShippingRatesCard />
         </div>
       )}
     </div>

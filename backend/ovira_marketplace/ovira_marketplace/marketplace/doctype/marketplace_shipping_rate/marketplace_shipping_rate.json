@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:governorate",
+ "creation": "2026-07-06 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "governorate",
+  "enabled",
+  "column_break_rate",
+  "fee",
+  "free_threshold",
+  "eta_days"
+ ],
+ "fields": [
+  {
+   "description": "Governorate name, matching the storefront address list exactly (e.g. القاهرة).",
+   "fieldname": "governorate",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Governorate",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "column_break_rate",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Shipping fee charged for this governorate.",
+   "fieldname": "fee",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Fee",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "Order subtotal at or above which shipping is free for this governorate (0 = never free here).",
+   "fieldname": "free_threshold",
+   "fieldtype": "Currency",
+   "label": "Free shipping threshold"
+  },
+  {
+   "default": "0",
+   "description": "Estimated delivery time in days (0 = don't show an estimate).",
+   "fieldname": "eta_days",
+   "fieldtype": "Int",
+   "label": "ETA (days)"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-06 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Shipping Rate",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
