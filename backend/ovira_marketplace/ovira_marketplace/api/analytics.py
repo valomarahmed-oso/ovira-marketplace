@@ -9,6 +9,9 @@ loyalty-point liabilities the operator owes shoppers.
 Everything is read-only and operator-gated; nothing here writes.
 """
 
+import csv
+import io
+
 import frappe
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
@@ -18,6 +21,11 @@ from ovira_marketplace.marketplace.doctype.marketplace_settings.marketplace_sett
 )
 
 ANALYTICS_WINDOWS = (7, 30, 90, 365)
+
+
+def _window_start(days):
+    """Start date for the window, or None for all-time (days <= 0)."""
+    return None if days <= 0 else getdate(add_days(nowdate(), -(days - 1)))
 
 
 def _snapshots():
@@ -162,12 +170,13 @@ def operator_overview(days=30):
     }
 
 
-def _name_vendors(rows):
-    codes = {r["vendor"] for r in rows if r.get("vendor")}
+def _vendor_names(codes):
+    """Map of vendor code -> display name (falling back to the code)."""
+    codes = {c for c in codes if c}
     if not codes:
-        return
-    names = {
-        v.name: v.vendor_name
+        return {}
+    return {
+        v.name: (v.vendor_name or v.name)
         for v in frappe.get_all(
             "Marketplace Vendor",
             filters={"name": ["in", list(codes)]},
@@ -175,5 +184,154 @@ def _name_vendors(rows):
             ignore_permissions=True,
         )
     }
+
+
+def _name_vendors(rows):
+    names = _vendor_names(r.get("vendor") for r in rows)
     for r in rows:
         r["vendor_name"] = names.get(r["vendor"]) or r["vendor"]
+
+
+# ---------------------------------------------------------------------------
+# CSV exports — operator-only reconciliation downloads
+# ---------------------------------------------------------------------------
+
+ORDER_EXPORT_HEADER = [
+    "Order",
+    "Date",
+    "Status",
+    "Payment",
+    "Customer",
+    "Phone",
+    "Source",
+    "Subtotal",
+    "Shipping",
+    "Total",
+    "Commission",
+    "Currency",
+]
+
+PRODUCT_EXPORT_HEADER = ["Product", "Vendor", "Units Sold", "Revenue", "Commission"]
+
+
+def _csv_text(header, rows):
+    """CSV body with a UTF-8 BOM so Excel renders Arabic correctly."""
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(header)
+    writer.writerows(rows)
+    return "﻿" + buf.getvalue()
+
+
+def _export_days(days):
+    days = cint(days)
+    return days if (days in ANALYTICS_WINDOWS or days <= 0) else 30
+
+
+def _commission_by_order(order_ids):
+    """Sum of per-item commission for each order (operator revenue)."""
+    if not order_ids:
+        return {}
+    agg = {}
+    for r in frappe.get_all(
+        "Marketplace Order Item",
+        filters={"parent": ["in", order_ids]},
+        fields=["parent", "commission_amount"],
+        ignore_permissions=True,
+        limit_page_length=0,
+    ):
+        agg[r["parent"]] = agg.get(r["parent"], 0.0) + flt(r["commission_amount"])
+    return {k: round(v, 2) for k, v in agg.items()}
+
+
+@frappe.whitelist()
+def export_orders_csv(days=30, status=None):
+    """One CSV row per order over the window (days=0 => all time). Operator only."""
+    _require_operator()
+    start = _window_start(_export_days(days))
+
+    filters = {}
+    if start:
+        filters["creation"] = [">=", start]
+    if status and status not in ("All", ""):
+        filters["status"] = status
+
+    orders = frappe.get_all(
+        "Marketplace Order",
+        filters=filters,
+        fields=[
+            "name", "creation", "status", "payment_status", "customer_name",
+            "phone", "source", "subtotal", "shipping_amount", "total", "currency",
+        ],
+        order_by="creation desc",
+        ignore_permissions=True,
+        limit_page_length=0,
+    )
+    commission = _commission_by_order([o["name"] for o in orders])
+
+    rows = [
+        [
+            o["name"],
+            str(getdate(o["creation"])),
+            o.get("status") or "",
+            o.get("payment_status") or "",
+            o.get("customer_name") or "",
+            o.get("phone") or "",
+            o.get("source") or "direct",
+            flt(o.get("subtotal")),
+            flt(o.get("shipping_amount")),
+            flt(o.get("total")),
+            commission.get(o["name"], 0.0),
+            o.get("currency") or "",
+        ]
+        for o in orders
+    ]
+    return _csv_text(ORDER_EXPORT_HEADER, rows)
+
+
+@frappe.whitelist()
+def export_products_csv(days=30):
+    """One CSV row per product sold over the window (days=0 => all time). Operator only."""
+    _require_operator()
+    start = _window_start(_export_days(days))
+
+    conds = "o.status != 'Cancelled'"
+    params = {}
+    if start:
+        conds += " AND o.creation >= %(start)s"
+        params["start"] = start
+
+    items = frappe.db.sql(
+        f"""
+        SELECT oi.marketplace_product AS product, oi.title, oi.vendor,
+               oi.qty, oi.amount, oi.commission_amount
+        FROM `tabMarketplace Order Item` oi
+        JOIN `tabMarketplace Order` o ON o.name = oi.parent
+        WHERE {conds}
+        """,
+        params,
+        as_dict=True,
+    )
+
+    agg = {}
+    for r in items:
+        key = r.product or r.title
+        a = agg.setdefault(
+            key, {"title": r.title, "vendor": r.vendor, "qty": 0.0, "revenue": 0.0, "commission": 0.0}
+        )
+        a["qty"] += flt(r.qty)
+        a["revenue"] += flt(r.amount)
+        a["commission"] += flt(r.commission_amount)
+
+    names = _vendor_names(a["vendor"] for a in agg.values())
+    rows = [
+        [
+            a["title"] or "",
+            names.get(a["vendor"]) or a["vendor"] or "",
+            int(a["qty"]),
+            round(a["revenue"], 2),
+            round(a["commission"], 2),
+        ]
+        for a in sorted(agg.values(), key=lambda x: x["revenue"], reverse=True)
+    ]
+    return _csv_text(PRODUCT_EXPORT_HEADER, rows)

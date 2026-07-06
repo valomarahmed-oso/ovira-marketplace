@@ -39,3 +39,37 @@ export async function getOperatorOverview(days = 30): Promise<OperatorOverview |
     return null;
   }
 }
+
+async function fetchCsv(method: string, params: Record<string, string | number>): Promise<string> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const qs = new URLSearchParams(
+    Object.entries(params).map(([k, v]) => [k, String(v)]),
+  ).toString();
+  const res = await fetch(`${BASE}/api/method/${M}.${method}?${qs}`, {
+    headers: { Accept: "application/json" },
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("تعذّر تصدير الملف.");
+  return String((await res.json()).message ?? "");
+}
+
+/** Operator-only CSV of every order in the window (days=0 => all time). */
+export const exportOrdersCsv = (days = 30, status?: string) =>
+  fetchCsv("export_orders_csv", status ? { days, status } : { days });
+
+/** Operator-only CSV of units + revenue + commission per product in the window. */
+export const exportProductsCsv = (days = 30) => fetchCsv("export_products_csv", { days });
+
+/** Trigger a browser download of CSV text as a named file. */
+export function downloadCsv(filename: string, text: string) {
+  const blob = new Blob([text], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

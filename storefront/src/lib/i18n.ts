@@ -515,6 +515,8 @@ const ar = {
   anWalletLiability: "أرصدة المحافظ المستحقة",
   anLoyaltyOutstanding: "نقاط ولاء قائمة",
   anSnapshotsTitle: "لقطة حالية",
+  anExportOrders: "تصدير الطلبات",
+  anExportProducts: "تصدير المبيعات",
   switchDashboard: "لوحات أخرى",
   viewStore: "عرض المتجر",
 };
@@ -1032,6 +1034,8 @@ const en: Dict = {
   anWalletLiability: "Wallet liability",
   anLoyaltyOutstanding: "Outstanding loyalty points",
   anSnapshotsTitle: "Current snapshot",
+  anExportOrders: "Export orders",
+  anExportProducts: "Export sales",
   switchDashboard: "Other dashboards",
   viewStore: "View store",
 };

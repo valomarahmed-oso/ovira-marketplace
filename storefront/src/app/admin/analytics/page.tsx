@@ -5,6 +5,7 @@ import {
   Award,
   BarChart3,
   CheckCircle2,
+  Download,
   Loader2,
   Megaphone,
   Package,
@@ -15,7 +16,13 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import { getOperatorOverview, type OperatorOverview } from "@/lib/analytics-api";
+import {
+  downloadCsv,
+  exportOrdersCsv,
+  exportProductsCsv,
+  getOperatorOverview,
+  type OperatorOverview,
+} from "@/lib/analytics-api";
 import { useI18n } from "@/components/i18n-provider";
 import { formatPrice } from "@/lib/utils";
 
@@ -35,6 +42,21 @@ export default function AdminAnalyticsPage() {
   const [days, setDays] = useState<number>(30);
   const [data, setData] = useState<OperatorOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState<"orders" | "products" | null>(null);
+
+  async function runExport(kind: "orders" | "products") {
+    setExporting(kind);
+    try {
+      const stamp = new Date().toISOString().slice(0, 10);
+      if (kind === "orders") {
+        downloadCsv(`orders-${days}d-${stamp}.csv`, await exportOrdersCsv(days));
+      } else {
+        downloadCsv(`product-sales-${days}d-${stamp}.csv`, await exportProductsCsv(days));
+      }
+    } finally {
+      setExporting(null);
+    }
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -82,19 +104,47 @@ export default function AdminAnalyticsPage() {
           <h2 className="text-xl font-medium text-ink">{t.anOpTitle}</h2>
           <p className="text-sm text-ink-400">{t.anOpSubtitle}</p>
         </div>
-        <div className="flex items-center gap-1 rounded-xl border border-line p-1">
-          {WINDOWS.map((w) => (
-            <button
-              key={w}
-              type="button"
-              onClick={() => setDays(w)}
-              className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                days === w ? "bg-blue-600 text-white" : "text-ink-600 hover:bg-blue-50"
-              }`}
-            >
-              {winLabel[w]}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 rounded-xl border border-line p-1">
+            {WINDOWS.map((w) => (
+              <button
+                key={w}
+                type="button"
+                onClick={() => setDays(w)}
+                className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                  days === w ? "bg-blue-600 text-white" : "text-ink-600 hover:bg-blue-50"
+                }`}
+              >
+                {winLabel[w]}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => runExport("orders")}
+            disabled={exporting !== null}
+            className="btn btn-ghost h-9 gap-1.5 px-3 text-sm disabled:opacity-50"
+          >
+            {exporting === "orders" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {t.anExportOrders}
+          </button>
+          <button
+            type="button"
+            onClick={() => runExport("products")}
+            disabled={exporting !== null}
+            className="btn btn-ghost h-9 gap-1.5 px-3 text-sm disabled:opacity-50"
+          >
+            {exporting === "products" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {t.anExportProducts}
+          </button>
         </div>
       </div>
 
