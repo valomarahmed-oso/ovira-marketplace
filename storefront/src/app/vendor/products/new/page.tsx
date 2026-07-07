@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { ArrowRight, ImagePlus, Loader2, Save, X } from "lucide-react";
+import { ArrowRight, ImagePlus, Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import { getCategories, type Category } from "@/lib/api";
 import { getMyProduct, upsertProduct } from "@/lib/vendor";
 import { uploadImage } from "@/lib/uploads";
@@ -24,6 +24,9 @@ function ProductForm() {
     condition: "New" as "New" | "Used" | "Refurbished",
     images: [] as string[],
     description: "",
+    has_variants: false,
+    variant_option_name: "",
+    variants: [] as { option_value: string; price: string; stock: string }[],
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +70,16 @@ function ProductForm() {
     setUrlInput("");
   }
 
+  const addVariant = () =>
+    setForm((f) => ({ ...f, variants: [...f.variants, { option_value: "", price: "", stock: "" }] }));
+  const removeVariant = (i: number) =>
+    setForm((f) => ({ ...f, variants: f.variants.filter((_, j) => j !== i) }));
+  const setVariant = (i: number, key: "option_value" | "price" | "stock", value: string) =>
+    setForm((f) => ({
+      ...f,
+      variants: f.variants.map((v, j) => (j === i ? { ...v, [key]: value } : v)),
+    }));
+
   useEffect(() => {
     getCategories().then((cats) => {
       setCategories(cats);
@@ -90,6 +103,13 @@ function ProductForm() {
           condition: (p.condition as "New" | "Used" | "Refurbished") ?? "New",
           images: p.images?.length ? p.images : p.image ? [p.image] : [],
           description: p.description ?? "",
+          has_variants: !!p.has_variants,
+          variant_option_name: p.variant_option_name ?? "",
+          variants: (p.variants ?? []).map((v) => ({
+            option_value: v.option_value ?? "",
+            price: v.price != null ? String(v.price) : "",
+            stock: v.stock_qty != null ? String(v.stock_qty) : "",
+          })),
         });
       })
       .finally(() => {
@@ -102,6 +122,22 @@ function ProductForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // Variant products define price + stock per row; the base price becomes the
+    // cheapest variant. Blank-value rows are dropped.
+    const variantRows = form.variants
+      .filter((v) => v.option_value.trim())
+      .map((v) => ({
+        option_value: v.option_value.trim(),
+        price: Number(v.price) || 0,
+        stock_qty: Number(v.stock) || 0,
+      }));
+    const variantPrices = variantRows.map((v) => v.price).filter((p) => p > 0);
+
+    if (form.has_variants && variantRows.length === 0) {
+      setError("أضف متغيّرًا واحدًا على الأقل أو أوقف خيار المتغيّرات.");
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
@@ -109,12 +145,19 @@ function ProductForm() {
         name: editId ?? undefined,
         title: form.title,
         category: form.category || undefined,
-        price: Number(form.price) || 0,
+        price: form.has_variants
+          ? variantPrices.length
+            ? Math.min(...variantPrices)
+            : 0
+          : Number(form.price) || 0,
         compare_at_price: form.compare_at_price ? Number(form.compare_at_price) : undefined,
-        stock_qty: form.stock !== "" ? Number(form.stock) : undefined,
+        stock_qty: form.has_variants || form.stock === "" ? undefined : Number(form.stock),
         condition: form.condition,
         images: form.images,
         description: form.description || undefined,
+        has_variants: form.has_variants ? 1 : 0,
+        variant_option_name: form.has_variants ? form.variant_option_name || undefined : undefined,
+        variants: form.has_variants ? variantRows : undefined,
       });
       router.push("/vendor/products");
     } catch (err) {
@@ -225,6 +268,61 @@ function ProductForm() {
               <p className="mt-1 text-xs text-ink-400">أول صورة هي الرئيسية اللي بتظهر في القائمة.</p>
             </div>
           </section>
+
+          <section className="card space-y-4 p-5">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-ink">
+              <input
+                type="checkbox"
+                checked={form.has_variants}
+                onChange={(e) => setForm({ ...form, has_variants: e.target.checked })}
+                className="h-4 w-4 accent-blue"
+              />
+              بيع بمتغيّرات (مقاس، لون…)
+            </label>
+
+            {form.has_variants && (
+              <>
+                <div>
+                  <label className={label}>اسم الخيار</label>
+                  <input
+                    value={form.variant_option_name}
+                    onChange={(e) => setForm({ ...form, variant_option_name: e.target.value })}
+                    className={field}
+                    placeholder="مثال: المقاس أو اللون"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="hidden grid-cols-[1.4fr_1fr_1fr_auto] gap-2 px-1 text-xs text-ink-400 sm:grid">
+                    <span>القيمة</span>
+                    <span>السعر</span>
+                    <span>المخزون</span>
+                    <span></span>
+                  </div>
+                  {form.variants.map((v, i) => (
+                    <div
+                      key={i}
+                      className="grid grid-cols-2 items-center gap-2 rounded-xl border border-line p-2 sm:grid-cols-[1.4fr_1fr_1fr_auto]"
+                    >
+                      <input value={v.option_value} onChange={(e) => setVariant(i, "option_value", e.target.value)} className={field} placeholder="مثال: L" />
+                      <input type="number" min="0" value={v.price} onChange={(e) => setVariant(i, "price", e.target.value)} className={field} placeholder="السعر" />
+                      <input type="number" min="0" value={v.stock} onChange={(e) => setVariant(i, "stock", e.target.value)} className={field} placeholder="المخزون" />
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(i)}
+                        aria-label="حذف المتغيّر"
+                        className="grid h-10 w-10 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-coral-50 hover:text-coral"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={addVariant} className="btn btn-ghost w-full justify-center">
+                    <Plus className="h-4 w-4" /> أضف متغيّر
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
         </div>
 
         <div className="space-y-4">
@@ -250,20 +348,28 @@ function ProductForm() {
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={label}>السعر</label>
-                <input required type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={field} placeholder="0" />
-              </div>
+              {!form.has_variants && (
+                <div>
+                  <label className={label}>السعر</label>
+                  <input required type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={field} placeholder="0" />
+                </div>
+              )}
               <div>
                 <label className={label}>قبل الخصم</label>
                 <input type="number" min="0" value={form.compare_at_price} onChange={(e) => setForm({ ...form, compare_at_price: e.target.value })} className={field} placeholder="—" />
               </div>
             </div>
-            <div>
-              <label className={label}>المخزون (الكمية المتاحة)</label>
-              <input required type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className={field} placeholder="0" />
-              <p className="mt-1 text-xs text-ink-400">لإعادة التوفّر بعد النفاد، عدّل هذا الرقم واحفظ.</p>
-            </div>
+            {form.has_variants ? (
+              <p className="rounded-xl bg-blue-50 px-3 py-2 text-xs text-ink-600">
+                الأسعار والمخزون بتتحدّد لكل متغيّر بالأسفل.
+              </p>
+            ) : (
+              <div>
+                <label className={label}>المخزون (الكمية المتاحة)</label>
+                <input required type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className={field} placeholder="0" />
+                <p className="mt-1 text-xs text-ink-400">لإعادة التوفّر بعد النفاد، عدّل هذا الرقم واحفظ.</p>
+              </div>
+            )}
           </section>
 
           <button type="submit" disabled={busy} className="btn btn-primary w-full disabled:opacity-50">

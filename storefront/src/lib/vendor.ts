@@ -83,6 +83,8 @@ export type VendorProduct = {
   image?: string;
 };
 
+export type VariantInput = { option_value: string; price: number; stock_qty: number };
+
 export type ProductInput = {
   name?: string;
   title: string;
@@ -94,6 +96,9 @@ export type ProductInput = {
   image?: string;
   images?: string[];
   description?: string;
+  has_variants?: number;
+  variant_option_name?: string;
+  variants?: VariantInput[];
 };
 
 export type VendorOrder = {
@@ -144,6 +149,9 @@ export type ProductDetail = {
   description?: string | null;
   image?: string | null;
   images?: string[];
+  has_variants?: number;
+  variant_option_name?: string | null;
+  variants?: VariantInput[];
   approval_status: VendorApprovalStatus;
   published?: number;
 };

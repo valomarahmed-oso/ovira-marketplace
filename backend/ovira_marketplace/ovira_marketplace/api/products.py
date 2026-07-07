@@ -2,7 +2,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import cint, flt
 
 from ovira_marketplace.permissions import vendor_for_user
 
@@ -53,6 +53,9 @@ def upsert_product(
     currency=None,
     short_description=None,
     description=None,
+    has_variants=None,
+    variant_option_name=None,
+    variants=None,
 ):
     """Create or update one of the vendor's own products.
 
@@ -96,14 +99,22 @@ def upsert_product(
     elif image:
         _set_primary_image(doc, image)
 
+    # Variants (e.g. sizes/colours): rebuild the child table when supplied.
+    if has_variants is not None:
+        _apply_variants(doc, has_variants, variant_option_name, variants)
+
     old_stock = flt(doc.get("stock_qty")) if name else 0.0
     doc.save(ignore_permissions=True)
 
     # ``stock_qty`` is a read-only field (ERPNext-synced only once the Item
     # carries real inventory — see MarketplaceProduct.refresh_stock). Until then
     # the vendor manages it directly here: this is how stock is set, edited and
-    # restocked, and it survives approval.
-    if stock_qty not in (None, ""):
+    # restocked, and it survives approval. For variant products the base stock
+    # mirrors the sum of the variants so cards/listings show availability.
+    if doc.has_variants and doc.get("variants"):
+        total = sum(flt(v.stock_qty) for v in doc.variants)
+        doc.db_set("stock_qty", total)
+    elif stock_qty not in (None, ""):
         new_stock = flt(stock_qty)
         doc.db_set("stock_qty", new_stock)
         # Restocked from empty → alert anyone waiting (best-effort).
@@ -150,6 +161,16 @@ def get_my_product(name):
         "description": doc.description,
         "image": image,
         "images": images,
+        "has_variants": cint(doc.has_variants),
+        "variant_option_name": doc.variant_option_name,
+        "variants": [
+            {
+                "option_value": v.option_value,
+                "price": flt(v.price),
+                "stock_qty": flt(v.stock_qty),
+            }
+            for v in (doc.get("variants") or [])
+        ],
         "approval_status": doc.approval_status,
         "published": doc.published,
     }
@@ -194,6 +215,43 @@ def _apply_gallery(doc, images):
     doc.set("media", [])
     for i, url in enumerate(urls):
         doc.append("media", {"image": url, "is_primary": 1 if i == 0 else 0})
+
+
+def _apply_variants(doc, has_variants, option_name, variants):
+    """Turn variant selling on/off and rebuild the variant rows. Each row is
+    {option_value, price, stock_qty}; a stable SKU is generated when missing.
+    The base price becomes the cheapest variant so cards show a real 'from'."""
+    if not cint(has_variants):
+        doc.has_variants = 0
+        doc.set("variants", [])
+        return
+    try:
+        rows = json.loads(variants) if isinstance(variants, str) else variants
+    except (ValueError, TypeError):
+        rows = []
+
+    base = doc.slug or frappe.scrub(doc.title or "variant")
+    doc.has_variants = 1
+    doc.variant_option_name = (option_name or "").strip() or "الخيار"
+    doc.set("variants", [])
+    prices = []
+    for r in rows or []:
+        value = (str(r.get("option_value") or "")).strip()
+        if not value:
+            continue
+        price = flt(r.get("price")) or flt(doc.price)
+        prices.append(price)
+        doc.append(
+            "variants",
+            {
+                "option_value": value,
+                "sku": (r.get("sku") or f"{base}-{frappe.scrub(value)}")[:140],
+                "price": price,
+                "stock_qty": flt(r.get("stock_qty")),
+            },
+        )
+    if prices:
+        doc.price = min(prices)
 
 
 def _attach_primary_image(rows):
