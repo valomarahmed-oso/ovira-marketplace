@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
-import { ArrowRight, Loader2, Save } from "lucide-react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { ArrowRight, ImagePlus, Loader2, Save, Upload, X } from "lucide-react";
 import { getCategories, type Category } from "@/lib/api";
 import { getMyProduct, upsertProduct } from "@/lib/vendor";
+import { uploadImage } from "@/lib/uploads";
 
 function ProductForm() {
   const router = useRouter();
@@ -26,6 +27,25 @@ function ProductForm() {
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+    setUploading(true);
+    setUploadErr(null);
+    try {
+      const url = await uploadImage(file);
+      setForm((f) => ({ ...f, image: url }));
+    } catch (err) {
+      setUploadErr(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   useEffect(() => {
     getCategories().then((cats) => {
@@ -124,8 +144,47 @@ function ProductForm() {
               />
             </div>
             <div>
-              <label className={label}>رابط صورة المنتج</label>
-              <input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className={field} placeholder="https://…" inputMode="url" />
+              <label className={label}>صورة المنتج</label>
+              <div className="flex items-start gap-3">
+                <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-blue-50">
+                  {form.image ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={form.image} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, image: "" })}
+                        aria-label="إزالة الصورة"
+                        className="absolute end-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/90 text-ink-600 shadow hover:text-coral"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <ImagePlus className="h-7 w-7 text-blue-300" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <input ref={fileRef} type="file" accept="image/*" onChange={onPickFile} className="hidden" />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    className="btn btn-ghost w-full justify-center disabled:opacity-50"
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    {uploading ? "جارٍ الرفع…" : "ارفع صورة من جهازك"}
+                  </button>
+                  <input
+                    value={form.image}
+                    onChange={(e) => setForm({ ...form, image: e.target.value })}
+                    className={field}
+                    placeholder="أو الصق رابط صورة https://…"
+                    inputMode="url"
+                  />
+                </div>
+              </div>
+              {uploadErr && <p className="mt-1 text-xs text-coral">{uploadErr}</p>}
             </div>
           </section>
         </div>

@@ -1,3 +1,15 @@
+// The Frappe host serves uploaded product images at /files — allow next/image
+// to optimize them (derived from the API URL so it follows every environment).
+const frappeHost = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_FRAPPE_URL
+      ? new URL(process.env.NEXT_PUBLIC_FRAPPE_URL).hostname
+      : null;
+  } catch {
+    return null;
+  }
+})();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -7,6 +19,7 @@ const nextConfig = {
   basePath: "/shop",
   images: {
     remotePatterns: [
+      ...(frappeHost ? [{ protocol: "https", hostname: frappeHost }] : []),
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "fastly.picsum.photos" },
       { protocol: "https", hostname: "images.unsplash.com" },
