@@ -92,6 +92,7 @@ export type ProductInput = {
   condition?: string;
   stock_qty?: number;
   image?: string;
+  images?: string[];
   description?: string;
 };
 
@@ -142,6 +143,7 @@ export type ProductDetail = {
   short_description?: string | null;
   description?: string | null;
   image?: string | null;
+  images?: string[];
   approval_status: VendorApprovalStatus;
   published?: number;
 };

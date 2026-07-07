@@ -1,3 +1,5 @@
+import json
+
 import frappe
 from frappe import _
 from frappe.utils import flt
@@ -46,6 +48,7 @@ def upsert_product(
     condition=None,
     stock_qty=None,
     image=None,
+    images=None,
     brand=None,
     currency=None,
     short_description=None,
@@ -86,8 +89,11 @@ def upsert_product(
     if description is not None:
         doc.description = description
 
-    # A single image from the vendor form becomes the primary media row.
-    if image:
+    # Gallery: an ordered list of image URLs (first = primary) rebuilds the media
+    # rows; a single `image` stays supported for the older one-image form.
+    if images is not None:
+        _apply_gallery(doc, images)
+    elif image:
         _set_primary_image(doc, image)
 
     old_stock = flt(doc.get("stock_qty")) if name else 0.0
@@ -124,13 +130,12 @@ def get_my_product(name):
     if doc.vendor != vendor:
         frappe.throw(_("This product belongs to another vendor."), frappe.PermissionError)
 
-    image = None
-    for m in doc.get("media") or []:
-        if m.is_primary:
-            image = m.image
-            break
-    if not image and doc.get("media"):
-        image = doc.media[0].image
+    media = doc.get("media") or []
+    images = [m.image for m in media if m.image]
+    primary = next((m.image for m in media if m.is_primary and m.image), None)
+    if primary and images and images[0] != primary:
+        images = [primary] + [u for u in images if u != primary]
+    image = primary or (images[0] if images else None)
 
     return {
         "name": doc.name,
@@ -144,6 +149,7 @@ def get_my_product(name):
         "short_description": doc.short_description,
         "description": doc.description,
         "image": image,
+        "images": images,
         "approval_status": doc.approval_status,
         "published": doc.published,
     }
@@ -175,6 +181,19 @@ def _set_primary_image(doc, image):
             row.image = image
             return
     doc.append("media", {"image": image, "is_primary": 1})
+
+
+def _apply_gallery(doc, images):
+    """Rebuild the product's media rows from an ordered list of image URLs; the
+    first becomes the primary."""
+    try:
+        urls = json.loads(images) if isinstance(images, str) else images
+    except (ValueError, TypeError):
+        urls = []
+    urls = [u for u in (urls or []) if u]
+    doc.set("media", [])
+    for i, url in enumerate(urls):
+        doc.append("media", {"image": url, "is_primary": 1 if i == 0 else 0})
 
 
 def _attach_primary_image(rows):

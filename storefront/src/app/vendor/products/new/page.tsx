@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { ArrowRight, ImagePlus, Loader2, Save, Upload, X } from "lucide-react";
+import { ArrowRight, ImagePlus, Loader2, Save, X } from "lucide-react";
 import { getCategories, type Category } from "@/lib/api";
 import { getMyProduct, upsertProduct } from "@/lib/vendor";
 import { uploadImage } from "@/lib/uploads";
@@ -22,29 +22,49 @@ function ProductForm() {
     compare_at_price: "",
     stock: "",
     condition: "New" as "New" | "Used" | "Refurbished",
-    image: "",
+    images: [] as string[],
     description: "",
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = ""; // allow re-picking the same file
-    if (!file) return;
+    if (!files.length) return;
     setUploading(true);
     setUploadErr(null);
     try {
-      const url = await uploadImage(file);
-      setForm((f) => ({ ...f, image: url }));
+      const urls: string[] = [];
+      for (const file of files) urls.push(await uploadImage(file));
+      setForm((f) => ({ ...f, images: [...f.images, ...urls] }));
     } catch (err) {
       setUploadErr(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
     } finally {
       setUploading(false);
     }
+  }
+
+  const removeImage = (i: number) =>
+    setForm((f) => ({ ...f, images: f.images.filter((_, j) => j !== i) }));
+
+  const makePrimary = (i: number) =>
+    setForm((f) => {
+      const imgs = [...f.images];
+      const [picked] = imgs.splice(i, 1);
+      imgs.unshift(picked);
+      return { ...f, images: imgs };
+    });
+
+  function addUrl() {
+    const url = urlInput.trim();
+    if (!url) return;
+    setForm((f) => ({ ...f, images: [...f.images, url] }));
+    setUrlInput("");
   }
 
   useEffect(() => {
@@ -68,7 +88,7 @@ function ProductForm() {
           compare_at_price: p.compare_at_price != null ? String(p.compare_at_price) : "",
           stock: p.stock_qty != null ? String(p.stock_qty) : "",
           condition: (p.condition as "New" | "Used" | "Refurbished") ?? "New",
-          image: p.image ?? "",
+          images: p.images?.length ? p.images : p.image ? [p.image] : [],
           description: p.description ?? "",
         });
       })
@@ -93,7 +113,7 @@ function ProductForm() {
         compare_at_price: form.compare_at_price ? Number(form.compare_at_price) : undefined,
         stock_qty: form.stock !== "" ? Number(form.stock) : undefined,
         condition: form.condition,
-        image: form.image || undefined,
+        images: form.images,
         description: form.description || undefined,
       });
       router.push("/vendor/products");
@@ -144,47 +164,65 @@ function ProductForm() {
               />
             </div>
             <div>
-              <label className={label}>صورة المنتج</label>
-              <div className="flex items-start gap-3">
-                <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-blue-50">
-                  {form.image ? (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={form.image} alt="" className="h-full w-full object-cover" />
+              <label className={label}>صور المنتج</label>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {form.images.map((img, i) => (
+                  <div key={img + i} className="group relative aspect-square overflow-hidden rounded-xl border border-line bg-blue-50">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img} alt="" className="h-full w-full object-cover" />
+                    {i === 0 && (
+                      <span className="absolute start-1 top-1 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                        رئيسية
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeImage(i)}
+                      aria-label="حذف الصورة"
+                      className="absolute end-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/90 text-ink-600 shadow hover:text-coral"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    {i !== 0 && (
                       <button
                         type="button"
-                        onClick={() => setForm({ ...form, image: "" })}
-                        aria-label="إزالة الصورة"
-                        className="absolute end-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/90 text-ink-600 shadow hover:text-coral"
+                        onClick={() => makePrimary(i)}
+                        className="absolute inset-x-0 bottom-0 bg-white/85 py-1 text-[10px] text-blue-600 opacity-0 transition-opacity group-hover:opacity-100"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        اجعلها رئيسية
                       </button>
-                    </>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="grid aspect-square place-items-center rounded-xl border border-dashed border-line text-ink-400 transition-colors hover:border-blue hover:text-blue-600 disabled:opacity-50"
+                >
+                  {uploading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <ImagePlus className="h-7 w-7 text-blue-300" />
+                    <span className="flex flex-col items-center gap-1">
+                      <ImagePlus className="h-5 w-5" />
+                      <span className="text-[10px]">أضف صورة</span>
+                    </span>
                   )}
-                </div>
-                <div className="min-w-0 flex-1 space-y-2">
-                  <input ref={fileRef} type="file" accept="image/*" onChange={onPickFile} className="hidden" />
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="btn btn-ghost w-full justify-center disabled:opacity-50"
-                  >
-                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                    {uploading ? "جارٍ الرفع…" : "ارفع صورة من جهازك"}
-                  </button>
-                  <input
-                    value={form.image}
-                    onChange={(e) => setForm({ ...form, image: e.target.value })}
-                    className={field}
-                    placeholder="أو الصق رابط صورة https://…"
-                    inputMode="url"
-                  />
-                </div>
+                </button>
+              </div>
+              <input ref={fileRef} type="file" accept="image/*" multiple onChange={onPickFiles} className="hidden" />
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  className={field}
+                  placeholder="أو الصق رابط صورة https://…"
+                  inputMode="url"
+                />
+                <button type="button" onClick={addUrl} className="btn btn-ghost shrink-0 px-4">أضف</button>
               </div>
               {uploadErr && <p className="mt-1 text-xs text-coral">{uploadErr}</p>}
+              <p className="mt-1 text-xs text-ink-400">أول صورة هي الرئيسية اللي بتظهر في القائمة.</p>
             </div>
           </section>
         </div>
