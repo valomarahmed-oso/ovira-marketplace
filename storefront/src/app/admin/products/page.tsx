@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Loader2, Package, Search } from "lucide-react";
+import { AlertCircle, CheckSquare, Loader2, Package, Search, Square } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import {
+  bulkSetProductStatus,
   fileUrl,
   listProducts,
   productStatusCounts,
@@ -37,6 +38,8 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     const id = setTimeout(() => setSearch(query.trim()), 350);
@@ -45,11 +48,46 @@ export default function AdminProductsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setSelected(new Set()); // a fresh query invalidates the old selection
     const [p, c] = await Promise.all([listProducts({ status, search }), productStatusCounts()]);
     setProducts(p);
     setCounts(c);
     setLoading(false);
   }, [status, search]);
+
+  function toggle(name: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  }
+
+  const allSelected = products.length > 0 && selected.size === products.length;
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(products.map((p) => p.name)));
+  }
+
+  async function bulkAct(to: ProductApprovalStatus) {
+    if (selected.size === 0) return;
+    let reason: string | undefined;
+    if (to === "Rejected") {
+      const entered = window.prompt(t.rejectReasonPrompt, "");
+      if (entered === null) return; // cancelled
+      reason = entered || undefined;
+    }
+    setBulkBusy(true);
+    setError(null);
+    try {
+      const res = await bulkSetProductStatus([...selected], to, reason);
+      if (res.failed.length) setError(t.pBulkFailed);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.vActionError);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!ready || !isOperator) return;
@@ -155,6 +193,51 @@ export default function AdminProductsPage() {
         </div>
       )}
 
+      {/* Bulk actions */}
+      {!loading && products.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleAll}
+            className="inline-flex items-center gap-2 text-sm text-ink-600 transition-colors hover:text-blue-600"
+          >
+            {allSelected ? <CheckSquare className="h-4 w-4 text-blue-600" /> : <Square className="h-4 w-4" />}
+            {t.pSelectAll}
+          </button>
+          {selected.size > 0 && (
+            <>
+              <span className="text-sm text-ink-400">
+                {selected.size} {t.pSelected}
+              </span>
+              <button
+                type="button"
+                onClick={() => bulkAct("Approved")}
+                disabled={bulkBusy}
+                className="btn btn-primary disabled:opacity-50"
+              >
+                {bulkBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {t.pBulkApprove}
+              </button>
+              <button
+                type="button"
+                onClick={() => bulkAct("Rejected")}
+                disabled={bulkBusy}
+                className="btn btn-ghost disabled:opacity-50"
+              >
+                {t.pBulkReject}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="text-sm text-ink-400 transition-colors hover:text-ink"
+              >
+                {t.pClearSelection}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-16">
@@ -177,6 +260,19 @@ export default function AdminProductsPage() {
                 className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => toggle(p.name)}
+                    aria-label={t.pSelectAll}
+                    aria-pressed={selected.has(p.name)}
+                    className="shrink-0 text-ink-400 transition-colors hover:text-blue-600"
+                  >
+                    {selected.has(p.name) ? (
+                      <CheckSquare className="h-5 w-5 text-blue-600" />
+                    ) : (
+                      <Square className="h-5 w-5" />
+                    )}
+                  </button>
                   {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={img} alt={p.title} className="h-14 w-14 shrink-0 rounded-lg object-cover" />

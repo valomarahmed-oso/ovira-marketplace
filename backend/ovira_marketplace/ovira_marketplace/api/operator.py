@@ -174,6 +174,41 @@ def set_product_status(name, status, rejection_reason=None):
     return {"name": product.name, "approval_status": product.approval_status}
 
 
+@frappe.whitelist()
+def bulk_set_product_status(names, status, rejection_reason=None):
+    """Approve / reject many products in one go — the operator's answer to a bulk
+    import. Items are independent: a failure on one is logged and reported, the
+    rest still go through."""
+    _require_operator()
+    if status not in PRODUCT_STATUSES:
+        frappe.throw(_("حالة غير صالحة."))
+    try:
+        ids = frappe.parse_json(names) if isinstance(names, str) else names
+    except (ValueError, TypeError):
+        ids = []
+    ids = [n for n in (ids or []) if n]
+    if not ids:
+        frappe.throw(_("لم يتم تحديد أي منتج."))
+    if len(ids) > 500:
+        frappe.throw(_("الحد الأقصى 500 منتج في المرة الواحدة."))
+
+    updated = 0
+    failed = []
+    for name in ids:
+        try:
+            product = frappe.get_doc("Marketplace Product", name)
+            product.approval_status = status
+            if status == "Rejected" and rejection_reason:
+                product.rejection_reason = rejection_reason
+            product.save(ignore_permissions=True)
+            updated += 1
+        except Exception:
+            frappe.log_error(title="Ovira bulk status change failed")
+            failed.append(name)
+    frappe.db.commit()
+    return {"updated": updated, "failed": failed, "status": status}
+
+
 def _attach_vendor_and_image(rows):
     """Enrich product rows with the vendor's display name + primary image."""
     if not rows:

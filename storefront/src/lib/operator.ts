@@ -162,6 +162,22 @@ export async function setProductStatus(
   return (await res.json()).message;
 }
 
+export async function bulkSetProductStatus(
+  names: string[],
+  status: ProductApprovalStatus,
+  rejectionReason?: string,
+): Promise<{ updated: number; failed: string[]; status: ProductApprovalStatus }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("bulk_set_product_status"), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify({ names: JSON.stringify(names), status, rejection_reason: rejectionReason ?? "" }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تنفيذ العملية."));
+  return (await res.json()).message;
+}
+
 // --- Orders ----------------------------------------------------------------
 
 export type OrderStatus =
