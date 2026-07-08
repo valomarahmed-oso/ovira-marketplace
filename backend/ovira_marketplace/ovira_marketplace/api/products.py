@@ -169,6 +169,7 @@ def get_my_product(name):
                 "option_value": v.option_value,
                 "price": flt(v.price),
                 "stock_qty": flt(v.stock_qty),
+                "image": v.image,
             }
             for v in (doc.get("variants") or [])
         ],
@@ -249,6 +250,7 @@ def _apply_variants(doc, has_variants, option_name, variants):
                 "sku": (r.get("sku") or f"{base}-{frappe.scrub(value)}")[:140],
                 "price": price,
                 "stock_qty": flt(r.get("stock_qty")),
+                "image": (str(r.get("image") or "")).strip() or None,
             },
         )
     if prices:

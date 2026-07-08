@@ -28,7 +28,7 @@ function ProductForm() {
     description: "",
     has_variants: false,
     variant_option_name: "",
-    variants: [] as { option_value: string; price: string; stock: string }[],
+    variants: [] as { option_value: string; price: string; stock: string; image: string }[],
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,14 +73,34 @@ function ProductForm() {
   }
 
   const addVariant = () =>
-    setForm((f) => ({ ...f, variants: [...f.variants, { option_value: "", price: "", stock: "" }] }));
+    setForm((f) => ({
+      ...f,
+      variants: [...f.variants, { option_value: "", price: "", stock: "", image: "" }],
+    }));
   const removeVariant = (i: number) =>
     setForm((f) => ({ ...f, variants: f.variants.filter((_, j) => j !== i) }));
-  const setVariant = (i: number, key: "option_value" | "price" | "stock", value: string) =>
+  const setVariant = (i: number, key: "option_value" | "price" | "stock" | "image", value: string) =>
     setForm((f) => ({
       ...f,
       variants: f.variants.map((v, j) => (j === i ? { ...v, [key]: value } : v)),
     }));
+
+  // Per-variant photo upload (so picking a colour swaps the product image).
+  const [vUploading, setVUploading] = useState<number | null>(null);
+  async function onPickVariantImage(i: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setVUploading(i);
+    setUploadErr(null);
+    try {
+      setVariant(i, "image", await uploadImage(file));
+    } catch (err) {
+      setUploadErr(err instanceof Error ? err.message : "تعذّر رفع صورة المتغيّر.");
+    } finally {
+      setVUploading(null);
+    }
+  }
 
   useEffect(() => {
     getCategories().then((cats) => {
@@ -113,6 +133,7 @@ function ProductForm() {
             option_value: v.option_value ?? "",
             price: v.price != null ? String(v.price) : "",
             stock: v.stock_qty != null ? String(v.stock_qty) : "",
+            image: v.image ?? "",
           })),
         });
       })
@@ -134,6 +155,7 @@ function ProductForm() {
         option_value: v.option_value.trim(),
         price: Number(v.price) || 0,
         stock_qty: Number(v.stock) || 0,
+        image: v.image.trim() || undefined,
       }));
     const variantPrices = variantRows.map((v) => v.price).filter((p) => p > 0);
 
@@ -308,7 +330,8 @@ function ProductForm() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <div className="hidden grid-cols-[1.4fr_1fr_1fr_auto] gap-2 px-1 text-xs text-ink-400 sm:grid">
+                  <div className="hidden grid-cols-[auto_1.4fr_1fr_1fr_auto] gap-2 px-1 text-xs text-ink-400 sm:grid">
+                    <span>صورة</span>
                     <span>القيمة</span>
                     <span>السعر</span>
                     <span>المخزون</span>
@@ -317,8 +340,22 @@ function ProductForm() {
                   {form.variants.map((v, i) => (
                     <div
                       key={i}
-                      className="grid grid-cols-2 items-center gap-2 rounded-xl border border-line p-2 sm:grid-cols-[1.4fr_1fr_1fr_auto]"
+                      className="grid grid-cols-2 items-center gap-2 rounded-xl border border-line p-2 sm:grid-cols-[auto_1.4fr_1fr_1fr_auto]"
                     >
+                      <label
+                        className="relative grid h-10 w-10 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-lg border border-line bg-blue-50 text-ink-400 transition-colors hover:border-blue"
+                        title="صورة المتغيّر"
+                      >
+                        {vUploading === i ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : v.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={v.image} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <ImagePlus className="h-4 w-4" />
+                        )}
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickVariantImage(i, e)} />
+                      </label>
                       <input value={v.option_value} onChange={(e) => setVariant(i, "option_value", e.target.value)} className={field} placeholder="مثال: L" />
                       <input type="number" min="0" value={v.price} onChange={(e) => setVariant(i, "price", e.target.value)} className={field} placeholder="السعر" />
                       <input type="number" min="0" value={v.stock} onChange={(e) => setVariant(i, "stock", e.target.value)} className={field} placeholder="المخزون" />

@@ -45,6 +45,7 @@ export type ProductVariant = {
   sku: string;
   price: number;
   stock_qty: number;
+  image?: string | null;
 };
 
 export type Category = {

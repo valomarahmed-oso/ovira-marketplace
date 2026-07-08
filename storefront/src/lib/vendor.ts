@@ -83,7 +83,7 @@ export type VendorProduct = {
   image?: string;
 };
 
-export type VariantInput = { option_value: string; price: number; stock_qty: number };
+export type VariantInput = { option_value: string; price: number; stock_qty: number; image?: string };
 
 export type ProductInput = {
   name?: string;

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Minus, Plus, ShoppingCart, X, Zap } from "lucide-react";
 import type { Product, ProductVariant } from "@/lib/api";
 import { Countdown } from "@/components/countdown";
 import { OviraBars } from "@/components/ovira-bars";
 import { useCart } from "@/lib/cart-store";
+import { useVariantImage } from "@/lib/variant-image-store";
 import { StockAlertButton } from "@/components/stock-alert-button";
 import { cn, discountPercent, formatPrice } from "@/lib/utils";
 
@@ -17,6 +18,17 @@ export function ProductPurchase({ p }: { p: Product }) {
   const variants = p.variants ?? [];
   const hasVariants = !!p.has_variants && variants.length > 0;
   const [sel, setSel] = useState<ProductVariant | null>(null);
+  const setVariantImage = useVariantImage((s) => s.setImage);
+
+  // Clear any lingering variant image when leaving the product (the store is
+  // global, so the next product must start from its own photos).
+  useEffect(() => () => setVariantImage(null), [setVariantImage]);
+
+  function chooseVariant(v: ProductVariant) {
+    setSel(v);
+    setQty(1);
+    setVariantImage(v.image ?? null);
+  }
 
   // Effective price/stock reflect the chosen variant (if any).
   const price = sel ? sel.price : p.price;
@@ -84,10 +96,7 @@ export function ProductPurchase({ p }: { p: Product }) {
                   key={v.sku}
                   type="button"
                   disabled={vSoldOut}
-                  onClick={() => {
-                    setSel(v);
-                    setQty(1);
-                  }}
+                  onClick={() => chooseVariant(v)}
                   className={cn(
                     "rounded-xl border px-4 py-2 text-sm transition-colors",
                     active ? "border-blue bg-blue-50 text-blue-600" : "border-line text-ink-600 hover:border-blue",

@@ -10,6 +10,7 @@
   "sku",
   "price",
   "stock_qty",
+  "image",
   "item"
  ],
  "fields": [
@@ -42,6 +43,12 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Stock qty"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Data",
+   "label": "Image",
+   "options": "URL"
   },
   {
    "fieldname": "item",

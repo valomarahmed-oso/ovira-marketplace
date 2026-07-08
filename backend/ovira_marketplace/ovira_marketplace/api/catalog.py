@@ -358,6 +358,7 @@ def get_product(slug):
                 "sku": v.get("sku") or v.get("name"),
                 "price": flt(v.get("price")) or flt(doc.get("price")),
                 "stock_qty": flt(v.get("stock_qty")),
+                "image": v.get("image"),
             }
             for v in doc["variants"]
             if v.get("option_value")
