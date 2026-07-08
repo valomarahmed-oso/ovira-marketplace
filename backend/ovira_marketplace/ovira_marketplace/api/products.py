@@ -156,6 +156,7 @@ def get_my_product(name):
         "category": doc.category,
         "condition": doc.condition,
         "currency": doc.currency,
+        "brand": doc.brand,
         "stock_qty": doc.stock_qty,
         "short_description": doc.short_description,
         "description": doc.description,

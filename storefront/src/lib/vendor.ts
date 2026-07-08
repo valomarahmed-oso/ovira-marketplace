@@ -92,9 +92,11 @@ export type ProductInput = {
   category?: string;
   compare_at_price?: number;
   condition?: string;
+  brand?: string;
   stock_qty?: number;
   image?: string;
   images?: string[];
+  short_description?: string;
   description?: string;
   has_variants?: number;
   variant_option_name?: string;
@@ -144,6 +146,7 @@ export type ProductDetail = {
   category?: string | null;
   condition?: "New" | "Used" | "Refurbished" | null;
   currency?: string | null;
+  brand?: string | null;
   stock_qty: number;
   short_description?: string | null;
   description?: string | null;

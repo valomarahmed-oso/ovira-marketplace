@@ -18,11 +18,13 @@ function ProductForm() {
   const [form, setForm] = useState({
     title: "",
     category: "",
+    brand: "",
     price: "",
     compare_at_price: "",
     stock: "",
     condition: "New" as "New" | "Used" | "Refurbished",
     images: [] as string[],
+    short_description: "",
     description: "",
     has_variants: false,
     variant_option_name: "",
@@ -97,11 +99,13 @@ function ProductForm() {
         setForm({
           title: p.title ?? "",
           category: p.category ?? "",
+          brand: p.brand ?? "",
           price: p.price != null ? String(p.price) : "",
           compare_at_price: p.compare_at_price != null ? String(p.compare_at_price) : "",
           stock: p.stock_qty != null ? String(p.stock_qty) : "",
           condition: (p.condition as "New" | "Used" | "Refurbished") ?? "New",
           images: p.images?.length ? p.images : p.image ? [p.image] : [],
+          short_description: p.short_description ?? "",
           description: p.description ?? "",
           has_variants: !!p.has_variants,
           variant_option_name: p.variant_option_name ?? "",
@@ -145,6 +149,8 @@ function ProductForm() {
         name: editId ?? undefined,
         title: form.title,
         category: form.category || undefined,
+        brand: form.brand.trim() || undefined,
+        short_description: form.short_description.trim() || undefined,
         price: form.has_variants
           ? variantPrices.length
             ? Math.min(...variantPrices)
@@ -196,6 +202,16 @@ function ProductForm() {
             <div>
               <label className={label}>اسم المنتج</label>
               <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={field} placeholder="مثال: سماعة بلوتوث لاسلكية" />
+            </div>
+            <div>
+              <label className={label}>وصف مختصر</label>
+              <input
+                value={form.short_description}
+                onChange={(e) => setForm({ ...form, short_description: e.target.value })}
+                className={field}
+                placeholder="سطر واحد يظهر في القائمة (مثال: سماعة لاسلكية بعزل ضوضاء)"
+                maxLength={160}
+              />
             </div>
             <div>
               <label className={label}>الوصف</label>
@@ -334,6 +350,15 @@ function ProductForm() {
                   <option key={c.name} value={c.name}>{c.category_name}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className={label}>العلامة التجارية</label>
+              <input
+                value={form.brand}
+                onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                className={field}
+                placeholder="اختياري — مثال: Samsung"
+              />
             </div>
             <div>
               <label className={label}>الحالة</label>
