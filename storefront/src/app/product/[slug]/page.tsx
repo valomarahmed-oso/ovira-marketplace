@@ -13,6 +13,7 @@ import { SectionHeading } from "@/components/section-heading";
 import { Rating } from "@/components/rating";
 import { TrustBadge } from "@/components/trust-badge";
 import { VendorTrust } from "@/components/vendor-trust";
+import { ShareButton } from "@/components/share-button";
 import { getFrequentlyBoughtTogether, getProduct, getRelatedProducts } from "@/lib/api";
 import { toViewed } from "@/lib/recently-viewed-store";
 import { t } from "@/lib/dict";
@@ -80,6 +81,8 @@ export default async function ProductPage({ params }: Props) {
           {typeof p.rating === "number" && <Rating value={p.rating} count={p.reviews} size={16} />}
 
           {p.short_description && <p className="leading-7 text-ink-600">{p.short_description}</p>}
+
+          <ShareButton title={p.title} />
 
           <ProductPurchase p={p} />
 
