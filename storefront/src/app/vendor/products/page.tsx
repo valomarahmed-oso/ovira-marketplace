@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Loader2, Package, Pencil, Plus, Trash2 } from "lucide-react";
+import { FileUp, Loader2, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   APPROVAL_LABEL,
   APPROVAL_STYLE,
@@ -46,9 +46,14 @@ export default function VendorProductsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-medium text-ink">المنتجات ({products.length})</h1>
-        <Link href="/vendor/products/new" className="btn btn-primary">
-          <Plus className="h-4 w-4" /> أضف منتج
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/vendor/products/import" className="btn btn-ghost">
+            <FileUp className="h-4 w-4" /> استيراد CSV
+          </Link>
+          <Link href="/vendor/products/new" className="btn btn-primary">
+            <Plus className="h-4 w-4" /> أضف منتج
+          </Link>
+        </div>
       </div>
 
       {products.length === 0 ? (
