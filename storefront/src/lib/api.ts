@@ -389,6 +389,56 @@ export async function placeOrder(
   }
 }
 
+export type TrackedOrderItem = {
+  title: string;
+  qty: number;
+  rate: number;
+  amount: number;
+  image?: string | null;
+};
+
+export type TrackedOrder = {
+  name: string;
+  status: string;
+  payment_status: string;
+  payment_method?: string | null;
+  currency?: string;
+  subtotal: number;
+  shipping_amount: number;
+  discount_amount: number;
+  coupon_code?: string | null;
+  wallet_applied?: number;
+  total: number;
+  customer_name?: string;
+  governorate?: string;
+  delivery_confirmed?: number;
+  delivered_on?: string | null;
+  creation: string;
+  item_count: number;
+  items: TrackedOrderItem[];
+};
+
+/** Public order tracking. Proof (token / phone / email) goes in the POST body,
+ *  never the URL, so personal details stay out of query strings and logs. */
+export async function trackOrder(
+  name: string,
+  proof: { token?: string; email?: string; phone?: string },
+): Promise<TrackedOrder | null> {
+  if (!BASE) return null;
+  try {
+    const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.orders.track_order`, {
+      method: "POST",
+      headers: writeHeaders(),
+      body: JSON.stringify({ name, ...proof }),
+      credentials: "include",
+    });
+    if (!res.ok) return null;
+    return (await res.json()).message ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function initiatePayment(
   order: string,
   token: string | undefined,

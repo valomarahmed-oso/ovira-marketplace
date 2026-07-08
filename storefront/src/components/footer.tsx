@@ -31,7 +31,7 @@ export function Footer() {
     {
       title: t.footAccount,
       links: [
-        { label: t.footTrackOrder, href: "/account/orders" },
+        { label: t.footTrackOrder, href: "/track" },
         { label: t.wishlist, href: "/wishlist" },
         { label: t.footReturns, href: "/account/orders" },
         { label: t.footHelp, href: "/account" },

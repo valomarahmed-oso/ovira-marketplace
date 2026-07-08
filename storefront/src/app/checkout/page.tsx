@@ -201,9 +201,14 @@ export default function CheckoutPage() {
     });
     const id = remote?.name ?? "OVR-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 
+    // The order's capability token lets even a guest track it afterwards via a
+    // one-click link on the success page — they have no account to sign into.
+    const tokenQs = remote?.token ? `&token=${encodeURIComponent(remote.token)}` : "";
+    const successUrl = `/checkout/success?order=${id}${tokenQs}`;
+
     // For a real card order, send the shopper to the payment gateway.
     if (remote?.name) {
-      const returnUrl = `${window.location.origin}/checkout/success?order=${id}`;
+      const returnUrl = `${window.location.origin}${successUrl}`;
       const payment = await initiatePayment(remote.name, remote.token, returnUrl);
       if (payment?.redirect_url && payment.method !== "cod" && payment.method !== "manual") {
         clear();
@@ -213,7 +218,7 @@ export default function CheckoutPage() {
     }
 
     clear();
-    router.push(`/checkout/success?order=${id}`);
+    router.push(successUrl);
   }
 
   const field = "h-11 w-full rounded-xl border border-line bg-white px-4 text-sm outline-none focus:border-blue";

@@ -4,6 +4,9 @@ Orders are scoped to the signed-in user: we match the Marketplace Order's email
 to their login, and also any ERPNext Customer their login is a portal user of.
 """
 
+import hmac
+import re
+
 import frappe
 from frappe import _
 from frappe.utils import cint
@@ -80,6 +83,96 @@ def get_order(name):
     data = order.as_dict()
     _attach_item_images(data.get("items") or [])
     return data
+
+
+# Fields safe to hand back to a public tracker — no secrets, no other buyers'
+# details. `access_token`, `email`, `phone`, `customer` are fetched for the
+# ownership check but deliberately NOT included here so they never leak.
+TRACK_FIELDS = [
+    "name",
+    "status",
+    "payment_status",
+    "payment_method",
+    "currency",
+    "subtotal",
+    "shipping_amount",
+    "discount_amount",
+    "coupon_code",
+    "wallet_applied",
+    "total",
+    "customer_name",
+    "governorate",
+    "delivery_confirmed",
+    "delivered_on",
+    "creation",
+]
+
+
+def _norm_phone(value):
+    """Digits only, last 10 — so 01012345678, +201012345678 and 0020-101-234-5678
+    all normalise to the same core number for comparison."""
+    digits = re.sub(r"\D", "", value or "")
+    return digits[-10:] if len(digits) >= 10 else digits
+
+
+@frappe.whitelist(allow_guest=True)
+def track_order(name, token=None, email=None, phone=None):
+    """Public order tracking for guests and signed-in shoppers alike.
+
+    Ownership is proven by ONE of:
+      * the order's access_token (handed to the shopper at checkout / in the
+        confirmation link) — constant-time compared, same as payment.py;
+      * the phone number used at checkout (guests have no email on file);
+      * the email the order resolves to (signed-in buyers);
+      * an active session that already owns the order.
+
+    A single generic error is raised whether the order is missing or the proof
+    is wrong, so the endpoint never reveals whether an order id exists.
+    """
+    name = (name or "").strip()
+    denied = _("We couldn't find an order matching those details.")
+    if not name:
+        frappe.throw(denied, frappe.PermissionError)
+
+    order = frappe.db.get_value(
+        "Marketplace Order",
+        name,
+        TRACK_FIELDS + ["access_token", "email", "phone", "customer"],
+        as_dict=True,
+    )
+    if not order:
+        frappe.throw(denied, frappe.PermissionError)
+
+    ok = False
+    if token and order.access_token and hmac.compare_digest(str(token), str(order.access_token)):
+        ok = True
+    elif email and order.email and email.strip().lower() == order.email.strip().lower():
+        ok = True
+    elif phone and _norm_phone(phone) and _norm_phone(phone) == _norm_phone(order.phone):
+        ok = True
+    else:
+        session_email = _session_email()
+        if session_email and (
+            (order.email and order.email.lower() == session_email.lower())
+            or (order.customer and order.customer in _my_customers(session_email))
+        ):
+            ok = True
+    if not ok:
+        frappe.throw(denied, frappe.PermissionError)
+
+    items = frappe.get_all(
+        "Marketplace Order Item",
+        filters={"parent": name},
+        fields=["marketplace_product", "title", "qty", "rate", "amount"],
+        order_by="idx asc",
+        ignore_permissions=True,
+    )
+    _attach_item_images(items)
+
+    payload = {k: order.get(k) for k in TRACK_FIELDS}
+    payload["item_count"] = sum((it.get("qty") or 0) for it in items)
+    payload["items"] = items
+    return payload
 
 
 # -- helpers ----------------------------------------------------------------

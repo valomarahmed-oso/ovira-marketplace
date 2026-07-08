@@ -4,9 +4,12 @@ import { CheckCircle2, Package, XCircle } from "lucide-react";
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string; status?: string }>;
+  searchParams: Promise<{ order?: string; status?: string; token?: string }>;
 }) {
-  const { order, status } = await searchParams;
+  const { order, status, token } = await searchParams;
+  const trackHref = order
+    ? `/track?order=${encodeURIComponent(order)}${token ? `&token=${encodeURIComponent(token)}` : ""}`
+    : "/track";
 
   if (status === "failed") {
     return (
@@ -39,7 +42,7 @@ export default async function CheckoutSuccessPage({
         </div>
         <p className="text-sm text-ink-600">هنبعتلك تأكيد وتفاصيل التتبّع قريبًا على رقمك.</p>
         <div className="flex justify-center gap-2 pt-2">
-          <Link href="/account/orders" className="btn btn-ghost">
+          <Link href={trackHref} className="btn btn-ghost">
             <Package className="h-4 w-4" /> تتبّع الطلب
           </Link>
           <Link href="/" className="btn btn-primary">
