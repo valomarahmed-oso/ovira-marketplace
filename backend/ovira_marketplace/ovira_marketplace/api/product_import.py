@@ -18,7 +18,10 @@ from ovira_marketplace.api.products import upsert_product
 from ovira_marketplace.permissions import vendor_for_user
 
 # The columns a vendor fills in. Only `title` is required; the rest are optional.
+# An optional `name` column (blank on the create template, filled on an export)
+# turns a row into an update of that existing product.
 IMPORT_COLUMNS = [
+    "name",
     "title",
     "price",
     "stock_qty",
@@ -29,6 +32,8 @@ IMPORT_COLUMNS = [
     "description",
     "image",
 ]
+# Columns emitted when a vendor exports their catalogue to edit and re-upload.
+EXPORT_COLUMNS = ["name", "title", "price", "stock_qty", "category", "brand", "condition"]
 CONDITIONS = {"new": "New", "used": "Used", "refurbished": "Refurbished"}
 MAX_IMPORT_ROWS = 500
 
@@ -47,6 +52,38 @@ def import_template():
     return {"columns": IMPORT_COLUMNS}
 
 
+@frappe.whitelist()
+def export_my_products_csv():
+    """The vendor's own products as CSV text, ready to edit and re-upload — the
+    `name` column drives updates on import. Category is written as its label
+    (which import resolves back to the id)."""
+    vendor = _require_vendor()
+    rows = frappe.get_all(
+        "Marketplace Product",
+        filters={"vendor": vendor},
+        fields=["name", "title", "price", "stock_qty", "category", "brand", "condition"],
+        order_by="modified desc",
+    )
+    labels = {
+        c.name: c.category_name
+        for c in frappe.get_all("Marketplace Category", fields=["name", "category_name"])
+    }
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(EXPORT_COLUMNS)
+    for r in rows:
+        writer.writerow([
+            r.name,
+            r.title or "",
+            r.price or 0,
+            r.stock_qty or 0,
+            labels.get(r.category, r.category or ""),
+            r.brand or "",
+            r.condition or "",
+        ])
+    return {"csv": buf.getvalue(), "count": len(rows)}
+
+
 def _category_index():
     """Map lower(category id) and lower(display name) → category id, so the CSV
     can reference a category by either its name or its human label."""
@@ -61,13 +98,15 @@ def _category_index():
 
 @frappe.whitelist()
 def import_products_csv(csv_text, dry_run=1):
-    """Parse a CSV of products and (unless ``dry_run``) create them for the
-    current vendor. Returns a per-row report so the UI can preview first.
+    """Parse a CSV of products and (unless ``dry_run``) upsert them for the
+    current vendor. A row with a `name` that belongs to the vendor updates that
+    product; a blank/absent name creates a new one. Returns a per-row report so
+    the UI can preview first.
 
     Rows are independent: a bad row is reported and skipped, valid rows still
     import. ``dry_run`` (default) writes nothing.
     """
-    _require_vendor()
+    vendor = _require_vendor()
 
     dry = cint(dry_run)
     text = (csv_text or "").strip()
@@ -82,6 +121,7 @@ def import_products_csv(csv_text, dry_run=1):
     categories = _category_index()
     results = []
     created = 0
+    updated = 0
     errors = 0
 
     def fail(row_no, title, message):
@@ -121,12 +161,25 @@ def import_products_csv(csv_text, dry_run=1):
             fail(i, title, "الحالة يجب أن تكون New أو Used أو Refurbished")
             continue
 
+        # A `name` turns the row into an update — but only of the vendor's own
+        # product, so one seller can never edit another's via a forged id.
+        prod_name = row.get("name", "")
+        if prod_name and frappe.db.get_value("Marketplace Product", prod_name, "vendor") != vendor:
+            fail(i, title, "المنتج غير موجود أو ليس من متجرك")
+            continue
+
         if dry:
-            results.append({"row": i, "title": title, "status": "ok", "message": "جاهز للإضافة"})
+            results.append({
+                "row": i,
+                "title": title,
+                "status": "ok",
+                "message": "جاهز للتحديث" if prod_name else "جاهز للإضافة",
+            })
             continue
 
         try:
             upsert_product(
+                name=prod_name or None,
                 title=title,
                 price=price,
                 category=category,
@@ -137,10 +190,20 @@ def import_products_csv(csv_text, dry_run=1):
                 description=row.get("description") or None,
                 image=row.get("image") or None,
             )
-            created += 1
-            results.append({"row": i, "title": title, "status": "created", "message": ""})
+            if prod_name:
+                updated += 1
+                results.append({"row": i, "title": title, "status": "updated", "message": ""})
+            else:
+                created += 1
+                results.append({"row": i, "title": title, "status": "created", "message": ""})
         except Exception:
             frappe.log_error(title="Ovira bulk import row failed")
-            fail(i, title, "تعذّر إنشاء المنتج")
+            fail(i, title, "تعذّر حفظ المنتج")
 
-    return {"dry_run": bool(dry), "created": created, "errors": errors, "results": results}
+    return {
+        "dry_run": bool(dry),
+        "created": created,
+        "updated": updated,
+        "errors": errors,
+        "results": results,
+    }

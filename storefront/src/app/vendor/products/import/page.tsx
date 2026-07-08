@@ -2,8 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { AlertCircle, ArrowRight, CheckCircle2, Download, FileUp, Loader2, Upload } from "lucide-react";
-import { downloadTemplate, importProductsCsv, type ImportResult } from "@/lib/product-import";
+import { AlertCircle, ArrowRight, CheckCircle2, Download, FileDown, FileUp, Loader2, Upload } from "lucide-react";
+import {
+  downloadTemplate,
+  exportMyProductsCsv,
+  importProductsCsv,
+  type ImportResult,
+} from "@/lib/product-import";
 import { cn } from "@/lib/utils";
 
 export default function ProductImportPage() {
@@ -11,7 +16,20 @@ export default function ProductImportPage() {
   const [csvText, setCsvText] = useState<string>("");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [busy, setBusy] = useState<"check" | "import" | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function onExport() {
+    setExporting(true);
+    setError(null);
+    try {
+      await exportMyProductsCsv();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذّر تصدير المنتجات.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -49,8 +67,8 @@ export default function ProductImportPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-medium text-ink">استيراد منتجات من CSV</h1>
-          <p className="mt-1 text-sm text-ink-400">أضف منتجات كتير مرة واحدة بدل ما تدخّلها واحد واحد.</p>
+          <h1 className="text-2xl font-medium text-ink">استيراد وتحديث المنتجات (CSV)</h1>
+          <p className="mt-1 text-sm text-ink-400">أضف أو عدّل منتجات كتير مرة واحدة بدل ما تدخّلها واحد واحد.</p>
         </div>
         <Link href="/vendor/products" className="btn btn-ghost">
           <ArrowRight className="h-4 w-4" /> رجوع للمنتجات
@@ -59,13 +77,19 @@ export default function ProductImportPage() {
 
       <section className="card space-y-4 p-5">
         <ol className="space-y-2 text-sm text-ink-600">
-          <li>١. نزّل القالب واملأه ببياناتك (العمود <span className="font-medium text-ink">title</span> إجباري).</li>
-          <li>٢. ارفع الملف واضغط «تحقّق» لمراجعة الصفوف قبل الإضافة.</li>
-          <li>٣. لو كله سليم، اضغط «استيراد» — المنتجات هتتضاف بحالة «قيد المراجعة».</li>
+          <li>١. <span className="font-medium text-ink">للإضافة:</span> نزّل القالب واملأه (سيب عمود <span className="font-tech">name</span> فاضي) — العمود <span className="font-medium text-ink">title</span> إجباري.</li>
+          <li>٢. <span className="font-medium text-ink">للتحديث:</span> نزّل «منتجاتي الحالية» وعدّل الأسعار/الكميات — عمود <span className="font-tech">name</span> بيربط كل صف بمنتجك.</li>
+          <li>٣. ارفع الملف واضغط «تحقّق» للمراجعة، وبعدها «استيراد» — أي تعديل بيرجّع المنتج لحالة «قيد المراجعة».</li>
         </ol>
-        <button type="button" onClick={downloadTemplate} className="btn btn-ghost">
-          <Download className="h-4 w-4" /> نزّل قالب CSV
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={downloadTemplate} className="btn btn-ghost">
+            <Download className="h-4 w-4" /> قالب فاضي (إضافة)
+          </button>
+          <button type="button" onClick={onExport} disabled={exporting} className="btn btn-ghost disabled:opacity-40">
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            منتجاتي الحالية (تحديث)
+          </button>
+        </div>
       </section>
 
       <section className="card space-y-4 p-5">
@@ -112,7 +136,7 @@ export default function ProductImportPage() {
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 font-medium text-mint">
-                <CheckCircle2 className="h-4 w-4" /> تمت إضافة {result.created} منتج · {errCount} خطأ
+                <CheckCircle2 className="h-4 w-4" /> {result.created} إضافة · {result.updated} تحديث · {errCount} خطأ
               </span>
             )}
           </div>
@@ -138,7 +162,13 @@ export default function ProductImportPage() {
                           r.status === "error" ? "bg-coral-50 text-coral" : "bg-[#e7f8f1] text-mint",
                         )}
                       >
-                        {r.status === "error" ? r.message || "خطأ" : r.status === "created" ? "تمت الإضافة" : "جاهز"}
+                        {r.status === "error"
+                          ? r.message || "خطأ"
+                          : r.status === "created"
+                            ? "تمت الإضافة"
+                            : r.status === "updated"
+                              ? "تم التحديث"
+                              : r.message || "جاهز"}
                       </span>
                     </td>
                   </tr>

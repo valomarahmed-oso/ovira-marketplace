@@ -5,19 +5,22 @@ const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 export type ImportRowResult = {
   row: number;
   title: string;
-  status: "ok" | "created" | "error";
+  status: "ok" | "created" | "updated" | "error";
   message: string;
 };
 
 export type ImportResult = {
   dry_run: boolean;
   created: number;
+  updated: number;
   errors: number;
   results: ImportRowResult[];
 };
 
-/** The columns of the vendor import CSV (only `title` is required). */
+/** The columns of the vendor import CSV (only `title` is required). A filled
+ *  `name` updates that product; blank creates a new one. */
 export const IMPORT_COLUMNS = [
+  "name",
   "title",
   "price",
   "stock_qty",
@@ -32,6 +35,7 @@ export const IMPORT_COLUMNS = [
 /** Build a starter CSV (header + one sample row) and trigger a download. */
 export function downloadTemplate() {
   const sample = [
+    "", // name: leave blank to create; an exported id here updates instead
     "قميص قطن رجالي",
     "299",
     "25",
@@ -54,6 +58,25 @@ export function downloadTemplate() {
 
 function csvCell(value: string) {
   return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+/** Download the vendor's current catalogue as CSV (edit + re-upload to update). */
+export async function exportMyProductsCsv(): Promise<number> {
+  const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.product_import.export_my_products_csv`, {
+    method: "POST",
+    headers: writeHeaders(),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("تعذّر تصدير المنتجات.");
+  const data = (await res.json()).message as { csv: string; count: number };
+  const blob = new Blob(["﻿" + data.csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ovira-my-products.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  return data.count;
 }
 
 /** Send the raw CSV text to the backend. `dryRun` validates without writing. */
