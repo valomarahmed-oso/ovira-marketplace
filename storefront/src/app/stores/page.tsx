@@ -1,6 +1,5 @@
-import { Store } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { StoreCard } from "@/components/store-card";
+import { StoresBrowser } from "@/components/stores-browser";
 import { getStores } from "@/lib/api";
 import { getDict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
@@ -17,18 +16,7 @@ export default async function StoresPage() {
         <p className="mt-1 text-sm text-ink-400">{t.storesSubtitle}</p>
       </div>
 
-      {stores.length ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {stores.map((s) => (
-            <StoreCard key={s.name} store={s} locale={locale} />
-          ))}
-        </div>
-      ) : (
-        <div className="card flex flex-col items-center gap-2 p-12 text-center text-ink-400">
-          <Store className="h-8 w-8" />
-          <p>{t.storesEmpty}</p>
-        </div>
-      )}
+      <StoresBrowser initialStores={stores} locale={locale} />
     </div>
   );
 }
