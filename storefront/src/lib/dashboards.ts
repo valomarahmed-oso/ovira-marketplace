@@ -36,8 +36,8 @@ export type DashNavItem = {
   icon: LucideIcon;
   /** When true the link is active only on an exact path match. */
   exact?: boolean;
-  /** Show a live count badge: unread chat, or the operator's pending-review queue. */
-  badge?: "messages" | "pending-products";
+  /** Show a live count badge: unread chat, or an operator pending-review queue. */
+  badge?: "messages" | "pending-products" | "pending-vendors";
 };
 
 export type DashboardDef = {
@@ -63,7 +63,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
     nav: [
       { href: "/admin", key: "adminNavSettings", icon: Settings, exact: true },
       { href: "/admin/analytics", key: "adminNavAnalytics", icon: BarChart3 },
-      { href: "/admin/vendors", key: "adminNavVendors", icon: Store },
+      { href: "/admin/vendors", key: "adminNavVendors", icon: Store, badge: "pending-vendors" },
       { href: "/admin/products", key: "adminNavProducts", icon: Package, badge: "pending-products" },
       { href: "/admin/categories", key: "adminNavCategories", icon: Layers },
       { href: "/admin/orders", key: "adminNavOrders", icon: ClipboardList },

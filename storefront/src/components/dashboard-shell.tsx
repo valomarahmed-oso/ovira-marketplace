@@ -8,7 +8,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { useAuth } from "@/lib/auth-store";
 import { dashboardsFor, type DashboardDef, type DashNavItem } from "@/lib/dashboards";
 import { getUnreadTotal } from "@/lib/messaging-api";
-import { productStatusCounts } from "@/lib/operator";
+import { productStatusCounts, vendorStatusCounts } from "@/lib/operator";
 import { cn } from "@/lib/utils";
 
 /**
@@ -43,6 +43,15 @@ export function DashboardShell({
       .then((c) => setPending(c.Pending ?? 0))
       .catch(() => setPending(0));
   }, [hasPendingBadge, pathname]);
+
+  const [pendingVendors, setPendingVendors] = useState(0);
+  const hasPendingVendorBadge = def.nav.some((i) => i.badge === "pending-vendors");
+  useEffect(() => {
+    if (!hasPendingVendorBadge) return;
+    vendorStatusCounts()
+      .then((c) => setPendingVendors(c.Pending ?? 0))
+      .catch(() => setPendingVendors(0));
+  }, [hasPendingVendorBadge, pathname]);
 
   const isActive = (item: DashNavItem) =>
     item.exact
@@ -100,6 +109,16 @@ export function DashboardShell({
                       )}
                     >
                       {pending}
+                    </span>
+                  )}
+                  {item.badge === "pending-vendors" && pendingVendors > 0 && (
+                    <span
+                      className={cn(
+                        "grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[10px] font-medium",
+                        active ? "bg-white text-blue" : "bg-gold text-white",
+                      )}
+                    >
+                      {pendingVendors}
                     </span>
                   )}
                 </Link>
