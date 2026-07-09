@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, Loader2, ShieldCheck, Store } from "lucide-r
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import { WhatsAppConfigCard } from "@/components/whatsapp-config-card";
+import { OperatorStats } from "@/components/operator-stats";
 import {
   getAdminSettings,
   getProductOptions,
@@ -91,6 +92,8 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
+      <OperatorStats />
+
       {s.email_configured === false && (
         <div className="flex items-start gap-2 rounded-xl bg-[#fdf2dd] px-4 py-3 text-sm text-[#854f0b]">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
