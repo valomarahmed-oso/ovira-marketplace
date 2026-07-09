@@ -118,6 +118,10 @@ export function ProductPurchase({ p }: { p: Product }) {
           <span className="inline-flex items-center gap-1 text-coral">
             <X className="h-4 w-4" /> غير متوفر حاليًا
           </span>
+        ) : stock <= 5 ? (
+          <span className="inline-flex items-center gap-1 font-medium text-coral">
+            <Check className="h-4 w-4" /> باقي {stock} قطع بس — اطلب دلوقتي!
+          </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-mint">
             <Check className="h-4 w-4" /> متوفر — {stock} قطعة
