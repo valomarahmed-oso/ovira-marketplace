@@ -85,6 +85,39 @@ def set_vendor_status(name, status):
 
 
 @frappe.whitelist()
+def bulk_set_vendor_status(names, status):
+    """Approve / suspend / reactivate many vendors at once. Items are
+    independent: a failure is logged + returned, the rest proceed. Activating a
+    vendor still fires its ``on_update`` provisioning per item."""
+    _require_operator()
+    if status not in VENDOR_STATUSES:
+        frappe.throw(_("حالة غير صالحة."))
+    try:
+        ids = frappe.parse_json(names) if isinstance(names, str) else names
+    except (ValueError, TypeError):
+        ids = []
+    ids = [n for n in (ids or []) if n]
+    if not ids:
+        frappe.throw(_("لم يتم تحديد أي بائع."))
+    if len(ids) > 500:
+        frappe.throw(_("الحد الأقصى 500 بائع في المرة الواحدة."))
+
+    updated = 0
+    failed = []
+    for name in ids:
+        try:
+            vendor = frappe.get_doc("Marketplace Vendor", name)
+            vendor.status = status
+            vendor.save(ignore_permissions=True)
+            updated += 1
+        except Exception:
+            frappe.log_error(title="Ovira bulk vendor status failed")
+            failed.append(name)
+    frappe.db.commit()
+    return {"updated": updated, "failed": failed, "status": status}
+
+
+@frappe.whitelist()
 def set_vendor_commission(name, commission_rate=None):
     """Vendor-specific commission override. Empty/0 falls back to the default."""
     _require_operator()

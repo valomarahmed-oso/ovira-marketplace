@@ -87,6 +87,21 @@ export async function setVendorStatus(
   return (await res.json()).message;
 }
 
+export async function bulkSetVendorStatus(
+  names: string[],
+  status: VendorStatus,
+): Promise<{ updated: number; failed: string[]; status: VendorStatus }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("bulk_set_vendor_status"), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify({ names: JSON.stringify(names), status }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تنفيذ العملية."));
+  return (await res.json()).message;
+}
+
 // --- Products (moderation) -------------------------------------------------
 
 export type ProductApprovalStatus = "Pending" | "Approved" | "Rejected" | "Draft";

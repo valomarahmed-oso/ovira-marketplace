@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Loader2, Search, Store } from "lucide-react";
+import { AlertCircle, CheckSquare, Loader2, Search, Square, Store } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import { TrustBadge } from "@/components/trust-badge";
 import {
+  bulkSetVendorStatus,
   listVendors,
   setVendorCommission,
   setVendorStatus,
@@ -38,6 +39,8 @@ export default function AdminVendorsPage() {
   const [loading, setLoading] = useState(true);
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Debounce the search box.
   useEffect(() => {
@@ -47,11 +50,40 @@ export default function AdminVendorsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setSelected(new Set()); // a fresh query invalidates the old selection
     const [v, c] = await Promise.all([listVendors({ status, search }), vendorStatusCounts()]);
     setVendors(v);
     setCounts(c);
     setLoading(false);
   }, [status, search]);
+
+  function toggle(name: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  }
+
+  const allSelected = vendors.length > 0 && selected.size === vendors.length;
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(vendors.map((v) => v.name)));
+  }
+
+  async function bulkAct(to: VendorStatus) {
+    if (selected.size === 0) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      const res = await bulkSetVendorStatus([...selected], to);
+      if (res.failed.length) setError(t.pBulkFailed);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.vActionError);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!ready || !isOperator) return;
@@ -177,6 +209,51 @@ export default function AdminVendorsPage() {
         </div>
       )}
 
+      {/* Bulk actions */}
+      {!loading && vendors.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleAll}
+            className="inline-flex items-center gap-2 text-sm text-ink-600 transition-colors hover:text-blue-600"
+          >
+            {allSelected ? <CheckSquare className="h-4 w-4 text-blue-600" /> : <Square className="h-4 w-4" />}
+            {t.pSelectAll}
+          </button>
+          {selected.size > 0 && (
+            <>
+              <span className="text-sm text-ink-400">
+                {selected.size} {t.pSelected}
+              </span>
+              <button
+                type="button"
+                onClick={() => bulkAct("Active")}
+                disabled={bulkBusy}
+                className="btn btn-primary disabled:opacity-50"
+              >
+                {bulkBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {t.vBulkActivate}
+              </button>
+              <button
+                type="button"
+                onClick={() => bulkAct("Suspended")}
+                disabled={bulkBusy}
+                className="btn btn-ghost disabled:opacity-50"
+              >
+                {t.vBulkSuspend}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="text-sm text-ink-400 transition-colors hover:text-ink"
+              >
+                {t.pClearSelection}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-16">
@@ -197,6 +274,20 @@ export default function AdminVendorsPage() {
                 key={v.name}
                 className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
+                <div className="flex min-w-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => toggle(v.name)}
+                  aria-label={t.pSelectAll}
+                  aria-pressed={selected.has(v.name)}
+                  className="shrink-0 text-ink-400 transition-colors hover:text-blue-600"
+                >
+                  {selected.has(v.name) ? (
+                    <CheckSquare className="h-5 w-5 text-blue-600" />
+                  ) : (
+                    <Square className="h-5 w-5" />
+                  )}
+                </button>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="truncate font-medium text-ink">{v.vendor_name}</span>
@@ -244,6 +335,7 @@ export default function AdminVendorsPage() {
                       </button>
                     )}
                   </div>
+                </div>
                 </div>
 
                 <div className="flex shrink-0 gap-2">
