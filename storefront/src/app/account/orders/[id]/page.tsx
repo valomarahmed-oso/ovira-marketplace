@@ -4,13 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Check, Loader2, MapPin, Package } from "lucide-react";
+import { Check, Loader2, MapPin, Package, XCircle } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { OviraBars } from "@/components/ovira-bars";
 import { ShipmentTracking } from "@/components/shipment-tracking";
 import { OrderReturn } from "@/components/order-return";
 import { OrderContact } from "@/components/order-contact";
-import { getOrder, ORDER_STEPS, type BuyerOrder } from "@/lib/orders-api";
+import { cancelOrder, getOrder, ORDER_STEPS, type BuyerOrder } from "@/lib/orders-api";
 import { cn, formatPrice } from "@/lib/utils";
 
 function formatDate(iso: string) {
@@ -30,12 +30,33 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<BuyerOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     getOrder(id)
       .then(setOrder)
       .finally(() => setLoading(false));
   }, [id]);
+
+  const canCancel =
+    !!order &&
+    order.payment_status !== "Paid" &&
+    ["Pending Payment", "Paid", "Processing"].includes(order.status);
+
+  async function onCancel() {
+    if (!order || !window.confirm("متأكد إنك عايز تلغي الطلب ده؟")) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      await cancelOrder(order.name);
+      setOrder(await getOrder(id));
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : "تعذّر إلغاء الطلب.");
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -73,8 +94,22 @@ export default function OrderDetailPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-tech text-2xl font-medium text-ink">{order.name}</h1>
-        <span className="text-sm text-ink-400">{formatDate(order.creation)}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-ink-400">{formatDate(order.creation)}</span>
+          {canCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={cancelling}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-sm text-coral transition-colors hover:border-coral hover:bg-coral-50 disabled:opacity-50"
+            >
+              {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+              إلغاء الطلب
+            </button>
+          )}
+        </div>
       </div>
+      {cancelError && <p className="text-sm text-coral">{cancelError}</p>}
 
       {order.status !== "Cancelled" && (
         <div className="card p-5">

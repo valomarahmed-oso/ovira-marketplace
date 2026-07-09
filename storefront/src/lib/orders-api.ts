@@ -1,3 +1,5 @@
+import { writeHeaders } from "@/lib/frappe-client";
+
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
 export type BuyerOrderStatus =
@@ -95,4 +97,27 @@ export async function getOrder(name: string): Promise<BuyerOrder | null> {
   } catch {
     return null;
   }
+}
+
+/** Cancel an unshipped, unpaid order. Throws with the backend reason on refusal. */
+export async function cancelOrder(name: string): Promise<{ status: BuyerOrderStatus }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.orders.cancel_order`, {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify({ name }),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    let msg = "تعذّر إلغاء الطلب.";
+    try {
+      const data = await res.json();
+      const raw = data?._server_messages && JSON.parse(data._server_messages)[0];
+      if (raw) msg = JSON.parse(raw).message ?? msg;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
+  }
+  return (await res.json()).message;
 }

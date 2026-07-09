@@ -175,6 +175,30 @@ def track_order(name=None, token=None, email=None, phone=None):
     return payload
 
 
+# Statuses a buyer may still cancel from — anything before it ships.
+CANCELLABLE_STATUSES = ("Pending Payment", "Paid", "Processing")
+
+
+@frappe.whitelist()
+def cancel_order(name):
+    """Let a buyer cancel their own order while it hasn't shipped and isn't paid.
+    A paid order goes through the returns/refund flow instead."""
+    email = _session_email()
+    if not email:
+        frappe.throw(_("Please sign in to manage your orders."), frappe.PermissionError)
+    order = frappe.get_doc("Marketplace Order", name)
+    if order.email != email and order.customer not in _my_customers(email):
+        frappe.throw(_("This order isn't yours."), frappe.PermissionError)
+    if order.payment_status == "Paid":
+        frappe.throw(_("الطلب مدفوع — استخدم الإرجاع بدل الإلغاء."))
+    if order.status not in CANCELLABLE_STATUSES:
+        frappe.throw(_("لا يمكن إلغاء هذا الطلب في حالته الحالية."))
+    order.status = "Cancelled"
+    order.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": order.name, "status": order.status}
+
+
 # -- helpers ----------------------------------------------------------------
 
 
