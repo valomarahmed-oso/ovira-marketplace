@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, MessageCircle, ShoppingBag, Truck } from "lucide-react";
-import { getMyOrders, getMyStore, type VendorOrder } from "@/lib/vendor";
+import { FileDown, Loader2, MessageCircle, ShoppingBag, Truck } from "lucide-react";
+import { exportMyOrdersCsv, getMyOrders, getMyStore, type VendorOrder } from "@/lib/vendor";
 import { getVendorShipmentStatuses, SHIPMENT_STATUS_LABEL } from "@/lib/shipments-api";
 import { getVendorThreads } from "@/lib/messaging-api";
 import { OrderChat } from "@/components/order-chat";
@@ -39,6 +39,18 @@ export default function VendorOrdersPage() {
   const [vendorCode, setVendorCode] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  async function onExport() {
+    setExporting(true);
+    try {
+      await exportMyOrdersCsv();
+    } catch {
+      /* best-effort download */
+    } finally {
+      setExporting(false);
+    }
+  }
 
   useEffect(() => {
     getMyOrders()
@@ -63,7 +75,15 @@ export default function VendorOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-medium text-ink">الطلبات ({orders.length})</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-medium text-ink">الطلبات ({orders.length})</h1>
+        {orders.length > 0 && (
+          <button type="button" onClick={onExport} disabled={exporting} className="btn btn-ghost disabled:opacity-40">
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            تصدير CSV
+          </button>
+        )}
+      </div>
 
       {orders.length === 0 ? (
         <div className="card space-y-4 p-10 text-center">

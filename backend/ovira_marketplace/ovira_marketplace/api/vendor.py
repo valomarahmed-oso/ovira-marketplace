@@ -219,6 +219,33 @@ def my_orders(limit=100):
     return result[: cint(limit) or 100]
 
 
+@frappe.whitelist()
+def export_my_orders_csv():
+    """The vendor's order slices as CSV text — download, open in a spreadsheet,
+    reconcile. Reuses ``my_orders`` so a vendor only ever sees their own share."""
+    import csv
+    import io
+
+    vendor = _my_vendor()
+    if not vendor:
+        frappe.throw(_("Only registered vendors can export orders."), frappe.PermissionError)
+    rows = my_orders(limit=100000)
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["order", "date", "customer", "status", "items", "vendor_total", "currency"])
+    for r in rows:
+        writer.writerow([
+            r["name"],
+            (r.get("creation") or "")[:10] if isinstance(r.get("creation"), str) else str(r.get("creation") or "")[:10],
+            r.get("customer_name") or "",
+            r.get("status") or "",
+            r.get("item_count") or 0,
+            r.get("vendor_total") or 0,
+            r.get("currency") or "",
+        ])
+    return {"csv": buf.getvalue(), "count": len(rows)}
+
+
 def _empty_analytics(days):
     return {
         "currency": get_settings().default_currency,

@@ -185,6 +185,25 @@ export function getMyOrders() {
   return getList<VendorOrder>("ovira_marketplace.api.vendor.my_orders");
 }
 
+/** Download the vendor's own order slices as CSV (open in a spreadsheet). */
+export async function exportMyOrdersCsv(): Promise<number> {
+  const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.vendor.export_my_orders_csv`, {
+    method: "POST",
+    headers: writeHeaders(),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("تعذّر تصدير الطلبات.");
+  const data = (await res.json()).message as { csv: string; count: number };
+  const blob = new Blob(["﻿" + data.csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ovira-my-orders.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  return data.count;
+}
+
 export type VendorAnalytics = {
   currency: string;
   products: number;
