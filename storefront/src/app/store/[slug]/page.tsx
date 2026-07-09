@@ -1,6 +1,6 @@
 import { Package, ShoppingBag, Store } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { ProductGrid } from "@/components/product-grid";
+import { StoreProducts } from "@/components/store-products";
 import { Rating } from "@/components/rating";
 import { TrustBadge } from "@/components/trust-badge";
 import { getProducts, getVendorStore } from "@/lib/api";
@@ -98,12 +98,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
         </div>
       )}
 
-      <h2 className="text-lg font-medium text-ink">{t.storeProductsHeading}</h2>
-      {products.length ? (
-        <ProductGrid products={products} />
-      ) : (
-        <div className="card p-10 text-center text-ink-400">{t.storeNoProducts}</div>
-      )}
+      <StoreProducts initialProducts={products} vendor={store.name} locale={locale} />
     </div>
   );
 }
