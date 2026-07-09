@@ -14,6 +14,7 @@ import { Rating } from "@/components/rating";
 import { TrustBadge } from "@/components/trust-badge";
 import { VendorTrust } from "@/components/vendor-trust";
 import { ShareButton } from "@/components/share-button";
+import { DeliveryEstimate } from "@/components/delivery-estimate";
 import { getFrequentlyBoughtTogether, getProduct, getRelatedProducts } from "@/lib/api";
 import { toViewed } from "@/lib/recently-viewed-store";
 import { t } from "@/lib/dict";
@@ -85,6 +86,8 @@ export default async function ProductPage({ params }: Props) {
           <ShareButton title={p.title} />
 
           <ProductPurchase p={p} />
+
+          <DeliveryEstimate price={p.price} currency={p.currency} />
 
           <VendorTrust vendor={p.vendor} />
 
