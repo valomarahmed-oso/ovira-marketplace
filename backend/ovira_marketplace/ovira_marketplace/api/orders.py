@@ -199,6 +199,29 @@ def cancel_order(name):
     return {"name": order.name, "status": order.status}
 
 
+@frappe.whitelist()
+def reorder(name):
+    """Return a buyer's past-order items that are still buyable, as {slug, qty},
+    so the storefront can re-add them to the cart in one click."""
+    email = _session_email()
+    if not email:
+        frappe.throw(_("Please sign in to manage your orders."), frappe.PermissionError)
+    order = frappe.get_doc("Marketplace Order", name)
+    if order.email != email and order.customer not in _my_customers(email):
+        frappe.throw(_("This order isn't yours."), frappe.PermissionError)
+    out = []
+    for it in order.items:
+        pid = it.get("marketplace_product")
+        if not pid:
+            continue
+        p = frappe.db.get_value(
+            "Marketplace Product", pid, ["slug", "published", "approval_status"], as_dict=True
+        )
+        if p and p.slug and p.published and p.approval_status == "Approved":
+            out.append({"slug": p.slug, "qty": it.qty or 1})
+    return out
+
+
 # -- helpers ----------------------------------------------------------------
 
 

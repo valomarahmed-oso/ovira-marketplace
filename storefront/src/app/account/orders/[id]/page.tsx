@@ -2,15 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Check, Loader2, MapPin, Package, XCircle } from "lucide-react";
+import { Check, Loader2, MapPin, Package, RefreshCw, XCircle } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { OviraBars } from "@/components/ovira-bars";
 import { ShipmentTracking } from "@/components/shipment-tracking";
 import { OrderReturn } from "@/components/order-return";
 import { OrderContact } from "@/components/order-contact";
-import { cancelOrder, getOrder, ORDER_STEPS, type BuyerOrder } from "@/lib/orders-api";
+import { cancelOrder, getOrder, ORDER_STEPS, reorderItems, type BuyerOrder } from "@/lib/orders-api";
+import { getProduct } from "@/lib/api";
+import { useCart } from "@/lib/cart-store";
 import { cn, formatPrice } from "@/lib/utils";
 
 function formatDate(iso: string) {
@@ -32,6 +34,28 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const router = useRouter();
+  const addToCart = useCart((s) => s.add);
+
+  async function onReorder() {
+    if (!order) return;
+    setReordering(true);
+    try {
+      const items = await reorderItems(order.name);
+      const fetched = await Promise.all(items.map((i) => getProduct(i.slug).then((p) => ({ p, qty: i.qty }))));
+      let added = false;
+      for (const { p, qty } of fetched) {
+        if (p && !p.has_variants) {
+          addToCart(p, qty);
+          added = true;
+        }
+      }
+      if (added) router.push("/cart");
+    } finally {
+      setReordering(false);
+    }
+  }
 
   useEffect(() => {
     getOrder(id)
@@ -96,6 +120,15 @@ export default function OrderDetailPage() {
         <h1 className="font-tech text-2xl font-medium text-ink">{order.name}</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-ink-400">{formatDate(order.creation)}</span>
+          <button
+            type="button"
+            onClick={onReorder}
+            disabled={reordering}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-sm text-ink-600 transition-colors hover:border-blue hover:text-blue-600 disabled:opacity-50"
+          >
+            {reordering ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            أعد الطلب
+          </button>
           {canCancel && (
             <button
               type="button"

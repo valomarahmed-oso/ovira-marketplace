@@ -99,6 +99,23 @@ export async function getOrder(name: string): Promise<BuyerOrder | null> {
   }
 }
 
+/** Past-order items still buyable, as {slug, qty}, for re-adding to the cart. */
+export async function reorderItems(name: string): Promise<{ slug: string; qty: number }[]> {
+  if (!BASE) return [];
+  try {
+    const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.orders.reorder`, {
+      method: "POST",
+      headers: writeHeaders(),
+      body: JSON.stringify({ name }),
+      credentials: "include",
+    });
+    if (!res.ok) return [];
+    return ((await res.json()).message ?? []) as { slug: string; qty: number }[];
+  } catch {
+    return [];
+  }
+}
+
 /** Cancel an unshipped, unpaid order. Throws with the backend reason on refusal. */
 export async function cancelOrder(name: string): Promise<{ status: BuyerOrderStatus }> {
   if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
