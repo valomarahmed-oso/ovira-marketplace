@@ -19,6 +19,7 @@ export function ProductFilters({
   const { t } = useI18n();
   const sorts = [
     { value: "latest", label: t.sortLatest },
+    { value: "rating", label: t.sortRating },
     { value: "price_asc", label: t.sortPriceAsc },
     { value: "price_desc", label: t.sortPriceDesc },
   ];

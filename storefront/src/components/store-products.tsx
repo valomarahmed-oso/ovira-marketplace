@@ -19,7 +19,7 @@ export function StoreProducts({
 }) {
   const t = getDict(locale);
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<"latest" | "price_asc" | "price_desc">("latest");
+  const [sort, setSort] = useState<"latest" | "rating" | "price_asc" | "price_desc">("latest");
   const [products, setProducts] = useState(initialProducts);
   const [loading, setLoading] = useState(false);
   const first = useRef(true);
@@ -72,6 +72,7 @@ export function StoreProducts({
             className="h-11 rounded-xl border border-line bg-white px-3 text-sm outline-none focus:border-blue"
           >
             <option value="latest">{t.sortLatest}</option>
+            <option value="rating">{t.sortRating}</option>
             <option value="price_asc">{t.sortPriceAsc}</option>
             <option value="price_desc">{t.sortPriceDesc}</option>
           </select>

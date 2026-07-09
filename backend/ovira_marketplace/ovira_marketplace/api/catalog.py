@@ -22,6 +22,7 @@ SORT_MAP = {
     "price_asc": "price asc",
     "price_desc": "price desc",
     "latest": "creation desc",
+    "rating": "rating desc, review_count desc",
 }
 
 # Search ordering, aliased to the product table so it stays unambiguous once the
@@ -30,6 +31,7 @@ SEARCH_SORT = {
     "price_asc": "p.price ASC",
     "price_desc": "p.price DESC",
     "latest": "p.creation DESC",
+    "rating": "p.rating DESC, p.review_count DESC",
 }
 
 # Joined so search can match a product by its category or vendor display name,
