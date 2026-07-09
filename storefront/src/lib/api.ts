@@ -82,6 +82,7 @@ export type ProductQuery = {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  minRating?: number;
   sort?: string;
   limit?: number;
 };
@@ -97,6 +98,7 @@ export async function getProducts(params: ProductQuery = {}): Promise<Product[]>
   if (params.minPrice != null) qs.min_price = String(params.minPrice);
   if (params.maxPrice != null) qs.max_price = String(params.maxPrice);
   if (params.inStock) qs.in_stock = "1";
+  if (params.minRating != null) qs.min_rating = String(params.minRating);
   if (params.sort) qs.sort = params.sort;
 
   const live = await callMethod<Product[]>("ovira_marketplace.api.catalog.list_products", qs);
@@ -134,6 +136,7 @@ export function searchParamsToQuery(
     minPrice: get("min") ? Number(get("min")) : undefined,
     maxPrice: get("max") ? Number(get("max")) : undefined,
     inStock: get("stock") === "1",
+    minRating: get("rating") ? Number(get("rating")) : undefined,
     sort: get("sort") || undefined,
   };
 }

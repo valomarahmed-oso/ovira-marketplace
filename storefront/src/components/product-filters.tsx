@@ -34,9 +34,10 @@ export function ProductFilters({
   const [min, setMin] = useState(params.get("min") ?? "");
   const [max, setMax] = useState(params.get("max") ?? "");
   const [inStock, setInStock] = useState(params.get("stock") === "1");
+  const [rating, setRating] = useState(params.get("rating") ?? "");
 
   const sort = params.get("sort") ?? "latest";
-  const hasFilters = brands.length > 0 || min !== "" || max !== "" || inStock;
+  const hasFilters = brands.length > 0 || min !== "" || max !== "" || inStock || rating !== "";
 
   function push(next: URLSearchParams) {
     const qs = next.toString();
@@ -49,6 +50,7 @@ export function ProductFilters({
     if (min) next.set("min", min);
     if (max) next.set("max", max);
     if (inStock) next.set("stock", "1");
+    if (rating) next.set("rating", rating);
     const s = overrides?.sort ?? sort;
     if (s && s !== "latest") next.set("sort", s);
     push(next);
@@ -59,6 +61,7 @@ export function ProductFilters({
     setMin("");
     setMax("");
     setInStock(false);
+    setRating("");
     const next = new URLSearchParams();
     if (sort && sort !== "latest") next.set("sort", sort);
     push(next);
@@ -128,6 +131,28 @@ export function ProductFilters({
           <input type="checkbox" checked={inStock} onChange={(e) => setInStock(e.target.checked)} className="accent-blue" />
           {t.inStockOnly}
         </label>
+
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-ink">{t.ratingLabel}</div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: "", label: t.ratingAny },
+              { value: "4", label: t.rating4up },
+              { value: "3", label: t.rating3up },
+            ].map((o) => (
+              <button
+                key={o.value || "any"}
+                type="button"
+                onClick={() => setRating(o.value)}
+                className={`rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+                  rating === o.value ? "border-blue bg-blue-50 text-blue-600" : "border-line text-ink-600 hover:border-blue"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <button type="button" onClick={() => apply()} disabled={pending} className="btn btn-primary w-full text-sm disabled:opacity-60">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} {t.apply}

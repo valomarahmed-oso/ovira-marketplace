@@ -174,6 +174,7 @@ def list_products(
     sort=None,
     limit=24,
     start=0,
+    min_rating=None,
 ):
     """Public, faceted catalog listing — approved, published products only.
 
@@ -191,7 +192,9 @@ def list_products(
             category, vendor, brand, min_price, max_price, in_stock,
         )
     else:
-        filters = _catalog_filters(category, vendor, brand, min_price, max_price, in_stock)
+        filters = _catalog_filters(
+            category, vendor, brand, min_price, max_price, in_stock, min_rating
+        )
         products = frappe.get_all(
             "Marketplace Product",
             filters=filters,
@@ -239,9 +242,12 @@ def catalog_facets(category=None, search=None):
 
 
 def _catalog_filters(
-    category=None, vendor=None, brand=None, min_price=None, max_price=None, in_stock=None
+    category=None, vendor=None, brand=None, min_price=None, max_price=None, in_stock=None,
+    min_rating=None,
 ):
     filters = [["approval_status", "=", "Approved"], ["published", "=", 1]]
+    if min_rating not in (None, ""):
+        filters.append(["rating", ">=", flt(min_rating)])
     if category:
         # Accept either a category slug (storefront URLs) or a docname.
         docname = frappe.db.get_value("Marketplace Category", {"slug": category}, "name")
