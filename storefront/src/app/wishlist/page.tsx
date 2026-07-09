@@ -1,14 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { useState } from "react";
+import { Check, Heart, ShoppingCart } from "lucide-react";
 import { ProductGrid } from "@/components/product-grid";
 import { useWishlist } from "@/lib/wishlist-store";
+import { useCart } from "@/lib/cart-store";
 import { useHydrated } from "@/lib/use-hydrated";
 
 export default function WishlistPage() {
   const items = useWishlist((s) => s.items);
+  const add = useCart((s) => s.add);
   const hydrated = useHydrated();
+  const [added, setAdded] = useState(false);
+
+  // One-click adds only make sense for in-stock items that don't need a variant
+  // choice — variant products still route through the product page.
+  const addable = items.filter((p) => !p.has_variants && (p.stock_qty ?? 0) > 0);
+
+  function addAll() {
+    addable.forEach((p) => add(p, 1));
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  }
 
   if (!hydrated) {
     return (
@@ -35,7 +49,15 @@ export default function WishlistPage() {
 
   return (
     <div className="container-ovira space-y-6 py-6">
-      <h1 className="text-2xl font-medium text-ink">المفضلة ({items.length})</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-medium text-ink">المفضلة ({items.length})</h1>
+        {addable.length > 0 && (
+          <button type="button" onClick={addAll} className="btn btn-primary">
+            {added ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+            {added ? "تمت الإضافة للسلة" : `أضف الكل للسلة (${addable.length})`}
+          </button>
+        )}
+      </div>
       <ProductGrid products={items} />
     </div>
   );
