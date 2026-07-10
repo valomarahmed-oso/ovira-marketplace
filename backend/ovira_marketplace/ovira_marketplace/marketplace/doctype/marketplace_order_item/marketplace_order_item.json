@@ -7,6 +7,7 @@
  "field_order": [
   "marketplace_product",
   "title",
+  "variant_sku",
   "vendor",
   "qty",
   "rate",
@@ -27,6 +28,12 @@
    "fieldname": "title",
    "fieldtype": "Data",
    "label": "Title"
+  },
+  {
+   "fieldname": "variant_sku",
+   "fieldtype": "Data",
+   "label": "Variant SKU",
+   "read_only": 1
   },
   {
    "columns": 2,

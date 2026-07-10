@@ -32,6 +32,23 @@ class MarketplaceOrder(Document):
         self._notify_status_change()
         self._maybe_issue_delivery_otp()
         self._maybe_award_loyalty()
+        self._maybe_restock_on_cancel()
+
+    def _maybe_restock_on_cancel(self):
+        """When an order becomes Cancelled, return its quantities to marketplace
+        stock (the mirror of the reservation made at checkout). Fires once, only
+        on the transition into Cancelled, so it can't double-restock."""
+        before = self.get_doc_before_save()
+        if not before or before.status == self.status:
+            return
+        if self.status != "Cancelled":
+            return
+        try:
+            from ovira_marketplace.api.checkout import restock_order
+
+            restock_order(self)
+        except Exception:
+            frappe.log_error(title="Ovira: restock on cancel failed")
 
     def _maybe_award_loyalty(self):
         """When an order reaches Completed, award loyalty points to the buyer

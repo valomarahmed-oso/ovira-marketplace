@@ -81,6 +81,7 @@ def place_order(
         title = product.title
         available = int(flt(product.stock_qty))
         gate_stock = bool(product.track_inventory)
+        variant_sku = None
 
         if product.has_variants:
             variant = _resolve_variant(product.name, line.get("variant"))
@@ -90,6 +91,7 @@ def place_order(
             rate = flt(variant.price) or flt(product.price)
             title = f"{product.title} — {variant.option_value}"
             available = int(flt(variant.stock_qty))
+            variant_sku = variant.sku
             gate_stock = True  # variant stock is explicit — always enforce it
 
         # A live flash deal replaces the rate server-side (single-price products
@@ -119,6 +121,7 @@ def place_order(
             {
                 "marketplace_product": product.name,
                 "title": title,
+                "variant_sku": variant_sku,
                 "vendor": product.vendor,
                 "qty": qty,
                 "rate": rate,
@@ -163,6 +166,10 @@ def place_order(
     order.total = subtotal + order.shipping_amount - discount - wallet_applied
 
     order.insert(ignore_permissions=True)
+    # Draw the ordered quantities down from the marketplace stock so the numbers
+    # shoppers see reflect what's left. Restored if the order is cancelled (see
+    # MarketplaceOrder._maybe_restock_on_cancel).
+    reserve_order_stock(order)
     order.create_vendor_orders()
     if wallet_applied > 0:
         from ovira_marketplace.api.wallet import debit as wallet_debit
@@ -206,6 +213,40 @@ def place_order(
         "status": order.status,
         "token": order.access_token,
     }
+
+
+def reserve_order_stock(order):
+    """Decrement marketplace stock for each line when an order is placed."""
+    for it in order.items:
+        _adjust_stock(it.marketplace_product, it.get("variant_sku"), -(it.qty or 0))
+
+
+def restock_order(order):
+    """Return each line's quantity to stock (used when an order is cancelled)."""
+    for it in order.items:
+        _adjust_stock(it.marketplace_product, it.get("variant_sku"), it.qty or 0)
+
+
+def _adjust_stock(product_name, variant_sku, delta):
+    """Shift a product's marketplace stock by ``delta`` (negative = sold,
+    positive = restocked), floored at zero. For a variant line the specific
+    variant row moves and the product's base stock is re-summed from its
+    variants; otherwise the base stock moves directly. Best-effort — a stock
+    hiccup must never break checkout or cancellation."""
+    if not product_name or not delta:
+        return
+    try:
+        doc = frappe.get_doc("Marketplace Product", product_name)
+        if variant_sku and doc.has_variants and doc.get("variants"):
+            for v in doc.variants:
+                if v.sku == variant_sku:
+                    v.db_set("stock_qty", max(0.0, flt(v.stock_qty) + delta))
+                    break
+            doc.db_set("stock_qty", sum(flt(v.stock_qty) for v in doc.variants))
+        else:
+            doc.db_set("stock_qty", max(0.0, flt(doc.stock_qty) + delta))
+    except Exception:
+        frappe.log_error(title="Ovira stock adjust failed")
 
 
 def _ensure_customer(info):
