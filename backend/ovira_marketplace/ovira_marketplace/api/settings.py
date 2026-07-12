@@ -22,6 +22,9 @@ def get_public_config():
         # True only when a real online gateway is switched on, so the storefront
         # offers card payment instead of a permanent "coming soon".
         "online_payment": _online_payment_enabled(),
+        # "Operator" (one operator rate table) or "Per Vendor" (each vendor sets
+        # their own) — lets the storefront label shipping accordingly.
+        "shipping_mode": settings.get("shipping_mode") or "Operator",
     }
 
 

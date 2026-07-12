@@ -83,6 +83,9 @@ export default function VendorSettingsPage() {
     description: "",
     return_policy: "",
     shipping_policy: "",
+    shipping_type: "Flat",
+    shipping_fee: "",
+    shipping_free_over: "",
     phone: "",
     logo: "",
     banner: "",
@@ -98,6 +101,9 @@ export default function VendorSettingsPage() {
             description: s.description ?? "",
             return_policy: s.return_policy ?? "",
             shipping_policy: s.shipping_policy ?? "",
+            shipping_type: s.shipping_type ?? "Flat",
+            shipping_fee: s.shipping_fee != null ? String(s.shipping_fee) : "",
+            shipping_free_over: s.shipping_free_over != null ? String(s.shipping_free_over) : "",
             phone: s.phone ?? "",
             logo: s.logo ?? "",
             banner: s.banner ?? "",
@@ -197,6 +203,56 @@ export default function VendorSettingsPage() {
             placeholder="مثال: شحن خلال ٢-٤ أيام عمل"
           />
         </div>
+
+        {/* Structured shipping rate — applied only when the marketplace runs in
+            Per-Vendor shipping mode; harmless to fill in otherwise. */}
+        <div className="space-y-4 rounded-xl border border-line p-4">
+          <div className="text-sm font-medium text-ink">سعر الشحن</div>
+          <p className="-mt-2 text-xs text-ink-400">
+            يُطبَّق تلقائيًا لو كانت المنصة على وضع «الشحن لكل بائع». المشتري يدفعه ويُضاف لمستحقاتك.
+          </p>
+          <div>
+            <label className={label}>نوع الشحن</label>
+            <select
+              value={form.shipping_type}
+              onChange={(e) => setForm({ ...form, shipping_type: e.target.value })}
+              className={field}
+            >
+              <option value="Flat">سعر ثابت</option>
+              <option value="Free Over">مجاني فوق مبلغ</option>
+              <option value="Always Free">مجاني دائمًا</option>
+            </select>
+          </div>
+          {form.shipping_type !== "Always Free" && (
+            <div>
+              <label className={label}>رسوم الشحن (ج.م)</label>
+              <input
+                value={form.shipping_fee}
+                onChange={(e) => setForm({ ...form, shipping_fee: e.target.value })}
+                className={field}
+                type="number"
+                inputMode="decimal"
+                min="0"
+                placeholder="مثال: 50"
+              />
+            </div>
+          )}
+          {form.shipping_type === "Free Over" && (
+            <div>
+              <label className={label}>شحن مجاني فوق (ج.م)</label>
+              <input
+                value={form.shipping_free_over}
+                onChange={(e) => setForm({ ...form, shipping_free_over: e.target.value })}
+                className={field}
+                type="number"
+                inputMode="decimal"
+                min="0"
+                placeholder="مثال: 500"
+              />
+            </div>
+          )}
+        </div>
+
         <button type="submit" disabled={busy} className="btn btn-primary disabled:opacity-50">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
           {saved ? "تم الحفظ" : "حفظ التغييرات"}

@@ -138,7 +138,7 @@ def place_order(
         frappe.throw(_("None of the cart items are available."))
 
     order.subtotal = subtotal
-    order.shipping_amount = _shipping_amount(subtotal, customer.get("gov"))
+    order.shipping_amount = _order_shipping(order, subtotal, customer.get("gov"), settings)
 
     # Coupon discount is always recomputed here — the client's number is never
     # trusted. An invalid/expired code surfaces its reason and stops checkout.
@@ -349,6 +349,26 @@ def _apply_attribution(order, attribution):
         order.source = _derive_source(order.utm_source, order.utm_medium, order.referrer)
     except Exception:
         order.source = "direct"
+
+
+def _order_shipping(order, subtotal, governorate, settings):
+    """Order shipping under the active mode. Per-Vendor sums each vendor's own
+    rule over their slice of the cart (from the booked line amounts, so deals and
+    variant prices are already reflected); Operator uses the rate table."""
+    if (settings.get("shipping_mode") or "Operator") == "Per Vendor":
+        from ovira_marketplace.api.shipping import get_rate_for_vendor
+
+        by_vendor = {}
+        for it in order.items:
+            by_vendor[it.vendor] = by_vendor.get(it.vendor, 0.0) + flt(it.amount)
+        total = 0.0
+        for vendor, vsub in by_vendor.items():
+            try:
+                total += flt(get_rate_for_vendor(vendor, vsub))
+            except Exception:
+                frappe.log_error(title="Ovira: per-vendor shipping failed")
+        return total
+    return _shipping_amount(subtotal, governorate)
 
 
 def _shipping_amount(subtotal, governorate=None):

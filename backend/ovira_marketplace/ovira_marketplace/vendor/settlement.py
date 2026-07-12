@@ -47,7 +47,11 @@ def _settle_sub_order(order, so_name, rows):
         return None
 
     commission = sum(flt(r.commission_amount) for r in rows)
-    payout = flt(so.net_total) - commission
+    # Per-Vendor shipping mode books the vendor's own shipping on their Sales
+    # Order and records it on the first line; add it back so the fee the customer
+    # paid for shipping reaches the vendor (0 in Operator mode).
+    vendor_shipping = sum(flt(r.get("vendor_shipping")) for r in rows)
+    payout = flt(so.net_total) - commission + vendor_shipping
     if payout <= 0:
         return None
 

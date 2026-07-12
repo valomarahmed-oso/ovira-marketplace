@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CreditCard, Loader2, MapPin, Plus, Tag, Truck, Wallet, X } from "lucide-react";
-import { getAppConfig, getShippingRate, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
+import { getAppConfig, previewShipping, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
 import { getMyAddresses, upsertAddress, type BuyerAddress } from "@/lib/addresses-api";
 import { getShippingRates } from "@/lib/shipping-rates-api";
 import { getWallet } from "@/lib/wallet-api";
@@ -104,17 +104,21 @@ export default function CheckoutPage() {
   // Cart subtotal drives the live shipping quote; both must be read before any
   // early return so the hook order stays stable.
   const subtotal = cartSubtotal(items);
+  // Cart signature — recompute the quote when contents, options or quantities change.
+  const cartKey = items.map((i) => `${i.product.slug}:${i.variant?.sku ?? ""}:${i.qty}`).join("|");
   const [shipRate, setShipRate] = useState<number | null>(null);
   useEffect(() => {
     if (subtotal <= 0) return;
     let cancelled = false;
-    getShippingRate(subtotal, form.gov).then((r) => {
+    const payload = items.map((i) => ({ slug: i.product.slug, qty: i.qty, variant: i.variant?.sku }));
+    previewShipping(payload, form.gov).then((r) => {
       if (!cancelled) setShipRate(r);
     });
     return () => {
       cancelled = true;
     };
-  }, [subtotal, form.gov]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKey, form.gov]);
 
   // Estimated delivery time per governorate (from the operator's rate table).
   const [etaByGov, setEtaByGov] = useState<Record<string, number>>({});

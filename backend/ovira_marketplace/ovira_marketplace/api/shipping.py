@@ -50,6 +50,80 @@ def _resolve_local_rate(subtotal, governorate):
     return 0 if flt(subtotal) >= FREE_SHIPPING_THRESHOLD else FLAT_SHIPPING
 
 
+def get_rate_for_vendor(vendor, subtotal):
+    """Per-vendor shipping fee from that vendor's own rule (Per-Vendor mode).
+
+    Flat → the fee. Free Over → 0 once the vendor's subtotal reaches the
+    threshold, else the fee. Always Free → 0. Missing vendor → 0."""
+    v = frappe.db.get_value(
+        "Marketplace Vendor",
+        vendor,
+        ["shipping_type", "shipping_fee", "shipping_free_over"],
+        as_dict=True,
+    )
+    if not v:
+        return 0.0
+    stype = (v.shipping_type or "Flat").strip()
+    if stype == "Always Free":
+        return 0.0
+    if stype == "Free Over":
+        threshold = flt(v.shipping_free_over)
+        if threshold and flt(subtotal) >= threshold:
+            return 0.0
+    return flt(v.shipping_fee)
+
+
+def per_vendor_subtotals(items):
+    """{vendor: subtotal} for a cart, resolving each line's product + price
+    server-side (variant price wins). Shared by the preview and checkout so the
+    quote the shopper sees matches what's booked. Unknown/unpublished slugs are
+    skipped; the client-supplied price is never trusted."""
+    per_vendor = {}
+    for line in items or []:
+        product = frappe.db.get_value(
+            "Marketplace Product",
+            {"slug": line.get("slug"), "approval_status": "Approved", "published": 1},
+            ["name", "vendor", "price", "has_variants"],
+            as_dict=True,
+        )
+        if not product:
+            continue
+        try:
+            qty = max(1, int(line.get("qty") or 1))
+        except (TypeError, ValueError):
+            qty = 1
+        rate = flt(product.price)
+        if product.has_variants and line.get("variant"):
+            vprice = frappe.db.get_value(
+                "Marketplace Product Variant",
+                {"parent": product.name, "sku": line.get("variant")},
+                "price",
+            )
+            if vprice:
+                rate = flt(vprice)
+        per_vendor[product.vendor] = per_vendor.get(product.vendor, 0.0) + rate * qty
+    return per_vendor
+
+
+@frappe.whitelist(allow_guest=True)
+def preview(items, governorate=None):
+    """Live shipping quote for a cart, honouring the active shipping mode.
+
+    `items`: [{"slug", "qty", "variant"?}, ...] — the shape the checkout posts.
+    Operator mode → the order-level rate on the cart subtotal. Per-Vendor mode →
+    the sum of each vendor's own rule applied to that vendor's slice of the cart."""
+    import json
+
+    if isinstance(items, str):
+        items = json.loads(items)
+    settings = frappe.get_cached_doc("Marketplace Settings")
+    if (settings.get("shipping_mode") or "Operator") == "Per Vendor":
+        per_vendor = per_vendor_subtotals(items)
+        return flt(sum(get_rate_for_vendor(v, sub) for v, sub in per_vendor.items()))
+    subtotal = sum(per_vendor_subtotals(items).values())
+    return flt(get_rate(subtotal, governorate))
+
+
 RATE_FIELDS = ["name", "governorate", "fee", "free_threshold", "eta_days", "enabled"]
 
 

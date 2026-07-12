@@ -128,31 +128,45 @@ class MarketplaceOrder(Document):
 
     def create_vendor_orders(self):
         """Split the order into one ERPNext Sales Order per vendor and book
-        the commission on each line. Idempotent per line (skips linked rows)."""
+        the commission on each line. Idempotent per line (skips linked rows).
+
+        Shipping placement depends on the marketplace shipping mode:
+        - Operator: the order-level fee rides on the FIRST vendor Sales Order only
+          (and only on a fresh order — a retry mustn't bill it twice).
+        - Per Vendor: each vendor's own fee rides on THEIR Sales Order, and is
+          recorded on the vendor's first line so settlement pays it to them."""
         settings = frappe.get_cached_doc("Marketplace Settings")
+        per_vendor_mode = (settings.get("shipping_mode") or "Operator") == "Per Vendor"
         by_vendor: dict[str, list] = {}
         for row in self.items:
             if row.sales_order:
                 continue
             by_vendor.setdefault(row.vendor, []).append(row)
 
-        # The shipping fee is order-level, so it rides on the FIRST vendor
-        # Sales Order only (and only on a fresh order — a retry after a partial
-        # failure must not bill it twice).
         include_shipping = not any(row.sales_order for row in self.items)
         for vendor, rows in by_vendor.items():
-            sales_order = self._make_sales_order(
-                vendor, rows, settings, include_shipping=include_shipping
-            )
+            if per_vendor_mode:
+                from ovira_marketplace.api.shipping import get_rate_for_vendor
+
+                vsub = sum(flt(r.amount) for r in rows)
+                ship = flt(get_rate_for_vendor(vendor, vsub))
+            else:
+                ship = flt(self.shipping_amount) if include_shipping else 0.0
+
+            sales_order = self._make_sales_order(vendor, rows, settings, shipping=ship)
             if not sales_order:
                 continue
             include_shipping = False
+            # Only booked shipping (has an income account) is paid to the vendor,
+            # so the payout stays balanced with what the customer invoice charges.
+            if per_vendor_mode and ship and settings.get("shipping_account"):
+                rows[0].db_set("vendor_shipping", ship)
             rate = self._commission_rate(vendor, settings)
             for row in rows:
                 row.db_set("sales_order", sales_order)
                 row.db_set("commission_amount", flt(row.amount) * rate / 100.0)
 
-    def _make_sales_order(self, vendor, rows, settings, include_shipping=False):
+    def _make_sales_order(self, vendor, rows, settings, shipping=0.0):
         so = frappe.new_doc("Sales Order")
         so.customer = self.customer
         so.company = settings.operator_company
@@ -179,16 +193,17 @@ class MarketplaceOrder(Document):
             return None
 
         _apply_sales_taxes(so, settings)
-        if include_shipping and flt(self.shipping_amount) and settings.get("shipping_account"):
-            # Actual charge → flows to the Sales Invoice as shipping income.
-            # Kept out of net_total, so vendor settlement is unaffected.
+        if flt(shipping) and settings.get("shipping_account"):
+            # Actual charge → flows to the Sales Invoice as shipping income. Kept
+            # out of net_total; in Per-Vendor mode settlement adds it back to the
+            # vendor's payout (see vendor.settlement), otherwise it's the operator's.
             so.append(
                 "taxes",
                 {
                     "charge_type": "Actual",
                     "account_head": settings.shipping_account,
                     "description": "Shipping",
-                    "tax_amount": flt(self.shipping_amount),
+                    "tax_amount": flt(shipping),
                 },
             )
         so.flags.ignore_permissions = True

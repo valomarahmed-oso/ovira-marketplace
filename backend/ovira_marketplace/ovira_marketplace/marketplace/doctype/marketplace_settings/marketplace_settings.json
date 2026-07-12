@@ -10,6 +10,7 @@
   "column_break_defaults",
   "default_currency",
   "default_commission_rate",
+  "shipping_mode",
   "approvals_section",
   "auto_approve_vendors",
   "auto_approve_products",
@@ -64,6 +65,14 @@
    "fieldname": "default_commission_rate",
    "fieldtype": "Percent",
    "label": "Default commission rate"
+  },
+  {
+   "default": "Operator",
+   "description": "Operator: one shipping rate table you manage for all vendors. Per Vendor: each vendor sets their own shipping (flat, free over a threshold, or always free), summed per vendor at checkout and paid into that vendor's settlement.",
+   "fieldname": "shipping_mode",
+   "fieldtype": "Select",
+   "label": "Shipping mode",
+   "options": "Operator\nPer Vendor"
   },
   {
    "fieldname": "approvals_section",

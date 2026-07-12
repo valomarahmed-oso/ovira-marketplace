@@ -13,6 +13,7 @@
   "rate",
   "amount",
   "commission_amount",
+  "vendor_shipping",
   "sales_order"
  ],
  "fields": [
@@ -70,6 +71,13 @@
    "fieldname": "commission_amount",
    "fieldtype": "Currency",
    "label": "Commission",
+   "read_only": 1
+  },
+  {
+   "description": "Per-vendor shipping booked on this vendor's Sales Order (Per-Vendor shipping mode only); set on the first line of each vendor group and added to that vendor's payout.",
+   "fieldname": "vendor_shipping",
+   "fieldtype": "Currency",
+   "label": "Vendor shipping",
    "read_only": 1
   },
   {

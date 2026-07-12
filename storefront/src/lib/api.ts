@@ -339,6 +339,31 @@ export async function getShippingRate(
   }
 }
 
+/** Live shipping quote for the whole cart, honouring the active shipping mode
+ * (operator rate table, or the sum of each vendor's own rate in Per-Vendor mode).
+ * Prices are resolved server-side, so pass just {slug, qty, variant}. */
+export async function previewShipping(
+  items: { slug: string; qty: number; variant?: string }[],
+  governorate?: string,
+): Promise<number | null> {
+  if (!BASE) return null;
+  try {
+    const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.shipping.preview`, {
+      method: "POST",
+      headers: writeHeaders(),
+      body: JSON.stringify({ items, governorate }),
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const v = (await res.json()).message;
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Validate a coupon against a subtotal. Returns the discount, or an error
  * message the shopper can act on (e.g. expired / below minimum). */
 export async function validateCoupon(

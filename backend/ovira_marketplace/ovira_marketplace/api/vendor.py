@@ -143,6 +143,9 @@ VENDOR_EDITABLE_FIELDS = (
     "phone",
     "return_policy",
     "shipping_policy",
+    "shipping_type",
+    "shipping_fee",
+    "shipping_free_over",
     "logo",
     "banner",
 )

@@ -27,6 +27,10 @@
   "description",
   "return_policy",
   "shipping_policy",
+  "own_shipping_section",
+  "shipping_type",
+  "shipping_fee",
+  "shipping_free_over",
   "contact_section",
   "email",
   "column_break_contact",
@@ -167,6 +171,35 @@
    "fieldname": "shipping_policy",
    "fieldtype": "Text",
    "label": "Shipping policy"
+  },
+  {
+   "description": "Used only when the marketplace runs in Per-Vendor shipping mode.",
+   "fieldname": "own_shipping_section",
+   "fieldtype": "Section Break",
+   "label": "Shipping rate"
+  },
+  {
+   "default": "Flat",
+   "description": "Flat: a fixed fee. Free Over: free above a subtotal threshold, else the fee. Always Free: no shipping charge.",
+   "fieldname": "shipping_type",
+   "fieldtype": "Select",
+   "label": "Shipping type",
+   "options": "Flat\nFree Over\nAlways Free"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.shipping_type != 'Always Free'",
+   "fieldname": "shipping_fee",
+   "fieldtype": "Currency",
+   "label": "Shipping fee"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.shipping_type == 'Free Over'",
+   "description": "Free shipping once the vendor's items in the cart reach this subtotal.",
+   "fieldname": "shipping_free_over",
+   "fieldtype": "Currency",
+   "label": "Free shipping over"
   },
   {
    "fieldname": "contact_section",
