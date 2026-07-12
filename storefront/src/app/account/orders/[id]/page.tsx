@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Check, Loader2, MapPin, Package, RefreshCw, XCircle } from "lucide-react";
+import { Check, FileText, Loader2, MapPin, Package, RefreshCw, XCircle } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { OviraBars } from "@/components/ovira-bars";
 import { ShipmentTracking } from "@/components/shipment-tracking";
@@ -120,6 +120,13 @@ export default function OrderDetailPage() {
         <h1 className="font-tech text-2xl font-medium text-ink">{order.name}</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-ink-400">{formatDate(order.creation)}</span>
+          <Link
+            href={`/account/orders/${order.name}/invoice`}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-sm text-ink-600 transition-colors hover:border-blue hover:text-blue-600"
+          >
+            <FileText className="h-4 w-4" />
+            الفاتورة
+          </Link>
           <button
             type="button"
             onClick={onReorder}
