@@ -116,11 +116,13 @@ def preview(items, governorate=None):
 
     if isinstance(items, str):
         items = json.loads(items)
+    per_vendor = per_vendor_subtotals(items)
+    subtotal = sum(per_vendor.values())
+    if subtotal <= 0:
+        return 0.0  # empty or all-unresolved cart — nothing to ship
     settings = frappe.get_cached_doc("Marketplace Settings")
     if (settings.get("shipping_mode") or "Operator") == "Per Vendor":
-        per_vendor = per_vendor_subtotals(items)
         return flt(sum(get_rate_for_vendor(v, sub) for v, sub in per_vendor.items()))
-    subtotal = sum(per_vendor_subtotals(items).values())
     return flt(get_rate(subtotal, governorate))
 
 
