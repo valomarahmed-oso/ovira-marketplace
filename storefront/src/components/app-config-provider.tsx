@@ -17,6 +17,7 @@ export function AppConfigProvider({
 
 export function useAppConfig(): AppConfig {
   return (
-    useContext(ConfigContext) ?? { multiVendor: true, currency: "EGP", autoApproveVendors: false }
+    useContext(ConfigContext) ??
+    { multiVendor: true, currency: "EGP", autoApproveVendors: false, onlinePayment: false }
   );
 }

@@ -19,4 +19,15 @@ def get_public_config():
         "multi_vendor": settings.mode == "Multi Vendor",
         "currency": settings.default_currency,
         "auto_approve_vendors": bool(settings.auto_approve_vendors),
+        # True only when a real online gateway is switched on, so the storefront
+        # offers card payment instead of a permanent "coming soon".
+        "online_payment": _online_payment_enabled(),
     }
+
+
+def _online_payment_enabled():
+    """Whether an online (non-COD/manual) payment connector is enabled."""
+    for c in frappe.get_all("Payment Connector", filters={"enabled": 1}, fields=["provider"]):
+        if (c.provider or "").strip().lower() not in ("cash on delivery", "cod", "manual"):
+            return True
+    return False

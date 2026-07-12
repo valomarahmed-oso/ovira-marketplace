@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CreditCard, Loader2, MapPin, Plus, Tag, Truck, Wallet, X } from "lucide-react";
-import { getShippingRate, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
+import { getAppConfig, getShippingRate, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
 import { getMyAddresses, upsertAddress, type BuyerAddress } from "@/lib/addresses-api";
 import { getShippingRates } from "@/lib/shipping-rates-api";
 import { getWallet } from "@/lib/wallet-api";
@@ -19,7 +19,7 @@ const GOVERNORATES = ["القاهرة", "الجيزة", "الإسكندرية", 
 
 const PAYMENTS = [
   { id: "cod", icon: Truck, label: "الدفع عند الاستلام", note: "ادفع نقدًا عند وصول الطلب" },
-  { id: "card", icon: CreditCard, label: "بطاقة ائتمان", note: "يُفعّل قريبًا عبر بوابة الدفع" },
+  { id: "card", icon: CreditCard, label: "بطاقة ائتمان", note: "ادفع بأمان عبر بطاقتك" },
 ] as const;
 
 export default function CheckoutPage() {
@@ -33,6 +33,14 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ name: "", phone: "", gov: GOVERNORATES[0], address: "" });
   const [pay, setPay] = useState<"cod" | "card">("cod");
   const [submitting, setSubmitting] = useState(false);
+
+  // Card payment only shows once an online gateway is actually enabled — no more
+  // permanent "coming soon". Falls back to COD-only until then.
+  const [onlinePayment, setOnlinePayment] = useState(false);
+  useEffect(() => {
+    getAppConfig().then((c) => setOnlinePayment(c.onlinePayment));
+  }, []);
+  const payOptions = PAYMENTS.filter((o) => o.id !== "card" || onlinePayment);
 
   // Saved address book (signed-in shoppers). Selecting a card prefills the form,
   // which stays the single source of truth for the order.
@@ -294,7 +302,7 @@ export default function CheckoutPage() {
 
           <section className="card space-y-3 p-5">
             <h2 className="font-medium text-ink">طريقة الدفع</h2>
-            {PAYMENTS.map((opt) => (
+            {payOptions.map((opt) => (
               <label
                 key={opt.id}
                 className={cn(

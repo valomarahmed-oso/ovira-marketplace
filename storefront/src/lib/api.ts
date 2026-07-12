@@ -272,9 +272,15 @@ export type AppConfig = {
   multiVendor: boolean;
   currency: string;
   autoApproveVendors: boolean;
+  onlinePayment: boolean;
 };
 
-const DEFAULT_CONFIG: AppConfig = { multiVendor: true, currency: "EGP", autoApproveVendors: false };
+const DEFAULT_CONFIG: AppConfig = {
+  multiVendor: true,
+  currency: "EGP",
+  autoApproveVendors: false,
+  onlinePayment: false,
+};
 
 export async function getAppConfig(): Promise<AppConfig> {
   if (!BASE) return DEFAULT_CONFIG;
@@ -291,11 +297,13 @@ export async function getAppConfig(): Promise<AppConfig> {
       multi_vendor: boolean;
       currency: string;
       auto_approve_vendors: boolean;
+      online_payment: boolean;
     };
     return {
       multiVendor: !!live.multi_vendor,
       currency: live.currency || "EGP",
       autoApproveVendors: !!live.auto_approve_vendors,
+      onlinePayment: !!live.online_payment,
     };
   } catch {
     return DEFAULT_CONFIG;
