@@ -101,6 +101,7 @@ export type ProductInput = {
   has_variants?: number;
   variant_option_name?: string;
   variants?: VariantInput[];
+  track_inventory?: number;
 };
 
 export type VendorOrder = {
@@ -155,6 +156,7 @@ export type ProductDetail = {
   has_variants?: number;
   variant_option_name?: string | null;
   variants?: VariantInput[];
+  track_inventory?: number;
   approval_status: VendorApprovalStatus;
   published?: number;
 };

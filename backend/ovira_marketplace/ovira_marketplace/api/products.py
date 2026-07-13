@@ -56,6 +56,7 @@ def upsert_product(
     has_variants=None,
     variant_option_name=None,
     variants=None,
+    track_inventory=None,
 ):
     """Create or update one of the vendor's own products.
 
@@ -87,6 +88,10 @@ def upsert_product(
         doc.brand = brand
     if currency:
         doc.currency = currency
+    if track_inventory is not None:
+        # On → ERPNext holds real stock for this item (opening stock is received,
+        # deliveries draw it down). Off → the lightweight manual stock model.
+        doc.track_inventory = cint(track_inventory)
     if short_description is not None:
         doc.short_description = short_description
     if description is not None:
@@ -158,6 +163,7 @@ def get_my_product(name):
         "currency": doc.currency,
         "brand": doc.brand,
         "stock_qty": doc.stock_qty,
+        "track_inventory": cint(doc.track_inventory),
         "short_description": doc.short_description,
         "description": doc.description,
         "image": image,

@@ -22,6 +22,7 @@ function ProductForm() {
     price: "",
     compare_at_price: "",
     stock: "",
+    track_inventory: true,
     condition: "New" as "New" | "Used" | "Refurbished",
     images: [] as string[],
     short_description: "",
@@ -123,6 +124,7 @@ function ProductForm() {
           price: p.price != null ? String(p.price) : "",
           compare_at_price: p.compare_at_price != null ? String(p.compare_at_price) : "",
           stock: p.stock_qty != null ? String(p.stock_qty) : "",
+          track_inventory: p.track_inventory == null ? true : !!p.track_inventory,
           condition: (p.condition as "New" | "Used" | "Refurbished") ?? "New",
           images: p.images?.length ? p.images : p.image ? [p.image] : [],
           short_description: p.short_description ?? "",
@@ -180,6 +182,7 @@ function ProductForm() {
           : Number(form.price) || 0,
         compare_at_price: form.compare_at_price ? Number(form.compare_at_price) : undefined,
         stock_qty: form.has_variants || form.stock === "" ? undefined : Number(form.stock),
+        track_inventory: form.track_inventory ? 1 : 0,
         condition: form.condition,
         images: form.images,
         description: form.description || undefined,
@@ -432,6 +435,22 @@ function ProductForm() {
                 <p className="mt-1 text-xs text-ink-400">لإعادة التوفّر بعد النفاد، عدّل هذا الرقم واحفظ.</p>
               </div>
             )}
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line p-3">
+              <input
+                type="checkbox"
+                checked={form.track_inventory}
+                onChange={(e) => setForm({ ...form, track_inventory: e.target.checked })}
+                className="mt-0.5 h-4 w-4 accent-blue-600"
+              />
+              <span className="text-sm text-ink">
+                تتبّع المخزون في ERPNext
+                <span className="mt-0.5 block text-xs text-ink-400">
+                  مفعّل: الكمية بتتسجّل كرصيد فعلي في المستودع، ويتخصم منها تلقائيًا عند شحن الطلب (Delivery Note).
+                  مقفول: الكمية تُدار يدويًا هنا فقط بدون حركة مخزون في ERPNext.
+                </span>
+              </span>
+            </label>
           </section>
 
           <button type="submit" disabled={busy} className="btn btn-primary w-full disabled:opacity-50">
