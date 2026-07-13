@@ -9,6 +9,7 @@ import { AttributionCapture } from "@/components/attribution-capture";
 import { SessionSync } from "@/components/session-sync";
 import { CartSync } from "@/components/cart-sync";
 import { WishlistSync } from "@/components/wishlist-sync";
+import { CompareBar } from "@/components/compare-bar";
 import { I18nProvider } from "@/components/i18n-provider";
 import { AppConfigProvider } from "@/components/app-config-provider";
 import { getAppConfig } from "@/lib/api";
@@ -66,6 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Header />
             <main>{children}</main>
             <Footer />
+            <CompareBar />
           </I18nProvider>
         </AppConfigProvider>
       </body>

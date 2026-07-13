@@ -3,13 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Check, Heart, ShoppingCart, Star, Store, Zap } from "lucide-react";
+import { Check, Heart, Scale, ShoppingCart, Star, Store, Zap } from "lucide-react";
 import type { Product } from "@/lib/api";
 import { Countdown } from "@/components/countdown";
 import { TrustBadge } from "@/components/trust-badge";
 import { OviraBars } from "@/components/ovira-bars";
 import { useCart } from "@/lib/cart-store";
 import { useWishlist } from "@/lib/wishlist-store";
+import { inCompare, useCompare } from "@/lib/compare-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { cn, discountPercent, formatPrice } from "@/lib/utils";
 import { useI18n } from "@/components/i18n-provider";
@@ -22,8 +23,11 @@ export function ProductCard({ p }: { p: Product }) {
   const add = useCart((s) => s.add);
   const wishItems = useWishlist((s) => s.items);
   const toggleWish = useWishlist((s) => s.toggle);
+  const compareItems = useCompare((s) => s.items);
+  const toggleCompare = useCompare((s) => s.toggle);
   const hydrated = useHydrated();
   const wished = hydrated && wishItems.some((i) => i.slug === p.slug);
+  const comparing = hydrated && inCompare(compareItems, p.slug);
   const off = discountPercent(p.price, p.compare_at_price);
   const soldOut = p.stock_qty <= 0;
   // Products with variants must be configured on the detail page.
@@ -72,6 +76,19 @@ export function ProductCard({ p }: { p: Product }) {
           className="absolute end-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-line bg-white/90 text-ink-600 backdrop-blur transition-colors hover:text-coral"
         >
           <Heart className={cn("h-4 w-4", wished && "fill-coral text-coral")} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => toggleCompare(p)}
+          aria-label="أضف للمقارنة"
+          aria-pressed={comparing}
+          className={cn(
+            "absolute end-3 top-14 grid h-9 w-9 place-items-center rounded-full border border-line bg-white/90 backdrop-blur transition-colors hover:text-blue-600",
+            comparing ? "text-blue-600" : "text-ink-600",
+          )}
+        >
+          <Scale className={cn("h-4 w-4", comparing && "text-blue-600")} />
         </button>
 
         {soldOut && (
