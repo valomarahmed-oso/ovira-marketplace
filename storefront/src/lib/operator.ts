@@ -87,6 +87,49 @@ export async function setVendorStatus(
   return (await res.json()).message;
 }
 
+export type LowStockProduct = {
+  name: string;
+  title: string;
+  stock_qty: number;
+  low_stock_threshold: number;
+  vendor?: string;
+  vendor_name?: string;
+};
+
+/** Tracked products at or below their low-stock threshold (reorder list). */
+export async function lowStockProducts(limit = 100): Promise<LowStockProduct[]> {
+  if (!BASE) return [];
+  const qs = new URLSearchParams({ limit: String(limit) });
+  try {
+    const res = await fetch(opUrl("low_stock_products", qs), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return ((await res.json()).message ?? []) as LowStockProduct[];
+  } catch {
+    return [];
+  }
+}
+
+/** Replenish a tracked product's ERPNext stock; returns the new quantities. */
+export async function restockProduct(
+  product: string,
+  qty: number,
+  opts: { supplier?: string; rate?: number } = {},
+): Promise<{ voucher: string; bin_qty: number; stock_qty: number }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("restock_product"), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify({ product, qty, supplier: opts.supplier, rate: opts.rate }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر التخزين."));
+  return (await res.json()).message;
+}
+
 export async function bulkSetVendorStatus(
   names: string[],
   status: VendorStatus,

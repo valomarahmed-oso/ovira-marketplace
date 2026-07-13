@@ -390,6 +390,7 @@ const ar = {
   vActionError: "تعذّر تنفيذ العملية، حاول مرة أخرى.",
 
   adminNavProducts: "المنتجات",
+  adminNavInventory: "المخزون",
   adminNavCategories: "الأقسام",
   productsTitle: "المنتجات",
   productsSubtitle: "مراجعة واعتماد منتجات البائعين",
@@ -957,6 +958,7 @@ const en: Dict = {
   vActionError: "Could not complete the action, please try again.",
 
   adminNavProducts: "Products",
+  adminNavInventory: "Inventory",
   adminNavCategories: "Categories",
   productsTitle: "Products",
   productsSubtitle: "Review and approve vendor products",

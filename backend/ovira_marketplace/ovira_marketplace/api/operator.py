@@ -192,6 +192,42 @@ def product_status_counts():
 
 
 @frappe.whitelist()
+def restock_product(product, qty, supplier=None, rate=None):
+    """Replenish a tracked product's ERPNext stock (operator). A Purchase Receipt
+    when a supplier is given (procurement), else a Material Receipt. The Bin rises
+    and the marketplace number is re-synced from it."""
+    _require_operator()
+    doc = frappe.get_doc("Marketplace Product", product)
+    if not doc.get("track_inventory") or not doc.get("item"):
+        frappe.throw(_("فعّل تتبّع المخزون على هذا المنتج أولاً."))
+    from ovira_marketplace.inventory import item_bin_qty, receive_stock
+
+    voucher = receive_stock(doc.item, flt(qty), rate=flt(rate) or flt(doc.price), supplier=supplier)
+    if not voucher:
+        frappe.throw(_("تعذّر التخزين — تحقّق من المستودع والكمية."))
+    doc.reload()
+    doc.refresh_stock()
+    frappe.db.commit()
+    return {"voucher": voucher, "bin_qty": item_bin_qty(doc.item), "stock_qty": doc.stock_qty}
+
+
+@frappe.whitelist()
+def low_stock_products(limit=100):
+    """Tracked products at or below their low-stock threshold — the reorder list."""
+    _require_operator()
+    rows = frappe.get_all(
+        "Marketplace Product",
+        filters={"track_inventory": 1, "low_stock_threshold": [">", 0], "approval_status": "Approved"},
+        fields=["name", "title", "stock_qty", "low_stock_threshold", "vendor"],
+    )
+    low = [r for r in rows if flt(r.stock_qty) <= flt(r.low_stock_threshold)]
+    for r in low:
+        r["vendor_name"] = frappe.db.get_value("Marketplace Vendor", r.vendor, "vendor_name") if r.vendor else None
+    low.sort(key=lambda r: flt(r["stock_qty"]))
+    return low[: cint(limit)]
+
+
+@frappe.whitelist()
 def set_product_status(name, status, rejection_reason=None):
     """Approve / reject a product. Approving triggers ``on_update`` →
     ``sync_to_erpnext`` (idempotently creates the Item + optional Website Item)."""

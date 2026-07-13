@@ -68,6 +68,41 @@ def ensure_opening_stock(product):
         frappe.log_error(title="Ovira: opening stock receipt failed")
 
 
+def receive_stock(item_code, qty, warehouse=None, rate=0.0, supplier=None):
+    """Add ``qty`` of an item into the warehouse. With a supplier → a **Purchase
+    Receipt** (procurement: books the goods and a payable to that supplier);
+    otherwise a **Material Receipt** Stock Entry (a plain stock top-up, no
+    payable — right for consignment/marketplace stock). Returns the voucher name."""
+    settings = frappe.get_cached_doc("Marketplace Settings")
+    company = settings.operator_company
+    warehouse = warehouse or resolve_warehouse(settings, company)
+    if not warehouse or flt(qty) <= 0:
+        return None
+    if supplier:
+        pr = frappe.new_doc("Purchase Receipt")
+        pr.company = company
+        pr.supplier = supplier
+        pr.append(
+            "items",
+            {"item_code": item_code, "qty": flt(qty), "warehouse": warehouse, "rate": flt(rate)},
+        )
+        pr.flags.ignore_permissions = True
+        pr.insert()
+        pr.submit()
+        return pr.name
+    se = frappe.new_doc("Stock Entry")
+    se.stock_entry_type = "Material Receipt"
+    se.company = company
+    se.append(
+        "items",
+        {"item_code": item_code, "qty": flt(qty), "t_warehouse": warehouse, "basic_rate": flt(rate)},
+    )
+    se.flags.ignore_permissions = True
+    se.insert()
+    se.submit()
+    return se.name
+
+
 def deliver_order(order):
     """Create + submit a Delivery Note per vendor Sales Order for the order's
     **stock** items, drawing them from the warehouse. Called when the order
