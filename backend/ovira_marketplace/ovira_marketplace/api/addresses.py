@@ -21,7 +21,7 @@ def _session_customer(create=False):
         return None
     rows = frappe.get_all(
         "Portal User",
-        filters={"user": email, "parenttype": "Customer"},
+        filters={"user": frappe.session.user, "parenttype": "Customer"},
         fields=["parent"],
         ignore_permissions=True,
     )
@@ -40,7 +40,10 @@ def _session_customer(create=False):
     customer.territory = (
         frappe.db.get_value("Territory", {"is_group": 0}, "name") or "All Territories"
     )
-    customer.append("portal_users", {"user": email})
+    # Portal User.user links to the User's id (name), which is NOT always the
+    # email (e.g. "Administrator" ≠ admin@example.com) — using the email breaks
+    # with "Could not find Row #1: User: <email>".
+    customer.append("portal_users", {"user": frappe.session.user})
     customer.flags.ignore_permissions = True
     customer.insert(ignore_permissions=True)
     return customer.name

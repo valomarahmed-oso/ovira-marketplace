@@ -141,7 +141,20 @@ export function searchParamsToQuery(
   };
 }
 
+/** Behind the /shop basePath + proxy, non-ASCII route params (e.g. Arabic
+ * slugs) can arrive still percent-encoded; URLSearchParams would then encode
+ * them again and the server lookup misses. Decoding first is safe — a plain
+ * Arabic/ascii slug has no `%`, so this is a no-op for it. */
+function decodeSlug(slug: string): string {
+  try {
+    return decodeURIComponent(slug);
+  } catch {
+    return slug;
+  }
+}
+
 export async function getProduct(slug: string): Promise<Product | null> {
+  slug = decodeSlug(slug);
   const live = await callMethod<Product>("ovira_marketplace.api.catalog.get_product", { slug });
   if (live) return live;
   return USE_MOCKS ? mockDetail(slug) : null;

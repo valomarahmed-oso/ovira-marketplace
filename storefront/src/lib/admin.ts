@@ -13,6 +13,8 @@ export type AdminSettings = {
   deal_product?: string | null;
   sales_tax_template?: string | null;
   shipping_account?: string | null;
+  shipping_mode?: string;
+  default_warehouse?: string | null;
   store_credit_account?: string | null;
   loyalty_enabled?: number;
   loyalty_earn_rate?: number;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, Loader2, ShieldCheck, Store } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, ShieldCheck, Store, Truck } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import { WhatsAppConfigCard } from "@/components/whatsapp-config-card";
@@ -60,6 +60,8 @@ export default function AdminSettingsPage() {
         sync_website_item: settings.sync_website_item,
         deal_product: settings.deal_product ?? "",
         sales_tax_template: settings.sales_tax_template ?? "",
+        shipping_mode: settings.shipping_mode ?? "Operator",
+        default_warehouse: settings.default_warehouse ?? "",
         store_credit_account: settings.store_credit_account ?? "",
         loyalty_enabled: settings.loyalty_enabled ?? 0,
         loyalty_earn_rate: settings.loyalty_earn_rate ?? 0,
@@ -153,6 +155,42 @@ export default function AdminSettingsPage() {
         <div className="flex items-center gap-2 text-sm text-ink-400">
           <ShieldCheck className="h-4 w-4" />
           {t.operatorCompany}: <span className="font-medium text-ink">{s.operator_company}</span>
+        </div>
+      </section>
+
+      {/* Shipping */}
+      <section className="card space-y-5 p-6">
+        <div className="flex items-center gap-2 font-medium text-ink">
+          <Truck className="h-4 w-4 text-blue-600" /> {t.secShipping}
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ink">{t.shipModeLabel}</label>
+          <div className="flex gap-2">
+            {(["Operator", "Per Vendor"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => set("shipping_mode", m)}
+                className={`flex-1 rounded-xl border px-4 py-2.5 text-sm transition-colors ${
+                  (s.shipping_mode ?? "Operator") === m
+                    ? "border-blue bg-blue text-white"
+                    : "border-line text-ink-600 hover:bg-blue-50"
+                }`}
+              >
+                {m === "Operator" ? t.shipModeOperator : t.shipModePerVendor}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-ink-400">{t.shipModeHint}</p>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ink">{t.fieldDefaultWarehouse}</label>
+          <input
+            value={s.default_warehouse ?? ""}
+            onChange={(e) => set("default_warehouse", e.target.value)}
+            className={fieldCls}
+            placeholder="Stores - O"
+          />
         </div>
       </section>
 

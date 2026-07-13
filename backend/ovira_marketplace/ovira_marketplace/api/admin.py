@@ -24,6 +24,8 @@ ADMIN_FIELDS = [
     "deal_product",
     "sales_tax_template",
     "shipping_account",
+    "shipping_mode",
+    "default_warehouse",
     "store_credit_account",
     "loyalty_enabled",
     "loyalty_earn_rate",
@@ -69,6 +71,8 @@ def update_admin_settings(
     deal_product=None,
     sales_tax_template=None,
     shipping_account=None,
+    shipping_mode=None,
+    default_warehouse=None,
     store_credit_account=None,
     loyalty_enabled=None,
     loyalty_earn_rate=None,
@@ -98,6 +102,12 @@ def update_admin_settings(
         settings.sales_tax_template = sales_tax_template or None
     if shipping_account is not None:
         settings.shipping_account = shipping_account or None
+    if shipping_mode is not None:
+        if shipping_mode not in ("Operator", "Per Vendor"):
+            frappe.throw(_("Invalid shipping mode."))
+        settings.shipping_mode = shipping_mode
+    if default_warehouse is not None:
+        settings.default_warehouse = default_warehouse or None
     if store_credit_account is not None:
         settings.store_credit_account = store_credit_account or None
     if loyalty_enabled is not None:
