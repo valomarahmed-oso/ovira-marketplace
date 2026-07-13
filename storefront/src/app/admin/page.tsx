@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, ShieldCheck, Store, Truck } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
@@ -97,10 +98,15 @@ export default function AdminSettingsPage() {
       <OperatorStats />
 
       {s.email_configured === false && (
-        <div className="flex items-start gap-2 rounded-xl bg-[#fdf2dd] px-4 py-3 text-sm text-[#854f0b]">
+        <Link
+          href="/admin/email"
+          className="flex items-start gap-2 rounded-xl bg-[#fdf2dd] px-4 py-3 text-sm text-[#854f0b] transition-colors hover:bg-[#fbe9c4]"
+        >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{t.emailNotConfigured}</span>
-        </div>
+          <span>
+            {t.emailNotConfigured} <span className="font-medium underline">اضبطه الآن</span>
+          </span>
+        </Link>
       )}
 
       {/* General */}

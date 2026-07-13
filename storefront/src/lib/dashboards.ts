@@ -9,6 +9,7 @@ import {
   Heart,
   Layers,
   LayoutDashboard,
+  Mail,
   MapPin,
   Megaphone,
   Boxes,
@@ -78,6 +79,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/admin/payouts", key: "adminNavPayouts", icon: Wallet },
       { href: "/admin/payments", key: "adminNavPayments", icon: CreditCard },
       { href: "/admin/shipping", key: "adminNavShipping", icon: Truck },
+      { href: "/admin/email", key: "adminNavEmail", icon: Mail },
     ],
   },
   vendor: {

@@ -126,6 +126,78 @@ def update_admin_settings(
     return _serialize(settings)
 
 
+EMAIL_ACCOUNT_NAME = "Ovira Outgoing"
+
+
+@frappe.whitelist()
+def get_email_config():
+    """Current outgoing email account for the operator screen. The password is
+    write-only — we report only whether one is stored, never its value."""
+    _require_operator()
+    acc = frappe.db.get_value(
+        "Email Account",
+        {"default_outgoing": 1, "enable_outgoing": 1},
+        ["name", "email_id", "smtp_server", "smtp_port", "use_tls", "use_ssl", "login_id"],
+        as_dict=True,
+    )
+    if not acc:
+        return {"configured": False}
+    return {
+        "configured": True,
+        "email_id": acc.email_id,
+        "smtp_server": acc.smtp_server,
+        "smtp_port": acc.smtp_port,
+        "use_tls": cint(acc.use_tls),
+        "use_ssl": cint(acc.use_ssl),
+        "login_id": acc.login_id,
+        "has_password": bool(
+            frappe.db.get_value("Email Account", acc.name, "password")
+        ),
+    }
+
+
+@frappe.whitelist()
+def update_email_config(
+    email_id,
+    smtp_server,
+    smtp_port=587,
+    use_tls=1,
+    use_ssl=0,
+    password=None,
+    login_id=None,
+):
+    """Create or update the marketplace's default **outgoing** ERPNext Email
+    Account from the storefront admin — so operators configure order/return
+    emails without opening the ERPNext Desk. ERPNext validates the SMTP
+    connection on save, so a bad host/credential surfaces as an error here."""
+    _require_operator()
+    name = frappe.db.get_value(
+        "Email Account", {"default_outgoing": 1, "enable_outgoing": 1}, "name"
+    )
+    if name:
+        acc = frappe.get_doc("Email Account", name)
+    else:
+        acc = frappe.new_doc("Email Account")
+        acc.email_account_name = EMAIL_ACCOUNT_NAME
+
+    acc.email_id = email_id
+    acc.smtp_server = smtp_server
+    acc.smtp_port = cint(smtp_port)
+    acc.use_tls = cint(use_tls)
+    acc.use_ssl = cint(use_ssl)
+    acc.enable_outgoing = 1
+    acc.default_outgoing = 1
+    if login_id:
+        acc.login_id_is_different = 1
+        acc.login_id = login_id
+    if password:
+        acc.password = password
+    acc.flags.ignore_permissions = True
+    acc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return get_email_config()
+
+
 WHATSAPP_FIELDS = [
     "enabled",
     "api_base",

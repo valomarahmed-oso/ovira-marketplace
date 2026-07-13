@@ -10,6 +10,7 @@ import { SessionSync } from "@/components/session-sync";
 import { CartSync } from "@/components/cart-sync";
 import { WishlistSync } from "@/components/wishlist-sync";
 import { CompareBar } from "@/components/compare-bar";
+import { QuickView } from "@/components/quick-view";
 import { I18nProvider } from "@/components/i18n-provider";
 import { AppConfigProvider } from "@/components/app-config-provider";
 import { getAppConfig } from "@/lib/api";
@@ -68,6 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <main>{children}</main>
             <Footer />
             <CompareBar />
+            <QuickView />
           </I18nProvider>
         </AppConfigProvider>
       </body>

@@ -459,6 +459,7 @@ const ar = {
   payComingSoon: "التكامل قيد التطوير — الإعدادات تتحفظ لكن البوابة لسه مش شغالة",
 
   adminNavShipping: "الشحن",
+  adminNavEmail: "البريد",
   shipTitle: "شركات الشحن",
   shipSubtitle: "فعّل شركة الشحن واضبط أسعار التوصيل وبيانات الربط.",
   shipFlatRate: "سعر الشحن الثابت",
@@ -1034,6 +1035,7 @@ const en: Dict = {
   payComingSoon: "Integration in development — settings are stored but the gateway is not live yet",
 
   adminNavShipping: "Shipping",
+  adminNavEmail: "Email",
   shipTitle: "Shipping providers",
   shipSubtitle: "Enable a carrier and set delivery rates and credentials.",
   shipFlatRate: "Flat shipping rate",

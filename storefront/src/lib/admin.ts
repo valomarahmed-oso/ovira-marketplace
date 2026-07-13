@@ -104,6 +104,44 @@ export async function updateWhatsAppConfig(data: Record<string, unknown>): Promi
   return (await res.json()).message;
 }
 
+export type EmailConfig = {
+  configured: boolean;
+  email_id?: string;
+  smtp_server?: string;
+  smtp_port?: number;
+  use_tls?: number;
+  use_ssl?: number;
+  login_id?: string | null;
+  has_password?: boolean;
+};
+
+export async function getEmailConfig(): Promise<EmailConfig | null> {
+  if (!BASE) return null;
+  try {
+    const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.admin.get_email_config`, {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return ((await res.json()).message ?? null) as EmailConfig | null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateEmailConfig(data: Record<string, unknown>): Promise<EmailConfig> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.admin.update_email_config`, {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر حفظ إعدادات البريد."));
+  return (await res.json()).message;
+}
+
 export async function getProductOptions(): Promise<{ name: string; title: string }[]> {
   if (!BASE) return [];
   try {

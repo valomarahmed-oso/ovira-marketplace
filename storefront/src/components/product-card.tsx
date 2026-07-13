@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Check, Heart, Scale, ShoppingCart, Star, Store, Zap } from "lucide-react";
+import { Check, Eye, Heart, Scale, ShoppingCart, Star, Store, Zap } from "lucide-react";
 import type { Product } from "@/lib/api";
 import { Countdown } from "@/components/countdown";
 import { TrustBadge } from "@/components/trust-badge";
@@ -11,6 +11,7 @@ import { OviraBars } from "@/components/ovira-bars";
 import { useCart } from "@/lib/cart-store";
 import { useWishlist } from "@/lib/wishlist-store";
 import { inCompare, useCompare } from "@/lib/compare-store";
+import { useQuickView } from "@/lib/quick-view-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { cn, discountPercent, formatPrice } from "@/lib/utils";
 import { useI18n } from "@/components/i18n-provider";
@@ -25,6 +26,7 @@ export function ProductCard({ p }: { p: Product }) {
   const toggleWish = useWishlist((s) => s.toggle);
   const compareItems = useCompare((s) => s.items);
   const toggleCompare = useCompare((s) => s.toggle);
+  const openQuickView = useQuickView((s) => s.open);
   const hydrated = useHydrated();
   const wished = hydrated && wishItems.some((i) => i.slug === p.slug);
   const comparing = hydrated && inCompare(compareItems, p.slug);
@@ -89,6 +91,15 @@ export function ProductCard({ p }: { p: Product }) {
           )}
         >
           <Scale className={cn("h-4 w-4", comparing && "text-blue-600")} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openQuickView(p)}
+          aria-label="معاينة سريعة"
+          className="absolute end-3 top-24 grid h-9 w-9 place-items-center rounded-full border border-line bg-white/90 text-ink-600 opacity-0 backdrop-blur transition-opacity hover:text-blue-600 group-hover:opacity-100"
+        >
+          <Eye className="h-4 w-4" />
         </button>
 
         {soldOut && (
