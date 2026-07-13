@@ -1,8 +1,11 @@
-"""Buyer return requests (RMA v1).
+"""Buyer return requests (RMA).
 
 A buyer opens a return against a delivered order; the operator approves,
-rejects, or completes it. v1 tracks the request/decision only — it does not
-post a Credit Note or refund automatically (that comes later).
+rejects, or completes it. Completing a return refunds the buyer's wallet and
+reverses the sale in ERPNext — a Credit Note against each vendor invoice and a
+return Delivery Note that restores any tracked stock (see `_post_return_reversal`).
+Vendor payout reversal (clawing back the settlement for returned goods) is a
+separate follow-up.
 """
 
 import frappe
@@ -179,6 +182,65 @@ def _refund_to_wallet(doc):
     frappe.db.commit()
 
 
+def _post_return_reversal(doc):
+    """On a completed return, reverse the sale in ERPNext: a **Credit Note**
+    against each vendor invoice and a **return Delivery Note** that puts any
+    tracked stock back into the warehouse, plus the manual marketplace stock.
+    Idempotent + best-effort per document — a booking hiccup must never block the
+    operator's decision or the buyer's wallet refund."""
+    order = frappe.get_doc("Marketplace Order", doc.marketplace_order)
+    for so_name in {r.sales_order for r in order.items if r.sales_order}:
+        try:
+            _credit_note_for_so(so_name)
+        except Exception:
+            frappe.log_error(title="Ovira: return credit note failed")
+        try:
+            _return_delivery_for_so(so_name)
+        except Exception:
+            frappe.log_error(title="Ovira: return delivery note failed")
+    # Marketplace (manual) stock — mirror of the reservation made at checkout.
+    try:
+        from ovira_marketplace.api.checkout import restock_order
+
+        restock_order(order)
+    except Exception:
+        frappe.log_error(title="Ovira: return manual restock failed")
+
+
+def _credit_note_for_so(so_name):
+    """Credit Note (return Sales Invoice) reversing the customer invoice for one
+    vendor Sales Order. Skips if already credited."""
+    si = frappe.db.get_value("Sales Invoice Item", {"sales_order": so_name, "docstatus": 1}, "parent")
+    if not si:
+        return  # order not invoiced (e.g. unpaid) — nothing to reverse
+    if frappe.db.exists("Sales Invoice", {"return_against": si, "is_return": 1, "docstatus": 1}):
+        return
+    from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return
+
+    cn = make_sales_return(si)
+    cn.flags.ignore_permissions = True
+    cn.insert()
+    cn.submit()
+
+
+def _return_delivery_for_so(so_name):
+    """Return Delivery Note that adds tracked stock back to the warehouse for one
+    vendor Sales Order. No-op when nothing shipped from stock (untracked items)."""
+    dn = frappe.db.get_value(
+        "Delivery Note Item", {"against_sales_order": so_name, "docstatus": 1}, "parent"
+    )
+    if not dn:
+        return
+    if frappe.db.exists("Delivery Note", {"return_against": dn, "is_return": 1, "docstatus": 1}):
+        return
+    from erpnext.stock.doctype.delivery_note.delivery_note import make_sales_return
+
+    rdn = make_sales_return(dn)
+    rdn.flags.ignore_permissions = True
+    rdn.insert()
+    rdn.submit()
+
+
 @frappe.whitelist()
 def set_return_status(name, status, note=None, refund_amount=None):
     """Operator decision on a return."""
@@ -199,6 +261,11 @@ def set_return_status(name, status, note=None, refund_amount=None):
     # credit (once). Guests without a login just don't get a wallet.
     if status == "Completed" and flt(doc.refund_amount) > 0:
         _refund_to_wallet(doc)
+
+    # A completed return also reverses the sale in ERPNext: Credit Note + return
+    # Delivery Note (tracked stock back) + manual stock. Best-effort/idempotent.
+    if status == "Completed":
+        _post_return_reversal(doc)
 
     try:
         from ovira_marketplace.emails import send_return_update
