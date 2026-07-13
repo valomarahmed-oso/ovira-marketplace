@@ -58,6 +58,11 @@ class MarketplaceProduct(Document):
             self.db_set("item", self._create_item())
         if not self.website_item and _website_item_available() and get_settings().sync_website_item:
             self.db_set("website_item", self._create_website_item())
+        # Tracked products: seed ERPNext stock once, then let it be the source of
+        # truth. refresh_stock mirrors the resulting Bin back onto stock_qty.
+        from ovira_marketplace.inventory import ensure_opening_stock
+
+        ensure_opening_stock(self)
         self.refresh_stock()
 
     def _create_item(self):

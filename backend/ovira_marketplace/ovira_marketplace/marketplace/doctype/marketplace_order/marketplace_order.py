@@ -31,8 +31,26 @@ class MarketplaceOrder(Document):
     def on_update(self):
         self._notify_status_change()
         self._maybe_issue_delivery_otp()
+        self._maybe_create_delivery_notes()
         self._maybe_award_loyalty()
         self._maybe_restock_on_cancel()
+
+    def _maybe_create_delivery_notes(self):
+        """When an order ships (→ Shipped), draw its inventory-tracked items out
+        of the warehouse with a Delivery Note per vendor Sales Order, so ERPNext
+        stock reflects the dispatch. Fires once on the transition; best-effort so
+        it never blocks the status change. Non-tracked items move nothing."""
+        before = self.get_doc_before_save()
+        if not before or before.status == self.status:
+            return
+        if self.status != "Shipped":
+            return
+        try:
+            from ovira_marketplace.inventory import deliver_order
+
+            deliver_order(self)
+        except Exception:
+            frappe.log_error(title="Ovira: delivery notes on ship failed")
 
     def _maybe_restock_on_cancel(self):
         """When an order becomes Cancelled, return its quantities to marketplace

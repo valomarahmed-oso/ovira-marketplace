@@ -18,6 +18,7 @@
   "sync_website_item",
   "sales_tax_template",
   "shipping_account",
+  "default_warehouse",
   "store_credit_account",
   "loyalty_section",
   "loyalty_enabled",
@@ -116,6 +117,13 @@
    "fieldtype": "Link",
    "label": "Shipping income account",
    "options": "Account"
+  },
+  {
+   "description": "Warehouse used for products with inventory tracking on: opening stock is received here, and a Delivery Note draws from it when an order ships. Leave blank to use the company's default warehouse.",
+   "fieldname": "default_warehouse",
+   "fieldtype": "Link",
+   "label": "Default warehouse",
+   "options": "Warehouse"
   },
   {
    "description": "Liability account tracking outstanding customer store credit. Leave blank to keep wallet movements out of the general ledger (ledger-only mode).",
