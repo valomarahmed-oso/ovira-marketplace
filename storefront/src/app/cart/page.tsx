@@ -6,9 +6,11 @@ import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { cartSubtotal, lineId, unitPrice, useCart } from "@/lib/cart-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { OrderSummary } from "@/components/order-summary";
+import { useI18n } from "@/components/i18n-provider";
 import { formatPrice } from "@/lib/utils";
 
 export default function CartPage() {
+  const { t } = useI18n();
   const items = useCart((s) => s.items);
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
@@ -17,7 +19,7 @@ export default function CartPage() {
   if (!hydrated) {
     return (
       <div className="container-ovira py-10">
-        <div className="card p-10 text-center text-ink-400">جارٍ التحميل…</div>
+        <div className="card p-10 text-center text-ink-400">{t.loading}</div>
       </div>
     );
   }
@@ -29,10 +31,10 @@ export default function CartPage() {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-50">
             <ShoppingBag className="h-7 w-7 text-blue-600" />
           </div>
-          <h1 className="text-xl font-medium text-ink">سلتك فاضية</h1>
-          <p className="text-sm text-ink-400">ابدأ التسوّق وأضف منتجاتك المفضّلة.</p>
+          <h1 className="text-xl font-medium text-ink">{t.cartEmptyTitle}</h1>
+          <p className="text-sm text-ink-400">{t.cartEmptyHint}</p>
           <Link href="/" className="btn btn-primary inline-flex">
-            تسوّق الآن <ArrowLeft className="h-4 w-4" />
+            {t.cartShopNow} <ArrowLeft className="h-4 w-4" />
           </Link>
         </div>
       </div>
@@ -43,7 +45,9 @@ export default function CartPage() {
 
   return (
     <div className="container-ovira space-y-6 py-6">
-      <h1 className="text-2xl font-medium text-ink">السلة ({items.length})</h1>
+      <h1 className="text-2xl font-medium text-ink">
+        {t.cart} ({items.length})
+      </h1>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-3">
           {items.map((item) => {
@@ -65,7 +69,7 @@ export default function CartPage() {
                   <button
                     type="button"
                     onClick={() => remove(id)}
-                    aria-label="حذف من السلة"
+                    aria-label={t.cartRemove}
                     className="text-ink-400 transition-colors hover:text-coral"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -80,7 +84,7 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={() => setQty(id, qty - 1)}
-                      aria-label="إنقاص"
+                      aria-label={t.cartDecrease}
                       className="grid h-9 w-9 place-items-center text-ink-600 hover:text-blue-600"
                     >
                       <Minus className="h-4 w-4" />
@@ -89,7 +93,7 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={() => setQty(id, qty + 1)}
-                      aria-label="زيادة"
+                      aria-label={t.cartIncrease}
                       className="grid h-9 w-9 place-items-center text-ink-600 hover:text-blue-600"
                     >
                       <Plus className="h-4 w-4" />
@@ -106,7 +110,7 @@ export default function CartPage() {
         <div className="h-fit">
           <OrderSummary subtotal={subtotal}>
             <Link href="/checkout" className="btn btn-primary w-full">
-              إتمام الشراء <ArrowLeft className="h-4 w-4" />
+              {t.cartCheckout} <ArrowLeft className="h-4 w-4" />
             </Link>
           </OrderSummary>
         </div>

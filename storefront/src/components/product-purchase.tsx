@@ -9,9 +9,11 @@ import { OviraBars } from "@/components/ovira-bars";
 import { useCart } from "@/lib/cart-store";
 import { useVariantImage } from "@/lib/variant-image-store";
 import { StockAlertButton } from "@/components/stock-alert-button";
+import { useI18n } from "@/components/i18n-provider";
 import { cn, discountPercent, formatPrice } from "@/lib/utils";
 
 export function ProductPurchase({ p }: { p: Product }) {
+  const { t } = useI18n();
   const router = useRouter();
   const add = useCart((s) => s.add);
 
@@ -66,7 +68,7 @@ export function ProductPurchase({ p }: { p: Product }) {
       {deal && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-coral-50 px-3 py-2 text-coral">
           <span className="inline-flex items-center gap-1.5 text-sm font-medium">
-            <Zap className="h-4 w-4 fill-coral" /> عرض فلاش
+            <Zap className="h-4 w-4 fill-coral" /> {t.flashDeal}
           </span>
           <Countdown endsOn={deal.ends_on} />
         </div>
@@ -86,7 +88,7 @@ export function ProductPurchase({ p }: { p: Product }) {
 
       {hasVariants && (
         <div className="space-y-2">
-          <span className="text-sm text-ink-600">{p.variant_option_name || "الخيار"}</span>
+          <span className="text-sm text-ink-600">{p.variant_option_name || t.purOption}</span>
           <div className="flex flex-wrap gap-2">
             {variants.map((v) => {
               const vSoldOut = v.stock_qty <= 0;
@@ -113,30 +115,32 @@ export function ProductPurchase({ p }: { p: Product }) {
 
       <div className="text-sm">
         {needsChoice ? (
-          <span className="text-ink-400">اختر {p.variant_option_name || "خيارًا"} لعرض التوفّر.</span>
+          <span className="text-ink-400">
+            {t.purChooseToSee.replace("{opt}", p.variant_option_name || t.purOptionAcc)}
+          </span>
         ) : soldOut ? (
           <span className="inline-flex items-center gap-1 text-coral">
-            <X className="h-4 w-4" /> غير متوفر حاليًا
+            <X className="h-4 w-4" /> {t.purOutNow}
           </span>
         ) : stock <= 5 ? (
           <span className="inline-flex items-center gap-1 font-medium text-coral">
-            <Check className="h-4 w-4" /> باقي {stock} قطع بس — اطلب دلوقتي!
+            <Check className="h-4 w-4" /> {t.purLowStock.replace("{n}", String(stock))}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-mint">
-            <Check className="h-4 w-4" /> متوفر — {stock} قطعة
+            <Check className="h-4 w-4" /> {t.purInStock.replace("{n}", String(stock))}
           </span>
         )}
       </div>
 
       {!soldOut && !needsChoice && (
         <div className="flex items-center gap-3">
-          <span className="text-sm text-ink-600">الكمية</span>
+          <span className="text-sm text-ink-600">{t.purQty}</span>
           <div className="flex items-center rounded-xl border border-line">
             <button
               type="button"
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              aria-label="إنقاص الكمية"
+              aria-label={t.purDecQty}
               className="grid h-10 w-10 place-items-center text-ink-600 transition-colors hover:text-blue-600"
             >
               <Minus className="h-4 w-4" />
@@ -145,7 +149,7 @@ export function ProductPurchase({ p }: { p: Product }) {
             <button
               type="button"
               onClick={() => setQty((q) => Math.min(max, q + 1))}
-              aria-label="زيادة الكمية"
+              aria-label={t.purIncQty}
               className="grid h-10 w-10 place-items-center text-ink-600 transition-colors hover:text-blue-600"
             >
               <Plus className="h-4 w-4" />
@@ -166,7 +170,11 @@ export function ProductPurchase({ p }: { p: Product }) {
               className="btn btn-primary w-full disabled:cursor-not-allowed disabled:opacity-40"
             >
               {added ? <Check className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
-              {added ? "تمت الإضافة للسلة" : needsChoice ? `اختر ${p.variant_option_name || "خيارًا"}` : "أضف للسلة"}
+              {added
+                ? t.purAdded
+                : needsChoice
+                  ? `${t.purChoose} ${p.variant_option_name || t.purOptionAcc}`
+                  : t.addToCart}
             </button>
             <button
               type="button"
@@ -174,14 +182,14 @@ export function ProductPurchase({ p }: { p: Product }) {
               disabled={needsChoice}
               className="btn btn-ghost w-full disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <Zap className="h-5 w-5" /> اشترِ الآن
+              <Zap className="h-5 w-5" /> {t.purBuyNow}
             </button>
           </>
         )}
       </div>
 
       <div className="flex items-center gap-2 pt-1 text-xs text-ink-400">
-        <OviraBars /> شحن سريع · دفع آمن · إرجاع خلال ١٤ يوم
+        <OviraBars /> {t.purAssurances}
       </div>
     </div>
   );

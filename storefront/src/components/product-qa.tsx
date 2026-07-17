@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { Loader2, MessageCircleQuestion } from "lucide-react";
 import { SectionHeading } from "@/components/section-heading";
 import { useAuth } from "@/lib/auth-store";
+import { useI18n } from "@/components/i18n-provider";
 import { answerQuestion, askQuestion, getQuestions, type Question } from "@/lib/qa-api";
 
 export function ProductQA({ slug, productVendor }: { slug: string; productVendor?: string }) {
+  const { t } = useI18n();
   const user = useAuth((s) => s.user);
   const [list, setList] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,7 @@ export function ProductQA({ slug, productVendor }: { slug: string; productVendor
       setList((prev) => [saved, ...prev]);
       setBody("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر إرسال السؤال.");
+      setError(err instanceof Error ? err.message : t.qaAskErr);
     } finally {
       setBusy(false);
     }
@@ -45,7 +47,7 @@ export function ProductQA({ slug, productVendor }: { slug: string; productVendor
 
   return (
     <section>
-      <SectionHeading title="أسئلة وأجوبة" />
+      <SectionHeading title={t.qaTitle} />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {loading ? (
@@ -53,7 +55,7 @@ export function ProductQA({ slug, productVendor }: { slug: string; productVendor
               <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
             </div>
           ) : list.length === 0 ? (
-            <div className="card p-6 text-center text-sm text-ink-400">لسه مفيش أسئلة — اسأل أول سؤال.</div>
+            <div className="card p-6 text-center text-sm text-ink-400">{t.qaEmpty}</div>
           ) : (
             list.map((q) => (
               <QuestionCard key={q.id} q={q} canAnswer={canAnswer} onAnswered={(a) =>
@@ -66,24 +68,24 @@ export function ProductQA({ slug, productVendor }: { slug: string; productVendor
         <div>
           {user ? (
             <form onSubmit={ask} className="card space-y-3 p-5">
-              <h3 className="font-medium text-ink">اسأل عن المنتج</h3>
+              <h3 className="font-medium text-ink">{t.qaAskHeading}</h3>
               <textarea
                 required
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                placeholder="اكتب سؤالك هنا"
+                placeholder={t.qaAskPlaceholder}
                 className="min-h-24 w-full rounded-xl border border-line bg-white p-4 text-sm outline-none focus:border-blue"
               />
               {error && <p className="text-sm text-coral">{error}</p>}
               <button type="submit" disabled={busy} className="btn btn-primary w-full disabled:opacity-50">
-                {busy ? "جارٍ الإرسال…" : "إرسال السؤال"}
+                {busy ? t.revSending : t.qaAskSubmit}
               </button>
             </form>
           ) : (
             <div className="card space-y-3 p-5 text-center text-sm text-ink-400">
-              <p>سجّل دخولك لتسأل عن المنتج.</p>
+              <p>{t.qaSignInPrompt}</p>
               <Link href="/login" className="btn btn-primary w-full">
-                تسجيل الدخول
+                {t.loginTitle}
               </Link>
             </div>
           )}
@@ -102,6 +104,7 @@ function QuestionCard({
   canAnswer: boolean;
   onAnswered: (a: Question) => void;
 }) {
+  const { t } = useI18n();
   const [answer, setAnswer] = useState("");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -117,7 +120,7 @@ function QuestionCard({
       setOpen(false);
       setAnswer("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر إرسال الإجابة.");
+      setError(err instanceof Error ? err.message : t.qaAnswerErr);
     } finally {
       setBusy(false);
     }
@@ -138,7 +141,7 @@ function QuestionCard({
       {q.answer ? (
         <div className="ms-6 rounded-lg bg-canvas px-3 py-2">
           <p className="text-sm text-ink-600">{q.answer}</p>
-          {q.answered_by && <span className="text-xs text-mint">إجابة من {q.answered_by}</span>}
+          {q.answered_by && <span className="text-xs text-mint">{t.qaAnswerBy} {q.answered_by}</span>}
         </div>
       ) : canAnswer ? (
         open ? (
@@ -147,22 +150,22 @@ function QuestionCard({
               required
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              placeholder="اكتب الإجابة"
+              placeholder={t.qaAnswerPlaceholder}
               className="min-h-16 w-full rounded-xl border border-line bg-white p-3 text-sm outline-none focus:border-blue"
             />
             {error && <p className="text-sm text-coral">{error}</p>}
             <div className="flex gap-2">
               <button type="submit" disabled={busy} className="btn btn-primary disabled:opacity-50">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} إرسال
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} {t.qaSend}
               </button>
               <button type="button" onClick={() => setOpen(false)} className="btn btn-ghost">
-                إلغاء
+                {t.qaCancel}
               </button>
             </div>
           </form>
         ) : (
           <button type="button" onClick={() => setOpen(true)} className="ms-6 text-sm text-blue-600 hover:underline">
-            الرد على السؤال
+            {t.qaReply}
           </button>
         )
       ) : null}
