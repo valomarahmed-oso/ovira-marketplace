@@ -5,11 +5,13 @@ import { Truck } from "lucide-react";
 import { getShippingRate } from "@/lib/api";
 import { getShippingRates } from "@/lib/shipping-rates-api";
 import { GOVERNORATES } from "@/lib/addresses-api";
+import { useI18n } from "@/components/i18n-provider";
 import { formatPrice } from "@/lib/utils";
 
 /** Lets a shopper see the shipping fee + ETA to their governorate before they
  *  commit to checkout. Reuses the same public rate endpoints as checkout. */
 export function DeliveryEstimate({ price, currency }: { price: number; currency?: string }) {
+  const { t } = useI18n();
   const [gov, setGov] = useState(GOVERNORATES[0]);
   const [fee, setFee] = useState<number | null>(null);
   const [eta, setEta] = useState<Record<string, number>>({});
@@ -42,13 +44,13 @@ export function DeliveryEstimate({ price, currency }: { price: number; currency?
   return (
     <div className="rounded-xl border border-line p-3 text-sm">
       <div className="mb-2 flex items-center gap-2 font-medium text-ink">
-        <Truck className="h-4 w-4 text-blue-600" /> تقدير التوصيل
+        <Truck className="h-4 w-4 text-blue-600" /> {t.deTitle}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <select
           value={gov}
           onChange={(e) => setGov(e.target.value)}
-          aria-label="المحافظة"
+          aria-label={t.deGov}
           className="h-9 rounded-lg border border-line bg-white px-2 text-sm outline-none focus:border-blue"
         >
           {GOVERNORATES.map((g) => (
@@ -61,13 +63,13 @@ export function DeliveryEstimate({ price, currency }: { price: number; currency?
           {loading ? (
             "…"
           ) : fee === 0 ? (
-            <span className="text-mint">شحن مجاني</span>
+            <span className="text-mint">{t.deFreeShip}</span>
           ) : fee != null ? (
-            <>الشحن: {formatPrice(fee, currency)}</>
+            <>{t.deShipFee} {formatPrice(fee, currency)}</>
           ) : (
             ""
           )}
-          {days ? ` · خلال ${days} يوم تقريبًا` : ""}
+          {days ? ` · ${t.deEta.replace("{n}", String(days))}` : ""}
         </span>
       </div>
     </div>

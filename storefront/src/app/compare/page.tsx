@@ -7,9 +7,11 @@ import { useState } from "react";
 import { useCompare } from "@/lib/compare-store";
 import { useCart } from "@/lib/cart-store";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useI18n } from "@/components/i18n-provider";
 import { formatPrice } from "@/lib/utils";
 
 export default function ComparePage() {
+  const { t } = useI18n();
   const items = useCompare((s) => s.items);
   const remove = useCompare((s) => s.remove);
   const clear = useCompare((s) => s.clear);
@@ -26,9 +28,9 @@ export default function ComparePage() {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-50">
             <Scale className="h-7 w-7 text-blue-600" />
           </div>
-          <h1 className="text-xl font-medium text-ink">لا يوجد ما تقارنه بعد</h1>
-          <p className="text-sm text-ink-400">أضف منتجات للمقارنة من زر المقارنة على أي منتج.</p>
-          <Link href="/products" className="btn btn-primary inline-flex">تصفّح المنتجات</Link>
+          <h1 className="text-xl font-medium text-ink">{t.cmpEmptyTitle}</h1>
+          <p className="text-sm text-ink-400">{t.cmpEmptyHint}</p>
+          <Link href="/products" className="btn btn-primary inline-flex">{t.wishBrowse}</Link>
         </div>
       </div>
     );
@@ -49,10 +51,10 @@ export default function ComparePage() {
     <div className="container-ovira space-y-6 py-8">
       <div className="flex items-center justify-between gap-2">
         <h1 className="flex items-center gap-2 text-2xl font-medium text-ink">
-          <Scale className="h-6 w-6 text-blue-600" /> مقارنة المنتجات
+          <Scale className="h-6 w-6 text-blue-600" /> {t.cmpTitle}
         </h1>
         <button type="button" onClick={clear} className="inline-flex items-center gap-1.5 text-sm text-ink-400 hover:text-coral">
-          <Trash2 className="h-4 w-4" /> مسح الكل
+          <Trash2 className="h-4 w-4" /> {t.cmpClearAll}
         </button>
       </div>
 
@@ -71,7 +73,7 @@ export default function ComparePage() {
                     <button
                       type="button"
                       onClick={() => remove(p.slug)}
-                      aria-label="إزالة"
+                      aria-label={t.cmpRemove}
                       className="absolute end-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/90 text-ink-600 shadow hover:text-coral"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -82,7 +84,7 @@ export default function ComparePage() {
             </tr>
             {/* title */}
             <tr>
-              <td className={rowLabel}>المنتج</td>
+              <td className={rowLabel}>{t.cmpProduct}</td>
               {items.map((p) => (
                 <td key={p.slug} className={cell}>
                   <Link href={`/product/${p.slug}`} className="line-clamp-2 text-ink hover:text-blue-600">{p.title}</Link>
@@ -91,7 +93,7 @@ export default function ComparePage() {
             </tr>
             {/* price */}
             <tr>
-              <td className={rowLabel}>السعر</td>
+              <td className={rowLabel}>{t.cmpPrice}</td>
               {items.map((p) => (
                 <td key={p.slug} className={cell}>
                   <div className="font-tech text-lg font-medium text-ink">{formatPrice(p.price, p.currency)}</div>
@@ -103,7 +105,7 @@ export default function ComparePage() {
             </tr>
             {/* rating */}
             <tr>
-              <td className={rowLabel}>التقييم</td>
+              <td className={rowLabel}>{t.cmpRating}</td>
               {items.map((p) => (
                 <td key={p.slug} className={cell}>
                   {typeof p.rating === "number" ? (
@@ -120,17 +122,17 @@ export default function ComparePage() {
             </tr>
             {/* vendor */}
             <tr>
-              <td className={rowLabel}>البائع</td>
+              <td className={rowLabel}>{t.byVendor}</td>
               {items.map((p) => (
                 <td key={p.slug} className={cell}>{p.vendor_name || "—"}</td>
               ))}
             </tr>
             {/* availability */}
             <tr>
-              <td className={rowLabel}>التوفّر</td>
+              <td className={rowLabel}>{t.cmpAvailability}</td>
               {items.map((p) => (
                 <td key={p.slug} className={cell}>
-                  {p.stock_qty > 0 ? <span className="text-mint">متوفّر</span> : <span className="text-coral">غير متوفّر</span>}
+                  {p.stock_qty > 0 ? <span className="text-mint">{t.cmpInStock}</span> : <span className="text-coral">{t.cmpOutStock}</span>}
                 </td>
               ))}
             </tr>
@@ -140,7 +142,7 @@ export default function ComparePage() {
               {items.map((p) => (
                 <td key={p.slug} className={cell}>
                   {p.has_variants ? (
-                    <Link href={`/product/${p.slug}`} className="btn btn-primary w-full text-sm">اختر الخيارات</Link>
+                    <Link href={`/product/${p.slug}`} className="btn btn-primary w-full text-sm">{t.cmpChooseOptions}</Link>
                   ) : (
                     <button
                       type="button"
@@ -149,7 +151,7 @@ export default function ComparePage() {
                       className="btn btn-primary w-full text-sm disabled:opacity-40"
                     >
                       {added === p.slug ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
-                      {added === p.slug ? "أُضيف" : "أضف للسلة"}
+                      {added === p.slug ? t.cmpAdded : t.addToCart}
                     </button>
                   )}
                 </td>

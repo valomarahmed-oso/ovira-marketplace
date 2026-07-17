@@ -8,6 +8,7 @@ import { Check, Loader2, MapPin, Package, Search, XCircle } from "lucide-react";
 import { OviraBars } from "@/components/ovira-bars";
 import { ORDER_STEPS } from "@/lib/orders-api";
 import { trackOrder, type TrackedOrder } from "@/lib/api";
+import { useI18n } from "@/components/i18n-provider";
 import { cn, formatPrice } from "@/lib/utils";
 
 // How far along the tracker each status sits (mirrors the account view).
@@ -24,6 +25,7 @@ function formatDate(iso: string) {
 }
 
 function TrackResult({ order }: { order: TrackedOrder }) {
+  const { t } = useI18n();
   const stepIndex = STEP_INDEX[order.status] ?? -1;
   const delivered = !!order.delivery_confirmed || order.status === "Completed";
 
@@ -32,7 +34,7 @@ function TrackResult({ order }: { order: TrackedOrder }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="font-tech text-2xl font-medium text-ink">{order.name}</h1>
-          <p className="text-sm text-ink-400">تاريخ الطلب: {formatDate(order.creation)}</p>
+          <p className="text-sm text-ink-400">{t.trkOrderDate} {formatDate(order.creation)}</p>
         </div>
         <span
           className={cn(
@@ -45,10 +47,10 @@ function TrackResult({ order }: { order: TrackedOrder }) {
           )}
         >
           {order.payment_status === "Paid"
-            ? "مدفوع"
+            ? t.trkPaid
             : order.payment_status === "Refunded"
-              ? "تم الاسترجاع"
-              : "بانتظار الدفع"}
+              ? t.trkRefunded
+              : t.trkPending}
         </span>
       </div>
 
@@ -56,8 +58,8 @@ function TrackResult({ order }: { order: TrackedOrder }) {
         <div className="card flex items-center gap-3 p-5 text-coral">
           <XCircle className="h-6 w-6 shrink-0" />
           <div>
-            <div className="font-medium">تم إلغاء هذا الطلب</div>
-            <div className="text-sm text-ink-400">لو عندك أي استفسار تواصل مع خدمة العملاء.</div>
+            <div className="font-medium">{t.trkCancelledTitle}</div>
+            <div className="text-sm text-ink-400">{t.trkCancelledHint}</div>
           </div>
         </div>
       ) : (
@@ -82,7 +84,7 @@ function TrackResult({ order }: { order: TrackedOrder }) {
           </div>
           {delivered && order.delivered_on && (
             <p className="mt-4 text-center text-sm text-mint">
-              تم التسليم يوم {formatDate(order.delivered_on)}
+              {t.trkDeliveredOn.replace("{date}", formatDate(order.delivered_on))}
             </p>
           )}
         </div>
@@ -98,7 +100,7 @@ function TrackResult({ order }: { order: TrackedOrder }) {
               <div className="flex grow flex-col">
                 <span className="line-clamp-2 text-sm text-ink">{it.title}</span>
                 <div className="mt-auto flex items-center justify-between pt-2">
-                  <span className="text-sm text-ink-400">الكمية: {it.qty}</span>
+                  <span className="text-sm text-ink-400">{t.odtQty} {it.qty}</span>
                   <span className="font-tech font-medium text-ink">{formatPrice(it.amount, order.currency)}</span>
                 </div>
               </div>
@@ -110,7 +112,7 @@ function TrackResult({ order }: { order: TrackedOrder }) {
           {order.governorate && (
             <div className="card space-y-2 p-5">
               <div className="flex items-center gap-2 font-medium text-ink">
-                <MapPin className="h-4 w-4 text-blue-600" /> التوصيل
+                <MapPin className="h-4 w-4 text-blue-600" /> {t.trkDelivery}
               </div>
               <div className="text-sm leading-6 text-ink-600">
                 <div className="text-ink">{order.customer_name}</div>
@@ -121,17 +123,17 @@ function TrackResult({ order }: { order: TrackedOrder }) {
 
           <div className="card space-y-2 p-5">
             <div className="flex items-center gap-2 font-medium text-ink">
-              <OviraBars /> ملخّص الدفع
+              <OviraBars /> {t.odtPaySummary}
             </div>
             <div className="flex justify-between text-sm text-ink-600">
-              <span>الإجمالي الفرعي</span>
+              <span>{t.odtSubtotal}</span>
               <span className="font-tech text-ink">{formatPrice(order.subtotal, order.currency)}</span>
             </div>
             <div className="flex justify-between text-sm text-ink-600">
-              <span>الشحن</span>
+              <span>{t.odtShipping}</span>
               <span className="font-tech text-ink">
                 {order.shipping_amount === 0 ? (
-                  <span className="text-mint">مجاني</span>
+                  <span className="text-mint">{t.odtFree}</span>
                 ) : (
                   formatPrice(order.shipping_amount, order.currency)
                 )}
@@ -139,16 +141,16 @@ function TrackResult({ order }: { order: TrackedOrder }) {
             </div>
             {!!order.discount_amount && order.discount_amount > 0 && (
               <div className="flex justify-between text-sm text-mint">
-                <span>الخصم{order.coupon_code ? ` (${order.coupon_code})` : ""}</span>
+                <span>{t.odtDiscount}{order.coupon_code ? ` (${order.coupon_code})` : ""}</span>
                 <span className="font-tech">−{formatPrice(order.discount_amount, order.currency)}</span>
               </div>
             )}
             <div className="flex justify-between border-t border-line pt-2 font-medium text-ink">
-              <span>الإجمالي</span>
+              <span>{t.odtTotal}</span>
               <span className="font-tech">{formatPrice(order.total, order.currency)}</span>
             </div>
             <div className="pt-1 text-xs text-ink-400">
-              طريقة الدفع: {order.payment_method === "cod" ? "الدفع عند الاستلام" : order.payment_method || "—"}
+              {t.odtPayMethod} {order.payment_method === "cod" ? t.odtCod : order.payment_method || "—"}
             </div>
           </div>
         </div>
@@ -158,6 +160,7 @@ function TrackResult({ order }: { order: TrackedOrder }) {
 }
 
 function TrackInner() {
+  const { t } = useI18n();
   const params = useSearchParams();
   const urlOrder = params.get("order") ?? "";
   const urlToken = params.get("token") ?? "";
@@ -173,7 +176,7 @@ function TrackInner() {
     setError(null);
     const found = await trackOrder(name.trim(), opts);
     setOrder(found);
-    if (!found) setError("مقدرناش نلاقي طلب بالبيانات دي. اتأكد من رقم الطلب ورقم الموبايل/الإيميل.");
+    if (!found) setError(t.trkNotFound);
     setLoading(false);
   }
 
@@ -197,35 +200,35 @@ function TrackInner() {
         <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-blue-50">
           <Package className="h-7 w-7 text-blue-600" />
         </div>
-        <h1 className="text-2xl font-medium text-ink">تتبّع طلبك</h1>
-        <p className="mt-1 text-sm text-ink-400">اكتب رقم الطلب ورقم الموبايل (أو الإيميل) اللي طلبت بيهم.</p>
+        <h1 className="text-2xl font-medium text-ink">{t.trkTitle}</h1>
+        <p className="mt-1 text-sm text-ink-400">{t.trkSubtitle}</p>
       </div>
 
       <form onSubmit={onSubmit} className="mx-auto grid max-w-md gap-3">
         <input
           className={field}
-          placeholder="رقم الطلب (مثال: OVR-000123)"
+          placeholder={t.trkOrderPlaceholder}
           value={orderNo}
           onChange={(e) => setOrderNo(e.target.value)}
           required
         />
         <input
           className={field}
-          placeholder="رقم الموبايل أو الإيميل"
+          placeholder={t.trkProofPlaceholder}
           value={proof}
           onChange={(e) => setProof(e.target.value)}
           required
         />
         <button type="submit" disabled={loading} className="btn btn-primary h-11 justify-center">
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          تتبّع
+          {t.trkTrackBtn}
         </button>
         {error && <p className="text-center text-sm text-coral">{error}</p>}
       </form>
 
       {loading && !order && (
         <div className="flex items-center justify-center gap-2 text-ink-400">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+          <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
         </div>
       )}
 
@@ -233,9 +236,9 @@ function TrackInner() {
         <div className="mx-auto max-w-3xl">
           <TrackResult order={order} />
           <p className="mt-6 text-center text-sm text-ink-400">
-            عندك حساب؟{" "}
+            {t.trkHaveAccount}{" "}
             <Link href="/account/orders" className="text-blue-600 hover:underline">
-              شوف كل طلباتك
+              {t.trkSeeAllOrders}
             </Link>
           </p>
         </div>

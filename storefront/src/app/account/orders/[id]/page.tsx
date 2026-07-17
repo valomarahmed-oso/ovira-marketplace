@@ -13,6 +13,7 @@ import { OrderContact } from "@/components/order-contact";
 import { cancelOrder, getOrder, ORDER_STEPS, reorderItems, type BuyerOrder } from "@/lib/orders-api";
 import { getProduct } from "@/lib/api";
 import { useCart } from "@/lib/cart-store";
+import { useI18n } from "@/components/i18n-provider";
 import { cn, formatPrice } from "@/lib/utils";
 
 function formatDate(iso: string) {
@@ -37,6 +38,7 @@ export default function OrderDetailPage() {
   const [reordering, setReordering] = useState(false);
   const router = useRouter();
   const addToCart = useCart((s) => s.add);
+  const { t } = useI18n();
 
   async function onReorder() {
     if (!order) return;
@@ -69,14 +71,14 @@ export default function OrderDetailPage() {
     ["Pending Payment", "Paid", "Processing"].includes(order.status);
 
   async function onCancel() {
-    if (!order || !window.confirm("متأكد إنك عايز تلغي الطلب ده؟")) return;
+    if (!order || !window.confirm(t.odtCancelConfirm)) return;
     setCancelling(true);
     setCancelError(null);
     try {
       await cancelOrder(order.name);
       setOrder(await getOrder(id));
     } catch (err) {
-      setCancelError(err instanceof Error ? err.message : "تعذّر إلغاء الطلب.");
+      setCancelError(err instanceof Error ? err.message : t.odtCancelErr);
     } finally {
       setCancelling(false);
     }
@@ -85,7 +87,7 @@ export default function OrderDetailPage() {
   if (loading) {
     return (
       <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
-        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
       </div>
     );
   }
@@ -97,8 +99,8 @@ export default function OrderDetailPage() {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-50">
             <Package className="h-7 w-7 text-blue-600" />
           </div>
-          <h1 className="text-xl font-medium text-ink">الطلب غير موجود</h1>
-          <Link href="/account/orders" className="btn btn-primary inline-flex">كل الطلبات</Link>
+          <h1 className="text-xl font-medium text-ink">{t.odtNotFound}</h1>
+          <Link href="/account/orders" className="btn btn-primary inline-flex">{t.odtAllOrders}</Link>
         </div>
       </div>
     );
@@ -110,8 +112,8 @@ export default function OrderDetailPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "حسابي", href: "/account" },
-          { label: "طلباتي", href: "/account/orders" },
+          { label: t.account, href: "/account" },
+          { label: t.myOrders, href: "/account/orders" },
           { label: order.name },
         ]}
       />
@@ -121,7 +123,7 @@ export default function OrderDetailPage() {
           <h1 className="font-tech text-2xl font-medium text-ink">{order.name}</h1>
           {order.return_status === "Completed" && (
             <span className="rounded-full bg-coral-50 px-2.5 py-1 text-xs font-medium text-coral">
-              مرتجع
+              {t.odtReturned}
             </span>
           )}
         </div>
@@ -132,7 +134,7 @@ export default function OrderDetailPage() {
             className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-sm text-ink-600 transition-colors hover:border-blue hover:text-blue-600"
           >
             <FileText className="h-4 w-4" />
-            الفاتورة
+            {t.odtInvoice}
           </Link>
           <button
             type="button"
@@ -141,7 +143,7 @@ export default function OrderDetailPage() {
             className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-sm text-ink-600 transition-colors hover:border-blue hover:text-blue-600 disabled:opacity-50"
           >
             {reordering ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            أعد الطلب
+            {t.odtReorder}
           </button>
           {canCancel && (
             <button
@@ -151,7 +153,7 @@ export default function OrderDetailPage() {
               className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-sm text-coral transition-colors hover:border-coral hover:bg-coral-50 disabled:opacity-50"
             >
               {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-              إلغاء الطلب
+              {t.odtCancel}
             </button>
           )}
         </div>
@@ -197,7 +199,7 @@ export default function OrderDetailPage() {
               <div className="flex grow flex-col">
                 <span className="line-clamp-2 text-sm text-ink">{it.title}</span>
                 <div className="mt-auto flex items-center justify-between pt-2">
-                  <span className="text-sm text-ink-400">الكمية: {it.qty}</span>
+                  <span className="text-sm text-ink-400">{t.odtQty} {it.qty}</span>
                   <span className="font-tech font-medium text-ink">{formatPrice(it.amount, order.currency)}</span>
                 </div>
               </div>
@@ -208,7 +210,7 @@ export default function OrderDetailPage() {
         <div className="space-y-4">
           <div className="card space-y-2 p-5">
             <div className="flex items-center gap-2 font-medium text-ink">
-              <MapPin className="h-4 w-4 text-blue-600" /> عنوان التوصيل
+              <MapPin className="h-4 w-4 text-blue-600" /> {t.odtShipAddr}
             </div>
             <div className="text-sm leading-6 text-ink-600">
               <div className="text-ink">{order.customer_name}</div>
@@ -222,30 +224,30 @@ export default function OrderDetailPage() {
 
           <div className="card space-y-2 p-5">
             <div className="flex items-center gap-2 font-medium text-ink">
-              <OviraBars /> ملخّص الدفع
+              <OviraBars /> {t.odtPaySummary}
             </div>
             <div className="flex justify-between text-sm text-ink-600">
-              <span>الإجمالي الفرعي</span>
+              <span>{t.odtSubtotal}</span>
               <span className="font-tech text-ink">{formatPrice(order.subtotal, order.currency)}</span>
             </div>
             <div className="flex justify-between text-sm text-ink-600">
-              <span>الشحن</span>
+              <span>{t.odtShipping}</span>
               <span className="font-tech text-ink">
-                {order.shipping_amount === 0 ? <span className="text-mint">مجاني</span> : formatPrice(order.shipping_amount, order.currency)}
+                {order.shipping_amount === 0 ? <span className="text-mint">{t.odtFree}</span> : formatPrice(order.shipping_amount, order.currency)}
               </span>
             </div>
             {!!order.discount_amount && order.discount_amount > 0 && (
               <div className="flex justify-between text-sm text-mint">
-                <span>الخصم{order.coupon_code ? ` (${order.coupon_code})` : ""}</span>
+                <span>{t.odtDiscount}{order.coupon_code ? ` (${order.coupon_code})` : ""}</span>
                 <span className="font-tech">−{formatPrice(order.discount_amount, order.currency)}</span>
               </div>
             )}
             <div className="flex justify-between border-t border-line pt-2 font-medium text-ink">
-              <span>الإجمالي</span>
+              <span>{t.odtTotal}</span>
               <span className="font-tech">{formatPrice(order.total, order.currency)}</span>
             </div>
             <div className="pt-1 text-xs text-ink-400">
-              طريقة الدفع: {order.payment_method === "cod" ? "الدفع عند الاستلام" : order.payment_method || "—"}
+              {t.odtPayMethod} {order.payment_method === "cod" ? t.odtCod : order.payment_method || "—"}
             </div>
           </div>
         </div>
