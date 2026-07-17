@@ -280,3 +280,37 @@ def product_options(limit=200):
         limit_page_length=cint(limit),
         ignore_permissions=True,
     )
+
+
+@frappe.whitelist()
+def update_site_content(
+    brand_name=None,
+    footer_tagline=None,
+    support_email=None,
+    about_content=None,
+    careers_content=None,
+    terms_content=None,
+    privacy_content=None,
+):
+    """Operator: edit the dynamic site content (brand, footer tagline, and the
+    About/Careers/Terms/Privacy pages) from the storefront admin."""
+    _require_operator()
+    doc = frappe.get_single("Marketplace Site Content")
+    values = {
+        "brand_name": brand_name,
+        "footer_tagline": footer_tagline,
+        "support_email": support_email,
+        "about_content": about_content,
+        "careers_content": careers_content,
+        "terms_content": terms_content,
+        "privacy_content": privacy_content,
+    }
+    for field, value in values.items():
+        if value is not None:
+            doc.set(field, value)
+    doc.flags.ignore_permissions = True
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    from ovira_marketplace.api.cms import get_site_content
+
+    return get_site_content()

@@ -5,10 +5,12 @@ import { CreditCard, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useI18n } from "@/components/i18n-provider";
 import { useAppConfig } from "@/components/app-config-provider";
+import { useSiteContent } from "@/components/site-content-provider";
 
 export function Footer() {
   const { t } = useI18n();
   const { multiVendor } = useAppConfig();
+  const site = useSiteContent();
 
   const trust = [
     { icon: Truck, label: t.freeShipping, note: t.freeShippingNote, href: "/products" },
@@ -81,7 +83,7 @@ export function Footer() {
         <div className="container-ovira grid grid-cols-2 gap-8 py-10 md:grid-cols-5">
           <div className="col-span-2 md:col-span-1">
             <Logo />
-            <p className="mt-4 max-w-xs text-sm leading-6 text-ink-400">{t.footerAbout}</p>
+            <p className="mt-4 max-w-xs text-sm leading-6 text-ink-400">{site.footer_tagline || t.footerAbout}</p>
           </div>
           {columns.map((col) => (
             <div key={col.title}>
@@ -102,7 +104,7 @@ export function Footer() {
 
       <div className="border-t border-line">
         <div className="container-ovira flex flex-col items-center justify-between gap-2 py-5 text-xs text-ink-400 md:flex-row">
-          <span>© {new Date().getFullYear()} {t.brand} — {t.rights}</span>
+          <span>© {new Date().getFullYear()} {site.brand_name || t.brand} — {t.rights}</span>
           <span className="font-tech">{t.builtOn}</span>
         </div>
       </div>

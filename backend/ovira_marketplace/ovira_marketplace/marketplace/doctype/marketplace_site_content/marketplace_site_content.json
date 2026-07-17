@@ -1,0 +1,97 @@
+{
+ "actions": [],
+ "creation": "2026-07-14 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "brand_section",
+  "brand_name",
+  "footer_tagline",
+  "support_email",
+  "pages_section",
+  "about_content",
+  "careers_content",
+  "terms_content",
+  "privacy_content"
+ ],
+ "fields": [
+  {
+   "fieldname": "brand_section",
+   "fieldtype": "Section Break",
+   "label": "Brand & footer"
+  },
+  {
+   "description": "Shown in the logo, footer and title. Leave blank for the default.",
+   "fieldname": "brand_name",
+   "fieldtype": "Data",
+   "label": "Brand name"
+  },
+  {
+   "fieldname": "footer_tagline",
+   "fieldtype": "Small Text",
+   "label": "Footer tagline"
+  },
+  {
+   "fieldname": "support_email",
+   "fieldtype": "Data",
+   "label": "Support email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "pages_section",
+   "fieldtype": "Section Break",
+   "label": "Content pages"
+  },
+  {
+   "description": "Rich content for /about. Leave blank to keep the built-in page.",
+   "fieldname": "about_content",
+   "fieldtype": "Text Editor",
+   "label": "About us"
+  },
+  {
+   "fieldname": "careers_content",
+   "fieldtype": "Text Editor",
+   "label": "Careers"
+  },
+  {
+   "fieldname": "terms_content",
+   "fieldtype": "Text Editor",
+   "label": "Terms & conditions"
+  },
+  {
+   "fieldname": "privacy_content",
+   "fieldtype": "Text Editor",
+   "label": "Privacy"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-07-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Site Content",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

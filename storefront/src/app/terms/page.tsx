@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import { InfoPage, InfoSection } from "@/components/info-page";
+import { CmsRichText } from "@/components/cms-rich-text";
+import { getSiteContent } from "@/lib/api";
 
 export const metadata: Metadata = { title: "الشروط والأحكام | أوفيرا" };
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const content = await getSiteContent();
   return (
     <InfoPage title="الشروط والأحكام" subtitle="آخر تحديث: يوليو 2026">
+      {content.terms_content ? (
+        <CmsRichText html={content.terms_content} />
+      ) : (
+        <>
       <p>
         استخدامك لمنصة أوفيرا يعني موافقتك على الشروط دي. اقرأها كويس، ولو عندك أي استفسار
         تواصل معنا قبل إتمام أي طلب.
@@ -49,6 +56,8 @@ export default function TermsPage() {
           العربية، وأي نزاع يكون من اختصاص محاكمها.
         </p>
       </InfoSection>
+        </>
+      )}
     </InfoPage>
   );
 }

@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import { InfoPage, InfoSection } from "@/components/info-page";
+import { CmsRichText } from "@/components/cms-rich-text";
+import { getSiteContent } from "@/lib/api";
 
 export const metadata: Metadata = { title: "سياسة الخصوصية | أوفيرا" };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const content = await getSiteContent();
   return (
     <InfoPage title="سياسة الخصوصية" subtitle="آخر تحديث: يوليو 2026">
+      {content.privacy_content ? (
+        <CmsRichText html={content.privacy_content} />
+      ) : (
+        <>
       <p>
         خصوصيتك أولوية. السياسة دي بتوضح إيه البيانات اللي بنجمعها، بنستخدمها في إيه،
         وحقوقك عليها.
@@ -46,6 +53,8 @@ export default function PrivacyPage() {
           تمسحها من إعدادات متصفحك، مع العلم إن ده هيسجّل خروجك.
         </p>
       </InfoSection>
+        </>
+      )}
     </InfoPage>
   );
 }

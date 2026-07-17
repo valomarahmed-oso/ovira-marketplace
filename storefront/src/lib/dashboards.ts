@@ -5,6 +5,7 @@ import {
   BellRing,
   ClipboardList,
   CreditCard,
+  FileText,
   Gift,
   Heart,
   Layers,
@@ -80,6 +81,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/admin/payments", key: "adminNavPayments", icon: CreditCard },
       { href: "/admin/shipping", key: "adminNavShipping", icon: Truck },
       { href: "/admin/email", key: "adminNavEmail", icon: Mail },
+      { href: "/admin/content", key: "adminNavContent", icon: FileText },
     ],
   },
   vendor: {

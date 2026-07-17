@@ -1,9 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { useBrand } from "@/components/site-content-provider";
 import { cn } from "@/lib/utils";
 
 export function Logo({ withWordmark = true, className }: { withWordmark?: boolean; className?: string }) {
+  const brand = useBrand();
   return (
-    <Link href="/" className={cn("flex items-center gap-2.5", className)} aria-label="أوفيرا">
+    <Link href="/" className={cn("flex items-center gap-2.5", className)} aria-label={brand}>
       <span className="relative grid h-9 w-9 place-items-center rounded-xl bg-blue">
         <svg viewBox="0 0 32 32" className="h-5 w-5" fill="none" aria-hidden="true">
           <path
@@ -17,7 +21,7 @@ export function Logo({ withWordmark = true, className }: { withWordmark?: boolea
           <rect x="20.5" y="18.6" width="8.5" height="2.4" rx="1.2" fill="white" />
         </svg>
       </span>
-      {withWordmark && <span className="text-xl font-medium tracking-tight text-ink">أوفيرا</span>}
+      {withWordmark && <span className="text-xl font-medium tracking-tight text-ink">{brand}</span>}
     </Link>
   );
 }

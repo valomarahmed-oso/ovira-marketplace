@@ -176,3 +176,23 @@ def _deal_product():
     rows = [row]
     _attach_card_fields(rows)
     return rows[0]
+
+
+SITE_CONTENT_FIELDS = [
+    "brand_name",
+    "footer_tagline",
+    "support_email",
+    "about_content",
+    "careers_content",
+    "terms_content",
+    "privacy_content",
+]
+
+
+@frappe.whitelist(allow_guest=True)
+def get_site_content():
+    """Operator-editable site chrome + content pages (brand, footer tagline,
+    About/Careers/Terms/Privacy). Empty fields let the storefront fall back to
+    its built-in defaults, so this is safe before the operator fills anything in."""
+    doc = frappe.get_single("Marketplace Site Content")
+    return {f: doc.get(f) for f in SITE_CONTENT_FIELDS}

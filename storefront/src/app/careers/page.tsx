@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import { InfoPage, InfoSection } from "@/components/info-page";
+import { CmsRichText } from "@/components/cms-rich-text";
+import { getSiteContent } from "@/lib/api";
 
 export const metadata: Metadata = { title: "الوظائف | أوفيرا" };
 
-export default function CareersPage() {
+export default async function CareersPage() {
+  const content = await getSiteContent();
   return (
     <InfoPage title="الوظائف" subtitle="انضم لفريق بيبني تجربة التسوّق الجاية في مصر.">
+      {content.careers_content ? (
+        <CmsRichText html={content.careers_content} />
+      ) : (
+        <>
       <p>
         بنكبر بسرعة وبندوّر دايمًا على ناس شاطرة بتحب المنتج والتفاصيل — هندسة، تشغيل،
         خدمة عملاء، ونمو.
@@ -20,6 +27,8 @@ export default function CareersPage() {
           وهنرجع لك أول ما يفتح شاغر مناسب.
         </p>
       </InfoSection>
+        </>
+      )}
     </InfoPage>
   );
 }

@@ -509,6 +509,7 @@ const ar = {
 
   adminNavShipping: "الشحن",
   adminNavEmail: "البريد",
+  adminNavContent: "المحتوى",
   shipTitle: "شركات الشحن",
   shipSubtitle: "فعّل شركة الشحن واضبط أسعار التوصيل وبيانات الربط.",
   shipFlatRate: "سعر الشحن الثابت",
@@ -1134,6 +1135,7 @@ const en: Dict = {
 
   adminNavShipping: "Shipping",
   adminNavEmail: "Email",
+  adminNavContent: "Content",
   shipTitle: "Shipping providers",
   shipSubtitle: "Enable a carrier and set delivery rates and credentials.",
   shipFlatRate: "Flat shipping rate",

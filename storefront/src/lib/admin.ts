@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import type { SiteContent } from "@/lib/api";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
@@ -155,4 +156,31 @@ export async function getProductOptions(): Promise<{ name: string; title: string
   } catch {
     return [];
   }
+}
+
+export async function getSiteContentAdmin(): Promise<SiteContent> {
+  if (!BASE) return {};
+  try {
+    const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.cms.get_site_content`, {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return {};
+    return ((await res.json()).message ?? {}) as SiteContent;
+  } catch {
+    return {};
+  }
+}
+
+export async function updateSiteContent(data: Partial<SiteContent>): Promise<SiteContent> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.admin.update_site_content`, {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر حفظ المحتوى."));
+  return (await res.json()).message;
 }

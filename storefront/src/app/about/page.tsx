@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import { InfoPage, InfoSection } from "@/components/info-page";
+import { CmsRichText } from "@/components/cms-rich-text";
+import { getSiteContent } from "@/lib/api";
 
 export const metadata: Metadata = { title: "من نحن | أوفيرا" };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const content = await getSiteContent();
   return (
     <InfoPage title="من نحن" subtitle="أوفيرا — تسوّق أذكى، من بائعين تثق فيهم.">
+      {content.about_content ? (
+        <CmsRichText html={content.about_content} />
+      ) : (
+        <>
       <p>
         أوفيرا ماركت بليس مصري متعدد البائعين، بيجمع آلاف المنتجات من بائعين موثوقين في مكان
         واحد: إلكترونيات، موضة، مستلزمات المنزل، الجمال، وأكتر. هدفنا تجربة تسوّق سهلة وآمنة
@@ -32,6 +39,8 @@ export default function AboutPage() {
           .
         </p>
       </InfoSection>
+        </>
+      )}
     </InfoPage>
   );
 }

@@ -295,6 +295,23 @@ const DEFAULT_CONFIG: AppConfig = {
   onlinePayment: false,
 };
 
+export type SiteContent = {
+  brand_name?: string;
+  footer_tagline?: string;
+  support_email?: string;
+  about_content?: string;
+  careers_content?: string;
+  terms_content?: string;
+  privacy_content?: string;
+};
+
+/** Operator-editable site chrome + content pages. Empty fields fall back to the
+ * storefront's built-in defaults. */
+export async function getSiteContent(): Promise<SiteContent> {
+  const live = await callMethod<SiteContent>("ovira_marketplace.api.cms.get_site_content", {});
+  return live ?? {};
+}
+
 export async function getAppConfig(): Promise<AppConfig> {
   if (!BASE) return DEFAULT_CONFIG;
   // Short-lived cache: this gates vendor-facing UI, but a blocking uncached fetch

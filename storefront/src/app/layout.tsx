@@ -13,7 +13,8 @@ import { CompareBar } from "@/components/compare-bar";
 import { QuickView } from "@/components/quick-view";
 import { I18nProvider } from "@/components/i18n-provider";
 import { AppConfigProvider } from "@/components/app-config-provider";
-import { getAppConfig } from "@/lib/api";
+import { SiteContentProvider } from "@/components/site-content-provider";
+import { getAppConfig, getSiteContent } from "@/lib/api";
 import { getLocale, getTheme } from "@/lib/locale";
 
 const readex = Readex_Pro({
@@ -47,7 +48,12 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [locale, theme, config] = await Promise.all([getLocale(), getTheme(), getAppConfig()]);
+  const [locale, theme, config, siteContent] = await Promise.all([
+    getLocale(),
+    getTheme(),
+    getAppConfig(),
+    getSiteContent(),
+  ]);
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
@@ -58,6 +64,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <body className="min-h-screen">
         <AppConfigProvider config={config}>
+          <SiteContentProvider content={siteContent}>
           <I18nProvider locale={locale}>
             <PwaRegister />
             <InstallPrompt />
@@ -71,6 +78,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <CompareBar />
             <QuickView />
           </I18nProvider>
+          </SiteContentProvider>
         </AppConfigProvider>
       </body>
     </html>
