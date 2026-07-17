@@ -9,6 +9,7 @@ import {
   ORDER_STATUS_STYLE,
   type BuyerOrderSummary,
 } from "@/lib/orders-api";
+import { useI18n } from "@/components/i18n-provider";
 import { cn, formatPrice } from "@/lib/utils";
 
 function formatDate(iso: string) {
@@ -16,6 +17,7 @@ function formatDate(iso: string) {
 }
 
 export default function OrdersPage() {
+  const { t } = useI18n();
   const [orders, setOrders] = useState<BuyerOrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +30,7 @@ export default function OrdersPage() {
   if (loading) {
     return (
       <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
-        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
       </div>
     );
   }
@@ -40,9 +42,9 @@ export default function OrdersPage() {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-50">
             <Package className="h-7 w-7 text-blue-600" />
           </div>
-          <h1 className="text-xl font-medium text-ink">لا توجد طلبات بعد</h1>
-          <p className="text-sm text-ink-400">أول ما تكمّل أول طلب هيظهر هنا.</p>
-          <Link href="/" className="btn btn-primary inline-flex">ابدأ التسوّق</Link>
+          <h1 className="text-xl font-medium text-ink">{t.odlEmptyTitle}</h1>
+          <p className="text-sm text-ink-400">{t.odlEmptyHint}</p>
+          <Link href="/" className="btn btn-primary inline-flex">{t.coStartShopping}</Link>
         </div>
       </div>
     );
@@ -50,7 +52,7 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-medium text-ink">طلباتي ({orders.length})</h1>
+      <h1 className="text-2xl font-medium text-ink">{t.myOrders} ({orders.length})</h1>
       <div className="space-y-3">
         {orders.map((o) => (
           <Link key={o.name} href={`/account/orders/${o.name}`} className="card block p-4 transition-shadow hover:shadow-card">
@@ -64,7 +66,7 @@ export default function OrdersPage() {
               <span className="text-sm text-ink-400">{formatDate(o.creation)}</span>
             </div>
             <div className="mt-3 flex items-center justify-between gap-3">
-              <span className="text-xs text-ink-400">{o.item_count} منتج</span>
+              <span className="text-xs text-ink-400">{o.item_count} {t.ordItemsCount}</span>
               <div className="flex items-center gap-1 text-blue-600">
                 <span className="font-tech font-medium text-ink">{formatPrice(o.total, o.currency)}</span>
                 <ChevronLeft className="h-4 w-4" />

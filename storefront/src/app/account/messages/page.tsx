@@ -34,7 +34,7 @@ export default function BuyerMessagesPage() {
       <h1 className="text-2xl font-medium text-ink">{t.messagesTitle}</h1>
       {loading ? (
         <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+          <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
         </div>
       ) : (
         <MessageThreadList items={items} emptyText={t.messagesEmpty} />

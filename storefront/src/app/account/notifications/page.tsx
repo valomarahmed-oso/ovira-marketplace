@@ -10,6 +10,7 @@ import {
   type BuyerNotification,
   type NotificationKind,
 } from "@/lib/notifications-api";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<NotificationKind, typeof Bell> = {
@@ -24,6 +25,7 @@ function formatDate(iso: string) {
 }
 
 export default function NotificationsPage() {
+  const { t } = useI18n();
   const [notifications, setNotifications] = useState<BuyerNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +48,7 @@ export default function NotificationsPage() {
   if (loading) {
     return (
       <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
-        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
       </div>
     );
   }
@@ -54,9 +56,9 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-medium text-ink">الإشعارات</h1>
+        <h1 className="text-2xl font-medium text-ink">{t.ntfTitle}</h1>
         <button type="button" onClick={onMarkAllRead} className="btn btn-ghost text-sm">
-          <CheckCheck className="h-4 w-4" /> تعليم الكل كمقروء
+          <CheckCheck className="h-4 w-4" /> {t.ntfMarkAllRead}
         </button>
       </div>
 
@@ -65,7 +67,7 @@ export default function NotificationsPage() {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-50">
             <Bell className="h-7 w-7 text-blue-600" />
           </div>
-          <p className="text-ink-400">لا توجد إشعارات.</p>
+          <p className="text-ink-400">{t.ntfEmpty}</p>
         </div>
       ) : (
         <div className="card divide-y divide-line overflow-hidden">

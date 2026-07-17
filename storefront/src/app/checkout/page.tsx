@@ -18,8 +18,8 @@ import { formatPrice, cn } from "@/lib/utils";
 const GOVERNORATES = ["القاهرة", "الجيزة", "الإسكندرية", "الدقهلية", "الشرقية", "القليوبية", "أخرى"];
 
 const PAYMENTS = [
-  { id: "cod", icon: Truck, label: "الدفع عند الاستلام", note: "ادفع نقدًا عند وصول الطلب" },
-  { id: "card", icon: CreditCard, label: "بطاقة ائتمان", note: "ادفع بأمان عبر بطاقتك" },
+  { id: "cod", icon: Truck },
+  { id: "card", icon: CreditCard },
 ] as const;
 
 export default function CheckoutPage() {
@@ -41,6 +41,10 @@ export default function CheckoutPage() {
     getAppConfig().then((c) => setOnlinePayment(c.onlinePayment));
   }, []);
   const payOptions = PAYMENTS.filter((o) => o.id !== "card" || onlinePayment);
+  const payMeta: Record<string, { label: string; note: string }> = {
+    cod: { label: t.odtCod, note: t.coCodNote },
+    card: { label: t.invPayCard, note: t.coCardNote },
+  };
 
   // Saved address book (signed-in shoppers). Selecting a card prefills the form,
   // which stays the single source of truth for the order.
@@ -135,9 +139,9 @@ export default function CheckoutPage() {
     return (
       <div className="container-ovira py-16">
         <div className="card mx-auto max-w-md p-10 text-center text-ink-400">
-          سلتك فاضية —{" "}
+          {t.cartEmptyTitle} —{" "}
           <Link href="/" className="text-blue-600 hover:underline">
-            ابدأ التسوّق
+            {t.coStartShopping}
           </Link>
         </div>
       </div>
@@ -168,7 +172,7 @@ export default function CheckoutPage() {
       setCoupon({ code: code.toUpperCase(), discount: res.discount });
     } else {
       setCoupon(null);
-      setCouponError("error" in res ? res.error : "كوبون غير صالح.");
+      setCouponError("error" in res ? res.error : t.coCouponInvalid);
     }
     setCouponBusy(false);
   }
@@ -241,11 +245,11 @@ export default function CheckoutPage() {
 
   return (
     <div className="container-ovira space-y-6 py-6">
-      <h1 className="text-2xl font-medium text-ink">إتمام الشراء</h1>
+      <h1 className="text-2xl font-medium text-ink">{t.cartCheckout}</h1>
       <form onSubmit={placeOrder} className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <section className="card space-y-4 p-5">
-            <h2 className="font-medium text-ink">عنوان التوصيل</h2>
+            <h2 className="font-medium text-ink">{t.odtShipAddr}</h2>
 
             {user && addresses.length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -278,15 +282,15 @@ export default function CheckoutPage() {
                   )}
                 >
                   <Plus className="h-4 w-4" />
-                  عنوان جديد
+                  {t.adrNew}
                 </button>
               </div>
             )}
 
             {showManualFields && (
               <div className="grid gap-3 sm:grid-cols-2">
-                <input required placeholder="الاسم بالكامل" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={field} />
-                <input required placeholder="رقم الموبايل" inputMode="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={field} />
+                <input required placeholder={t.coFullName} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={field} />
+                <input required placeholder={t.adrPhone} inputMode="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={field} />
                 <div>
                   <select value={form.gov} onChange={(e) => setForm({ ...form, gov: e.target.value })} className={field}>
                     {GOVERNORATES.map((g) => (
@@ -297,11 +301,11 @@ export default function CheckoutPage() {
                     <p className="mt-1 text-xs text-mint">{t.shipEtaHint.replace("{days}", String(govEta))}</p>
                   ) : null}
                 </div>
-                <input required placeholder="العنوان بالتفصيل" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={`${field} sm:col-span-2`} />
+                <input required placeholder={t.adrDetail} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={`${field} sm:col-span-2`} />
                 {user && (
                   <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-600 sm:col-span-2">
                     <input type="checkbox" checked={saveAddr} onChange={(e) => setSaveAddr(e.target.checked)} className="accent-blue" />
-                    احفظ هذا العنوان لطلباتي القادمة
+                    {t.coSaveAddr}
                   </label>
                 )}
               </div>
@@ -309,7 +313,7 @@ export default function CheckoutPage() {
           </section>
 
           <section className="card space-y-3 p-5">
-            <h2 className="font-medium text-ink">طريقة الدفع</h2>
+            <h2 className="font-medium text-ink">{t.coPayTitle}</h2>
             {payOptions.map((opt) => (
               <label
                 key={opt.id}
@@ -321,8 +325,8 @@ export default function CheckoutPage() {
                 <input type="radio" name="pay" checked={pay === opt.id} onChange={() => setPay(opt.id)} className="accent-blue" />
                 <opt.icon className="h-5 w-5 text-blue-600" />
                 <span>
-                  <span className="block text-sm font-medium text-ink">{opt.label}</span>
-                  <span className="block text-xs text-ink-400">{opt.note}</span>
+                  <span className="block text-sm font-medium text-ink">{payMeta[opt.id].label}</span>
+                  <span className="block text-xs text-ink-400">{payMeta[opt.id].note}</span>
                 </span>
               </label>
             ))}
@@ -332,12 +336,12 @@ export default function CheckoutPage() {
         <div className="h-fit space-y-4">
           <section className="card space-y-2 p-5">
             <h2 className="flex items-center gap-2 font-medium text-ink">
-              <Tag className="h-4 w-4 text-blue-600" /> كوبون الخصم
+              <Tag className="h-4 w-4 text-blue-600" /> {t.coCouponTitle}
             </h2>
             {coupon ? (
               <div className="flex items-center justify-between rounded-xl bg-mint/10 px-3 py-2 text-sm">
                 <span className="font-tech font-medium text-mint">{coupon.code}</span>
-                <button type="button" onClick={removeCoupon} className="text-ink-400 hover:text-coral" aria-label="إزالة الكوبون">
+                <button type="button" onClick={removeCoupon} className="text-ink-400 hover:text-coral" aria-label={t.coRemoveCoupon}>
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -352,7 +356,7 @@ export default function CheckoutPage() {
                       void applyCoupon();
                     }
                   }}
-                  placeholder="أدخل الكود"
+                  placeholder={t.coCouponPlaceholder}
                   className="h-11 w-full rounded-xl border border-line bg-white px-4 text-sm uppercase outline-none focus:border-blue"
                 />
                 <button
@@ -361,7 +365,7 @@ export default function CheckoutPage() {
                   disabled={couponBusy || !couponInput.trim()}
                   className="btn btn-ghost shrink-0 disabled:opacity-50"
                 >
-                  {couponBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "تطبيق"}
+                  {couponBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t.coApply}
                 </button>
               </div>
             )}
@@ -397,7 +401,7 @@ export default function CheckoutPage() {
             walletLabel={t.walletApplied}
           >
             <button type="submit" disabled={submitting} className="btn btn-primary w-full disabled:opacity-50">
-              تأكيد الطلب
+              {t.coConfirmOrder}
             </button>
           </OrderSummary>
         </div>
