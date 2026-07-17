@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { InfoPage, InfoSection } from "@/components/info-page";
 import { CmsRichText } from "@/components/cms-rich-text";
-import { getSiteContent } from "@/lib/api";
+import { getSiteContent, localizeSiteContent } from "@/lib/api";
+import { getLocale } from "@/lib/locale";
 
 export const metadata: Metadata = { title: "الوظائف | أوفيرا" };
 
 export default async function CareersPage() {
-  const content = await getSiteContent();
+  const [locale, raw] = await Promise.all([getLocale(), getSiteContent()]);
+  const content = localizeSiteContent(raw, locale);
   return (
     <InfoPage title="الوظائف" subtitle="انضم لفريق بيبني تجربة التسوّق الجاية في مصر.">
       {content.careers_content ? (

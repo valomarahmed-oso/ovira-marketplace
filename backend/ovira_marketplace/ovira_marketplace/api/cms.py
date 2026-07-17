@@ -180,12 +180,18 @@ def _deal_product():
 
 SITE_CONTENT_FIELDS = [
     "brand_name",
+    "brand_name_en",
     "footer_tagline",
+    "footer_tagline_en",
     "support_email",
     "about_content",
+    "about_content_en",
     "careers_content",
+    "careers_content_en",
     "terms_content",
+    "terms_content_en",
     "privacy_content",
+    "privacy_content_en",
 ]
 
 

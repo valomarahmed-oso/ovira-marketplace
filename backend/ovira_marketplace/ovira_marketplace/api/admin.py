@@ -285,25 +285,39 @@ def product_options(limit=200):
 @frappe.whitelist()
 def update_site_content(
     brand_name=None,
+    brand_name_en=None,
     footer_tagline=None,
+    footer_tagline_en=None,
     support_email=None,
     about_content=None,
+    about_content_en=None,
     careers_content=None,
+    careers_content_en=None,
     terms_content=None,
+    terms_content_en=None,
     privacy_content=None,
+    privacy_content_en=None,
 ):
     """Operator: edit the dynamic site content (brand, footer tagline, and the
-    About/Careers/Terms/Privacy pages) from the storefront admin."""
+    About/Careers/Terms/Privacy pages) from the storefront admin. Each field has
+    an Arabic value and an optional English (_en) value; the storefront serves the
+    active locale and falls back to Arabic when the English value is blank."""
     _require_operator()
     doc = frappe.get_single("Marketplace Site Content")
     values = {
         "brand_name": brand_name,
+        "brand_name_en": brand_name_en,
         "footer_tagline": footer_tagline,
+        "footer_tagline_en": footer_tagline_en,
         "support_email": support_email,
         "about_content": about_content,
+        "about_content_en": about_content_en,
         "careers_content": careers_content,
+        "careers_content_en": careers_content_en,
         "terms_content": terms_content,
+        "terms_content_en": terms_content_en,
         "privacy_content": privacy_content,
+        "privacy_content_en": privacy_content_en,
     }
     for field, value in values.items():
         if value is not None:

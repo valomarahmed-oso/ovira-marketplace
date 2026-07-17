@@ -1,5 +1,6 @@
 import { getAttribution } from "@/lib/attribution";
 import { writeHeaders } from "@/lib/frappe-client";
+import type { Locale } from "@/lib/i18n";
 import { MOCK_CATEGORIES, mockDetail, mockHomepage, mockProducts } from "@/lib/mock-data";
 
 // Mock fallbacks are dev-only; in production the bundler tree-shakes them out and
@@ -297,19 +298,44 @@ const DEFAULT_CONFIG: AppConfig = {
 
 export type SiteContent = {
   brand_name?: string;
+  brand_name_en?: string;
   footer_tagline?: string;
+  footer_tagline_en?: string;
   support_email?: string;
   about_content?: string;
+  about_content_en?: string;
   careers_content?: string;
+  careers_content_en?: string;
   terms_content?: string;
+  terms_content_en?: string;
   privacy_content?: string;
+  privacy_content_en?: string;
 };
 
 /** Operator-editable site chrome + content pages. Empty fields fall back to the
- * storefront's built-in defaults. */
+ * storefront's built-in defaults. Carries both the Arabic base fields and their
+ * English (_en) variants; use {@link localizeSiteContent} to collapse to a locale. */
 export async function getSiteContent(): Promise<SiteContent> {
   const live = await callMethod<SiteContent>("ovira_marketplace.api.cms.get_site_content", {});
   return live ?? {};
+}
+
+/** Collapse the bilingual SiteContent to the active locale: for `en`, prefer the
+ *  `_en` variant then fall back to the Arabic base; for `ar`, use the base value.
+ *  The returned object exposes only the base field names (brand_name, …), each
+ *  already holding the right-language string. */
+export function localizeSiteContent(content: SiteContent, locale: Locale): SiteContent {
+  if (locale !== "en") return content;
+  const pick = (base?: string, en?: string) => (en && en.trim() ? en : base);
+  return {
+    ...content,
+    brand_name: pick(content.brand_name, content.brand_name_en),
+    footer_tagline: pick(content.footer_tagline, content.footer_tagline_en),
+    about_content: pick(content.about_content, content.about_content_en),
+    careers_content: pick(content.careers_content, content.careers_content_en),
+    terms_content: pick(content.terms_content, content.terms_content_en),
+    privacy_content: pick(content.privacy_content, content.privacy_content_en),
+  };
 }
 
 export async function getAppConfig(): Promise<AppConfig> {

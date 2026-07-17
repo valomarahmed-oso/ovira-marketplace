@@ -6,13 +6,19 @@
  "field_order": [
   "brand_section",
   "brand_name",
+  "brand_name_en",
   "footer_tagline",
+  "footer_tagline_en",
   "support_email",
   "pages_section",
   "about_content",
+  "about_content_en",
   "careers_content",
+  "careers_content_en",
   "terms_content",
-  "privacy_content"
+  "terms_content_en",
+  "privacy_content",
+  "privacy_content_en"
  ],
  "fields": [
   {
@@ -24,12 +30,23 @@
    "description": "Shown in the logo, footer and title. Leave blank for the default.",
    "fieldname": "brand_name",
    "fieldtype": "Data",
-   "label": "Brand name"
+   "label": "Brand name (Arabic)"
+  },
+  {
+   "description": "English brand name. Falls back to the Arabic value when blank.",
+   "fieldname": "brand_name_en",
+   "fieldtype": "Data",
+   "label": "Brand name (English)"
   },
   {
    "fieldname": "footer_tagline",
    "fieldtype": "Small Text",
-   "label": "Footer tagline"
+   "label": "Footer tagline (Arabic)"
+  },
+  {
+   "fieldname": "footer_tagline_en",
+   "fieldtype": "Small Text",
+   "label": "Footer tagline (English)"
   },
   {
    "fieldname": "support_email",
@@ -46,22 +63,43 @@
    "description": "Rich content for /about. Leave blank to keep the built-in page.",
    "fieldname": "about_content",
    "fieldtype": "Text Editor",
-   "label": "About us"
+   "label": "About us (Arabic)"
+  },
+  {
+   "description": "English About page. Falls back to the Arabic value when blank.",
+   "fieldname": "about_content_en",
+   "fieldtype": "Text Editor",
+   "label": "About us (English)"
   },
   {
    "fieldname": "careers_content",
    "fieldtype": "Text Editor",
-   "label": "Careers"
+   "label": "Careers (Arabic)"
+  },
+  {
+   "fieldname": "careers_content_en",
+   "fieldtype": "Text Editor",
+   "label": "Careers (English)"
   },
   {
    "fieldname": "terms_content",
    "fieldtype": "Text Editor",
-   "label": "Terms & conditions"
+   "label": "Terms & conditions (Arabic)"
+  },
+  {
+   "fieldname": "terms_content_en",
+   "fieldtype": "Text Editor",
+   "label": "Terms & conditions (English)"
   },
   {
    "fieldname": "privacy_content",
    "fieldtype": "Text Editor",
-   "label": "Privacy"
+   "label": "Privacy (Arabic)"
+  },
+  {
+   "fieldname": "privacy_content_en",
+   "fieldtype": "Text Editor",
+   "label": "Privacy (English)"
   }
  ],
  "index_web_pages_for_search": 1,

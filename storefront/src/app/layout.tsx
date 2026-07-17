@@ -14,7 +14,7 @@ import { QuickView } from "@/components/quick-view";
 import { I18nProvider } from "@/components/i18n-provider";
 import { AppConfigProvider } from "@/components/app-config-provider";
 import { SiteContentProvider } from "@/components/site-content-provider";
-import { getAppConfig, getSiteContent } from "@/lib/api";
+import { getAppConfig, getSiteContent, localizeSiteContent } from "@/lib/api";
 import { getLocale, getTheme } from "@/lib/locale";
 
 const readex = Readex_Pro({
@@ -55,6 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     getSiteContent(),
   ]);
   const dir = locale === "ar" ? "rtl" : "ltr";
+  const site = localizeSiteContent(siteContent, locale);
 
   return (
     <html
@@ -64,7 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <body className="min-h-screen">
         <AppConfigProvider config={config}>
-          <SiteContentProvider content={siteContent}>
+          <SiteContentProvider content={site}>
           <I18nProvider locale={locale}>
             <PwaRegister />
             <InstallPrompt />
