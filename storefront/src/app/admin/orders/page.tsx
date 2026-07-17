@@ -114,11 +114,26 @@ export default function AdminOrdersPage() {
     setError(null);
     try {
       const res = await markOrderPaid(order.name);
+      // Booking a payment also advances the order status (→ Processing), so
+      // reflect BOTH here or the status dropdown stays stale on "Pending Payment".
       setOrders((prev) =>
-        prev.map((x) => (x.name === order.name ? { ...x, payment_status: res.payment_status } : x)),
+        prev.map((x) =>
+          x.name === order.name
+            ? { ...x, payment_status: res.payment_status, status: (res.status ?? x.status) as typeof x.status }
+            : x,
+        ),
       );
       setDetails((d) =>
-        d[order.name] ? { ...d, [order.name]: { ...d[order.name], payment_status: res.payment_status } } : d,
+        d[order.name]
+          ? {
+              ...d,
+              [order.name]: {
+                ...d[order.name],
+                payment_status: res.payment_status,
+                status: (res.status ?? d[order.name].status) as AdminOrderDetail["status"],
+              },
+            }
+          : d,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : t.vActionError);
@@ -337,7 +352,30 @@ export default function AdminOrdersPage() {
                         </div>
 
                         <div className="border-t border-line pt-4">
-                          <DeliveryConfirm order={o.name} confirmed={!!detail.delivery_confirmed} />
+                          <DeliveryConfirm
+                            order={o.name}
+                            confirmed={!!detail.delivery_confirmed}
+                            onConfirmed={() => {
+                              setOrders((prev) =>
+                                prev.map((x) =>
+                                  x.name === o.name ? { ...x, status: "Completed", payment_status: "Paid" } : x,
+                                ),
+                              );
+                              setDetails((d) =>
+                                d[o.name]
+                                  ? {
+                                      ...d,
+                                      [o.name]: {
+                                        ...d[o.name],
+                                        status: "Completed",
+                                        delivery_confirmed: 1,
+                                        payment_status: "Paid",
+                                      },
+                                    }
+                                  : d,
+                              );
+                            }}
+                          />
                         </div>
                       </div>
                     ) : (

@@ -117,7 +117,14 @@ export default function OrderDetailPage() {
       />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-tech text-2xl font-medium text-ink">{order.name}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-tech text-2xl font-medium text-ink">{order.name}</h1>
+          {order.return_status === "Completed" && (
+            <span className="rounded-full bg-coral-50 px-2.5 py-1 text-xs font-medium text-coral">
+              مرتجع
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-ink-400">{formatDate(order.creation)}</span>
           <Link

@@ -4,6 +4,7 @@ import { formatPrice } from "@/lib/utils";
 export function OrderSummary({
   subtotal,
   shipping: shippingOverride,
+  shippingLoading = false,
   discount = 0,
   walletApplied = 0,
   walletLabel = "رصيد المتجر",
@@ -12,6 +13,9 @@ export function OrderSummary({
   subtotal: number;
   /** Live rate from the backend; null/undefined falls back to the local estimate. */
   shipping?: number | null;
+  /** True while the live server rate is being fetched — show a placeholder
+   * instead of the local estimate so shipping never wrongly reads "free". */
+  shippingLoading?: boolean;
   /** Coupon discount applied to the order. */
   discount?: number;
   /** Store credit spent on the order. */
@@ -33,7 +37,13 @@ export function OrderSummary({
         <div className="flex justify-between text-ink-600">
           <span>الشحن</span>
           <span className="font-tech text-ink">
-            {shipping === 0 ? <span className="text-mint">مجاني</span> : formatPrice(shipping)}
+            {shippingLoading ? (
+              <span className="text-ink-400">يُحسب…</span>
+            ) : shipping === 0 ? (
+              <span className="text-mint">مجاني</span>
+            ) : (
+              formatPrice(shipping)
+            )}
           </span>
         </div>
         {shippingOverride == null && shipping > 0 && (

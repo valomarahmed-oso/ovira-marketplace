@@ -9,9 +9,13 @@ import { confirmDelivery, resendDeliveryOtp } from "@/lib/shipments-api";
 export function DeliveryConfirm({
   order,
   confirmed: initialConfirmed,
+  onConfirmed,
 }: {
   order: string;
   confirmed?: boolean;
+  /** Fired after a verified delivery — lets the parent refresh the order, which
+   * the backend has moved to Completed (and booked COD payment). */
+  onConfirmed?: () => void;
 }) {
   const { t } = useI18n();
   const [confirmed, setConfirmed] = useState(!!initialConfirmed);
@@ -28,6 +32,7 @@ export function DeliveryConfirm({
     try {
       await confirmDelivery(order, code);
       setConfirmed(true);
+      onConfirmed?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

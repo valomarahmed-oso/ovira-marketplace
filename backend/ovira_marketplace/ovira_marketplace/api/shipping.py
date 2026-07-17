@@ -329,8 +329,52 @@ def update_shipment_status(shipment, status, note=None, location=None):
         },
     )
     doc.save(ignore_permissions=True)
+    _sync_order_status_from_shipment(doc)
     frappe.db.commit()
     return _shipment_flat(doc)
+
+
+# Fulfilment (shipment) advances the order's own status so the two panels stay
+# in sync — the operator/vendor never has to drive both by hand. Returned /
+# Cancelled shipments are deliberately left for the operator to act on the order.
+SHIPMENT_TO_ORDER_STATUS = {
+    "Picked Up": "Shipped",
+    "In Transit": "Shipped",
+    "Delivered": "Completed",
+}
+
+
+def _sync_order_status_from_shipment(shipment):
+    target = SHIPMENT_TO_ORDER_STATUS.get(shipment.status)
+    if not target or not shipment.marketplace_order:
+        return
+    order = frappe.get_doc("Marketplace Order", shipment.marketplace_order)
+    if order.status == "Cancelled":
+        return
+    if target == "Completed":
+        # Only complete the order once EVERY shipment on it is finished.
+        statuses = frappe.get_all(
+            "Marketplace Shipment", filters={"marketplace_order": order.name}, pluck="status"
+        )
+        if not all(s in ("Delivered", "Returned", "Cancelled") for s in statuses):
+            target = "Shipped"
+    if target == order.status:
+        return
+    if target == "Shipped" and order.status in ("Shipped", "Completed"):
+        return
+    order.status = target
+    order.flags.ignore_permissions = True
+    order.save(ignore_permissions=True)
+    # COD delivered = the courier collected the cash → book the payment chain
+    # (idempotent, best-effort so a booking hiccup never blocks fulfilment).
+    if target == "Completed" and order.payment_status != "Paid":
+        if (order.payment_method or "").strip().lower() in ("cod", "cash on delivery"):
+            try:
+                from ovira_marketplace.api.payment import record_payment
+
+                record_payment(order.name)
+            except Exception:
+                frappe.log_error(title="Ovira: COD booking on delivery failed")
 
 
 @frappe.whitelist()
@@ -417,8 +461,17 @@ def confirm_delivery(order, otp):
         doc.status = "Completed"
     doc.flags.ignore_permissions = True
     doc.save(ignore_permissions=True)
+    # A verified handover on a COD order means the cash was collected → book the
+    # payment chain so the invoice + vendor settlement post (idempotent).
+    if doc.payment_status != "Paid" and (doc.payment_method or "").strip().lower() in ("cod", "cash on delivery"):
+        try:
+            from ovira_marketplace.api.payment import record_payment
+
+            record_payment(doc.name)
+        except Exception:
+            frappe.log_error(title="Ovira: COD booking on OTP delivery failed")
     frappe.db.commit()
-    return {"confirmed": True}
+    return {"confirmed": True, "status": "Completed"}
 
 
 @frappe.whitelist()

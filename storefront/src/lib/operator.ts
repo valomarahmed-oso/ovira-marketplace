@@ -471,7 +471,7 @@ export async function retryOrderAccounting(
 
 export async function markOrderPaid(
   name: string,
-): Promise<{ name: string; payment_status: PaymentStatus; accounting_status?: string }> {
+): Promise<{ name: string; payment_status: PaymentStatus; accounting_status?: string; status?: OrderStatus }> {
   if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
   const res = await fetch(opUrl("mark_order_paid"), {
     method: "POST",

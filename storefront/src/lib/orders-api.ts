@@ -42,6 +42,8 @@ export type BuyerOrder = Omit<BuyerOrderSummary, "item_count"> & {
   discount_amount?: number;
   coupon_code?: string;
   items: BuyerOrderItem[];
+  /** Most significant return status on the order; "Completed" = sale reversed. */
+  return_status?: string | null;
 };
 
 export const ORDER_STATUS_LABEL: Record<BuyerOrderStatus, string> = {

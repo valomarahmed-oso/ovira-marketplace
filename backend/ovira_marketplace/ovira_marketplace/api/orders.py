@@ -82,7 +82,23 @@ def get_order(name):
         frappe.throw(_("This order isn't yours."), frappe.PermissionError)
     data = order.as_dict()
     _attach_item_images(data.get("items") or [])
+    data["return_status"] = order_return_status(name)
     return data
+
+
+def order_return_status(order_name):
+    """The most significant return status on an order, or None. A 'Completed'
+    return means the sale was reversed (Credit Note) — the UI marks the order
+    returned and voids its invoice."""
+    statuses = frappe.get_all(
+        "Marketplace Return", filters={"marketplace_order": order_name}, pluck="status"
+    )
+    if not statuses:
+        return None
+    for pref in ("Completed", "Approved", "Requested", "Rejected"):
+        if pref in statuses:
+            return pref
+    return statuses[0]
 
 
 # Fields safe to hand back to a public tracker — no secrets, no other buyers'

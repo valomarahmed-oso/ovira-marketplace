@@ -87,6 +87,10 @@ def _hard_where_sql(params, category, vendor, brand, min_price, max_price, in_st
         clauses.append("p.price <= %(f_max)s")
     if cint(in_stock):
         clauses.append("p.stock_qty > 0")
+    suspended = _suspended_vendors()
+    if suspended:
+        params["f_susp"] = tuple(suspended)
+        clauses.append("(p.vendor IS NULL OR p.vendor NOT IN %(f_susp)s)")
     return " AND ".join(clauses)
 
 
@@ -264,7 +268,16 @@ def _catalog_filters(
         filters.append(["price", "<=", flt(max_price)])
     if cint(in_stock):
         filters.append(["stock_qty", ">", 0])
+    suspended = _suspended_vendors()
+    if suspended:
+        # A suspended vendor's storefront goes dark — hide their products from
+        # every listing (they reappear when the vendor is reactivated).
+        filters.append(["vendor", "not in", suspended])
     return filters
+
+
+def _suspended_vendors():
+    return frappe.get_all("Marketplace Vendor", filters={"status": "Suspended"}, pluck="name")
 
 
 def _attach_card_fields(products):
@@ -342,6 +355,8 @@ def get_product(slug):
     if not name:
         frappe.throw(_("Product not found."), frappe.DoesNotExistError)
     doc = frappe.get_doc("Marketplace Product", name).as_dict()
+    if doc.get("vendor") and frappe.db.get_value("Marketplace Vendor", doc["vendor"], "status") == "Suspended":
+        frappe.throw(_("Product not found."), frappe.DoesNotExistError)
     v = frappe.db.get_value(
         "Marketplace Vendor",
         doc.get("vendor"),

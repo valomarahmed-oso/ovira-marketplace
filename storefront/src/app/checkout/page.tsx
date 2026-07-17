@@ -8,7 +8,7 @@ import { getAppConfig, previewShipping, initiatePayment, placeOrder as apiPlaceO
 import { getMyAddresses, upsertAddress, type BuyerAddress } from "@/lib/addresses-api";
 import { getShippingRates } from "@/lib/shipping-rates-api";
 import { getWallet } from "@/lib/wallet-api";
-import { cartSubtotal, shippingFor, useCart } from "@/lib/cart-store";
+import { cartSubtotal, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -150,7 +150,11 @@ export default function CheckoutPage() {
 
   // Store-credit preview: cap the spend at what's payable after the coupon. The
   // server re-computes and caps this again, so this is display-only.
-  const effShipping = shipRate ?? shippingFor(subtotal);
+  // Shipping shown is ALWAYS the server quote (the same value the order charges);
+  // never the local free-over-500 estimate, which would wrongly read "free" while
+  // the operator's rate table actually charges a fee. 0 only while it loads.
+  const shippingLoading = shipRate === null;
+  const effShipping = shipRate ?? 0;
   const payableBeforeWallet = Math.max(0, subtotal + effShipping - (coupon?.discount ?? 0));
   const walletApplied = useWallet ? Math.min(walletBalance, payableBeforeWallet) : 0;
 
@@ -386,7 +390,8 @@ export default function CheckoutPage() {
 
           <OrderSummary
             subtotal={subtotal}
-            shipping={shipRate}
+            shipping={effShipping}
+            shippingLoading={shippingLoading}
             discount={coupon?.discount ?? 0}
             walletApplied={walletApplied}
             walletLabel={t.walletApplied}

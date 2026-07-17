@@ -435,6 +435,9 @@ def get_order(name):
             vendor_names[v["name"]] = v["vendor_name"]
     for it in items:
         it["vendor_name"] = vendor_names.get(it.get("vendor"))
+    from ovira_marketplace.api.orders import order_return_status
+
+    order["return_status"] = order_return_status(name)
     return order
 
 

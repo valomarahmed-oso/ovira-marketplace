@@ -77,7 +77,7 @@ export function OrderChat({ order, vendor }: { order: string; vendor: string }) 
             >
               <div
                 className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-                  m.mine ? "bg-blue text-white" : "border border-line bg-white text-ink"
+                  m.mine ? "bg-blue text-white" : "border border-line bg-white text-[#20242c]"
                 }`}
               >
                 {!m.mine && m.sender_name && (

@@ -87,16 +87,27 @@ export default function OrderInvoicePage() {
         >
           <ArrowRight className="h-4 w-4" /> رجوع للطلب
         </Link>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="btn btn-primary inline-flex items-center gap-1.5"
-        >
-          <Printer className="h-4 w-4" /> اطبع الفاتورة
-        </button>
+        {order.return_status === "Completed" ? (
+          <span className="inline-flex items-center gap-1.5 rounded-xl bg-coral-50 px-3 py-1.5 text-sm font-medium text-coral">
+            الفاتورة لاغية — طلب مرتجع
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="btn btn-primary inline-flex items-center gap-1.5"
+          >
+            <Printer className="h-4 w-4" /> اطبع الفاتورة
+          </button>
+        )}
       </div>
 
       <div id="invoice" className="card space-y-6 p-6 sm:p-8">
+        {order.return_status === "Completed" && (
+          <div className="rounded-xl border border-coral bg-coral-50 px-4 py-3 text-center text-sm font-bold text-coral">
+            مرتجع — هذه الفاتورة لاغية (تم إصدار إشعار دائن)
+          </div>
+        )}
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-5">
           <div>
