@@ -221,6 +221,60 @@ def create_shipments_for_order(order, provider=None):
 
 
 @frappe.whitelist()
+def my_order_shipments(order):
+    """The signed-in vendor's shipments for THEIR sub-order of an order — powers
+    the vendor's own fulfilment panel (Per-Vendor mode: each vendor ships their
+    part and drives its status; the platform aggregates)."""
+    from ovira_marketplace.api.vendor import _my_vendor
+
+    vendor = _my_vendor()
+    if not vendor:
+        return {"shipments": []}
+    names = frappe.get_all(
+        "Marketplace Shipment",
+        filters={"marketplace_order": order, "vendor": vendor},
+        pluck="name",
+    )
+    return {"shipments": [_shipment_flat(frappe.get_doc("Marketplace Shipment", n)) for n in names]}
+
+
+@frappe.whitelist()
+def create_my_shipment(order, provider=None):
+    """A vendor creates the shipment for THEIR sub-order of an order (per-vendor
+    fulfilment). Idempotent per Sales Order. Falls back to the in-house Manual
+    provider so a vendor without a carrier account can still ship + advance."""
+    from ovira_marketplace.api.vendor import _my_vendor
+
+    vendor = _my_vendor()
+    if not vendor:
+        frappe.throw(_("You don't have a vendor store."), frappe.PermissionError)
+    order_doc = frappe.get_doc("Marketplace Order", order)
+    provider = provider or default_provider() or "Manual"
+    created = []
+    seen = set()
+    for row in order_doc.items:
+        if row.vendor != vendor or not row.sales_order or row.sales_order in seen:
+            continue
+        seen.add(row.sales_order)
+        if frappe.db.exists("Marketplace Shipment", {"sales_order": row.sales_order}):
+            continue  # already shipped
+        shipment = frappe.new_doc("Marketplace Shipment")
+        shipment.marketplace_order = order_doc.name
+        shipment.vendor = vendor
+        shipment.sales_order = row.sales_order
+        shipment.provider = provider
+        shipment.recipient_name = order_doc.customer_name
+        shipment.recipient_phone = order_doc.phone
+        shipment.governorate = order_doc.governorate
+        shipment.address = order_doc.shipping_address
+        shipment.shipping_cost = order_doc.shipping_amount
+        shipment.insert(ignore_permissions=True)
+        shipment.book()
+        created.append(shipment.name)
+    return {"shipments": created}
+
+
+@frappe.whitelist()
 def track(shipment):
     """Refresh and return a shipment's tracking timeline."""
     _require_operator()

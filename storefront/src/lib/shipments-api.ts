@@ -92,6 +92,13 @@ export const getOperatorOrderShipments = (order: string) =>
 export const createOrderShipments = (order: string) =>
   post<{ shipments: string[] }>("create_shipments_for_order", { order });
 
+/** Vendor: their own shipments for their sub-order of an order. */
+export const getMyOrderShipments = (order: string) => getShipments("my_order_shipments", order);
+
+/** Vendor: create the shipment for their sub-order (per-vendor fulfilment). */
+export const createMyShipment = (order: string) =>
+  post<{ shipments: string[] }>("create_my_shipment", { order });
+
 /** Operator or owning vendor: advance a shipment + log an event. */
 export const updateShipmentStatus = (shipment: string, status: string, note?: string) =>
   post<Shipment>("update_shipment_status", { shipment, status, note });

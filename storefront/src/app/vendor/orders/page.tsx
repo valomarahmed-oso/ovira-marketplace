@@ -6,6 +6,7 @@ import { exportMyOrdersCsv, getMyOrders, getMyStore, type VendorOrder } from "@/
 import { getVendorShipmentStatuses, SHIPMENT_STATUS_LABEL } from "@/lib/shipments-api";
 import { getVendorThreads } from "@/lib/messaging-api";
 import { OrderChat } from "@/components/order-chat";
+import { VendorShipments } from "@/components/vendor-shipments";
 import { useI18n } from "@/components/i18n-provider";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -152,7 +153,8 @@ export default function VendorOrdersPage() {
                     </button>
                   </div>
                   {open && vendorCode && (
-                    <div className="border-t border-line bg-[#faf9f5] p-4">
+                    <div className="space-y-4 border-t border-line bg-[#faf9f5] p-4">
+                      <VendorShipments order={o.name} />
                       <OrderChat order={o.name} vendor={vendorCode} />
                     </div>
                   )}

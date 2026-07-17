@@ -5,6 +5,10 @@ export const THEME_COOKIE = "ovira-theme";
 export const DEFAULT_LOCALE: Locale = "ar";
 
 const ar = {
+  wishEmptyTitle: "قائمة مفضّلتك فاضية",
+  wishEmptyHint: "احفظ المنتجات اللي عجبتك بالضغط على القلب.",
+  wishBrowse: "تصفّح المنتجات",
+  wishAddAll: "أضف الكل للسلة",
   qaAskErr: "تعذّر إرسال السؤال.",
   qaTitle: "أسئلة وأجوبة",
   qaEmpty: "لسه مفيش أسئلة — اسأل أول سؤال.",
@@ -626,6 +630,10 @@ const ar = {
 export type Dict = typeof ar;
 
 const en: Dict = {
+  wishEmptyTitle: "Your wishlist is empty",
+  wishEmptyHint: "Save products you like by tapping the heart.",
+  wishBrowse: "Browse products",
+  wishAddAll: "Add all to cart",
   qaAskErr: "Couldn't submit the question.",
   qaTitle: "Questions & Answers",
   qaEmpty: "No questions yet — ask the first one.",
