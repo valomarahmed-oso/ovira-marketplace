@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { InfoPage, InfoSection } from "@/components/info-page";
 import { CmsRichText } from "@/components/cms-rich-text";
 import { getSiteContent, localizeSiteContent } from "@/lib/api";
+import { getDict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 
 export const metadata: Metadata = { title: "من نحن | أوفيرا" };
@@ -9,8 +10,9 @@ export const metadata: Metadata = { title: "من نحن | أوفيرا" };
 export default async function AboutPage() {
   const [locale, raw] = await Promise.all([getLocale(), getSiteContent()]);
   const content = localizeSiteContent(raw, locale);
+  const t = getDict(locale);
   return (
-    <InfoPage title="من نحن" subtitle="أوفيرا — تسوّق أذكى، من بائعين تثق فيهم.">
+    <InfoPage title={t.pgAboutTitle} subtitle={t.pgAboutSub}>
       {content.about_content ? (
         <CmsRichText html={content.about_content} />
       ) : (

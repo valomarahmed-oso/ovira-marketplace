@@ -34,12 +34,30 @@ ADMIN_FIELDS = [
 ]
 
 OPERATOR_ROLES = ("System Manager", "Marketplace Operator")
+# Content Editor can edit the storefront content + homepage banners, but NOT the
+# sensitive operator settings (payments, settlement, store config). Operators and
+# System Managers keep full access.
+CONTENT_ROLES = ("System Manager", "Marketplace Operator", "Marketplace Content Editor")
 
 
 def _require_operator():
     user = frappe.session.user
     if user == "Guest" or not any(r in frappe.get_roles(user) for r in OPERATOR_ROLES):
         frappe.throw(_("هذه الصفحة متاحة لمشغّلي المتجر فقط."), frappe.PermissionError)
+
+
+def _require_content_editor():
+    """Gate for content + banner editing — open to operators AND the dedicated
+    Marketplace Content Editor role, so the owner can delegate content without
+    handing over the financial/settings console."""
+    user = frappe.session.user
+    if user == "Guest" or not any(r in frappe.get_roles(user) for r in CONTENT_ROLES):
+        frappe.throw(_("تعديل المحتوى متاح للمحرّرين ومشغّلي المتجر فقط."), frappe.PermissionError)
+
+
+def _can_edit_content():
+    user = frappe.session.user
+    return user != "Guest" and any(r in frappe.get_roles(user) for r in CONTENT_ROLES)
 
 
 def _serialize(settings):
@@ -297,12 +315,15 @@ def update_site_content(
     terms_content_en=None,
     privacy_content=None,
     privacy_content_en=None,
+    hero_badge=None,
+    hero_badge_en=None,
 ):
-    """Operator: edit the dynamic site content (brand, footer tagline, and the
-    About/Careers/Terms/Privacy pages) from the storefront admin. Each field has
-    an Arabic value and an optional English (_en) value; the storefront serves the
-    active locale and falls back to Arabic when the English value is blank."""
-    _require_operator()
+    """Operator/Content Editor: edit the dynamic site content (brand, footer
+    tagline, hero badge, and the About/Careers/Terms/Privacy pages) from the
+    storefront admin. Each field has an Arabic value and an optional English (_en)
+    value; the storefront serves the active locale and falls back to Arabic when
+    the English value is blank."""
+    _require_content_editor()
     doc = frappe.get_single("Marketplace Site Content")
     values = {
         "brand_name": brand_name,
@@ -310,6 +331,8 @@ def update_site_content(
         "footer_tagline": footer_tagline,
         "footer_tagline_en": footer_tagline_en,
         "support_email": support_email,
+        "hero_badge": hero_badge,
+        "hero_badge_en": hero_badge_en,
         "about_content": about_content,
         "about_content_en": about_content_en,
         "careers_content": careers_content,
@@ -328,3 +351,102 @@ def update_site_content(
     from ovira_marketplace.api.cms import get_site_content
 
     return get_site_content()
+
+
+# -- homepage banners (hero + promo cards) ----------------------------------
+
+BANNER_ADMIN_FIELDS = [
+    "name",
+    "title",
+    "title_en",
+    "subtitle",
+    "subtitle_en",
+    "placement",
+    "is_active",
+    "image",
+    "link",
+    "cta_label",
+    "cta_label_en",
+    "tone",
+    "display_order",
+    "valid_from",
+    "valid_upto",
+]
+
+BANNER_PLACEMENTS = ("Hero", "Promo")
+BANNER_TONES = ("Blue", "Coral", "Light Blue", "Mint", "Gold")
+
+
+@frappe.whitelist()
+def list_banners():
+    """All homepage banners (hero + promos), every status — for the admin editor."""
+    _require_content_editor()
+    return frappe.get_all(
+        "Marketplace Banner",
+        fields=BANNER_ADMIN_FIELDS,
+        order_by="placement asc, display_order asc, creation asc",
+        ignore_permissions=True,
+    )
+
+
+@frappe.whitelist()
+def upsert_banner(
+    name=None,
+    title=None,
+    title_en=None,
+    subtitle=None,
+    subtitle_en=None,
+    placement=None,
+    is_active=None,
+    image=None,
+    link=None,
+    cta_label=None,
+    cta_label_en=None,
+    tone=None,
+    display_order=None,
+    valid_from=None,
+    valid_upto=None,
+):
+    """Create or update a homepage banner from the storefront admin."""
+    _require_content_editor()
+
+    if not (title or "").strip():
+        frappe.throw(_("العنوان مطلوب."))
+    if placement and placement not in BANNER_PLACEMENTS:
+        frappe.throw(_("Invalid placement."))
+    if tone and tone not in BANNER_TONES:
+        frappe.throw(_("Invalid tone."))
+
+    doc = (
+        frappe.get_doc("Marketplace Banner", name)
+        if name and frappe.db.exists("Marketplace Banner", name)
+        else frappe.new_doc("Marketplace Banner")
+    )
+    doc.title = title.strip()
+    doc.title_en = (title_en or "").strip() or None
+    doc.subtitle = (subtitle or "").strip() or None
+    doc.subtitle_en = (subtitle_en or "").strip() or None
+    doc.placement = placement or "Promo"
+    doc.is_active = cint(is_active) if is_active is not None else 1
+    doc.image = (image or "").strip() or None
+    doc.link = (link or "").strip() or None
+    doc.cta_label = (cta_label or "").strip() or None
+    doc.cta_label_en = (cta_label_en or "").strip() or None
+    doc.tone = tone or "Blue"
+    doc.display_order = cint(display_order)
+    doc.valid_from = valid_from or None
+    doc.valid_upto = valid_upto or None
+    doc.flags.ignore_permissions = True
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": doc.name}
+
+
+@frappe.whitelist()
+def delete_banner(name):
+    """Remove a homepage banner."""
+    _require_content_editor()
+    if name and frappe.db.exists("Marketplace Banner", name):
+        frappe.delete_doc("Marketplace Banner", name, ignore_permissions=True)
+        frappe.db.commit()
+    return {"ok": True}

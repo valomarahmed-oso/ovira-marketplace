@@ -7,6 +7,7 @@ export type AuthUser = {
   roles?: string[];
   isVendor?: boolean;
   isOperator?: boolean;
+  isContentEditor?: boolean;
   vendor?: string | null;
   vendorStatus?: string | null;
 };

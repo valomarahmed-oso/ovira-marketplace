@@ -13,6 +13,7 @@ from frappe.rate_limiter import rate_limit
 from ovira_marketplace.customers import get_or_create_customer
 
 OPERATOR_ROLES = ("System Manager", "Marketplace Operator")
+CONTENT_ROLES = ("System Manager", "Marketplace Operator", "Marketplace Content Editor")
 
 
 @frappe.whitelist(allow_guest=True)
@@ -39,6 +40,7 @@ def me():
         "name": full_name,
         "roles": roles,
         "is_operator": any(r in roles for r in OPERATOR_ROLES),
+        "is_content_editor": any(r in roles for r in CONTENT_ROLES),
         "is_vendor": bool(vendor),
         "vendor": vendor.name if vendor else None,
         "vendor_slug": vendor.slug if vendor else None,

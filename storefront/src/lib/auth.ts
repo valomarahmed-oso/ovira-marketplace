@@ -12,6 +12,7 @@ type MeResponse = {
   roles?: string[];
   is_vendor?: boolean;
   is_operator?: boolean;
+  is_content_editor?: boolean;
   vendor?: string | null;
   vendor_status?: string | null;
   csrf_token?: string | null;
@@ -25,6 +26,7 @@ function toUser(m: MeResponse): AuthUser | null {
     roles: m.roles ?? [],
     isVendor: !!m.is_vendor,
     isOperator: !!m.is_operator,
+    isContentEditor: !!m.is_content_editor,
     vendor: m.vendor ?? null,
     vendorStatus: m.vendor_status ?? null,
   };

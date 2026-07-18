@@ -8,6 +8,7 @@ import {
   FileText,
   Gift,
   Heart,
+  Images,
   Layers,
   LayoutDashboard,
   Mail,
@@ -41,6 +42,8 @@ export type DashNavItem = {
   exact?: boolean;
   /** Show a live count badge: unread chat, or an operator pending-review queue. */
   badge?: "messages" | "pending-products" | "pending-vendors";
+  /** Visible to a content-editor-only account (not a full operator). */
+  contentEditor?: boolean;
 };
 
 export type DashboardDef = {
@@ -81,7 +84,8 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/admin/payments", key: "adminNavPayments", icon: CreditCard },
       { href: "/admin/shipping", key: "adminNavShipping", icon: Truck },
       { href: "/admin/email", key: "adminNavEmail", icon: Mail },
-      { href: "/admin/content", key: "adminNavContent", icon: FileText },
+      { href: "/admin/content", key: "adminNavContent", icon: FileText, contentEditor: true },
+      { href: "/admin/banners", key: "adminNavBanners", icon: Images, contentEditor: true },
     ],
   },
   vendor: {

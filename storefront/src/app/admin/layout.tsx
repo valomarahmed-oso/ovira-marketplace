@@ -22,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!user || !user.isOperator) {
+  if (!user || (!user.isOperator && !user.isContentEditor)) {
     return (
       <div className="container-ovira py-16">
         <div className="card mx-auto max-w-md space-y-4 p-10 text-center">

@@ -265,13 +265,29 @@ export async function getCategories() {
 export type Banner = {
   name?: string;
   title: string;
+  title_en?: string;
   subtitle?: string;
+  subtitle_en?: string;
   image?: string;
   link?: string;
   cta_label?: string;
+  cta_label_en?: string;
   tone?: string;
   placement?: string;
 };
+
+/** Collapse a bilingual banner to the active locale: for `en`, prefer the `_en`
+ *  variant then fall back to the Arabic base; for `ar`, use the base. */
+export function localizeBanner(banner: Banner, locale: Locale): Banner {
+  if (locale !== "en") return banner;
+  const pick = (base?: string, en?: string) => (en && en.trim() ? en : base);
+  return {
+    ...banner,
+    title: pick(banner.title, banner.title_en) ?? banner.title,
+    subtitle: pick(banner.subtitle, banner.subtitle_en),
+    cta_label: pick(banner.cta_label, banner.cta_label_en),
+  };
+}
 
 export type HomeSection = { heading: string; link?: string; products: Product[] };
 
@@ -302,6 +318,8 @@ export type SiteContent = {
   footer_tagline?: string;
   footer_tagline_en?: string;
   support_email?: string;
+  hero_badge?: string;
+  hero_badge_en?: string;
   about_content?: string;
   about_content_en?: string;
   careers_content?: string;
@@ -331,6 +349,7 @@ export function localizeSiteContent(content: SiteContent, locale: Locale): SiteC
     ...content,
     brand_name: pick(content.brand_name, content.brand_name_en),
     footer_tagline: pick(content.footer_tagline, content.footer_tagline_en),
+    hero_badge: pick(content.hero_badge, content.hero_badge_en),
     about_content: pick(content.about_content, content.about_content_en),
     careers_content: pick(content.careers_content, content.careers_content_en),
     terms_content: pick(content.terms_content, content.terms_content_en),

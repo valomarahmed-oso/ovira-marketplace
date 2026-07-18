@@ -58,6 +58,11 @@ export function DashboardShell({
       ? pathname === item.href
       : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
+  // A content-editor-only account (not a full operator) sees just the content
+  // + banners links of the operator dashboard — everything else stays hidden.
+  const contentOnly = def.role === "operator" && !!user && !user.isOperator && !!user.isContentEditor;
+  const navItems = contentOnly ? def.nav.filter((i) => i.contentEditor) : def.nav;
+
   // The dashboards this account can switch to, minus the one we're in.
   const others = dashboardsFor(user).filter((d) => d.role !== def.role);
   const Icon = def.icon;
@@ -77,7 +82,7 @@ export function DashboardShell({
       <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
         <aside className="space-y-4">
           <nav className="card space-y-1 p-2">
-            {def.nav.map((item) => {
+            {navItems.map((item) => {
               const active = isActive(item);
               const ItemIcon = item.icon;
               return (

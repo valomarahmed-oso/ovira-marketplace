@@ -10,6 +10,8 @@
   "footer_tagline",
   "footer_tagline_en",
   "support_email",
+  "hero_badge",
+  "hero_badge_en",
   "pages_section",
   "about_content",
   "about_content_en",
@@ -53,6 +55,18 @@
    "fieldtype": "Data",
    "label": "Support email",
    "options": "Email"
+  },
+  {
+   "description": "Small badge text above the homepage hero title. Blank uses the built-in default.",
+   "fieldname": "hero_badge",
+   "fieldtype": "Data",
+   "label": "Hero badge (Arabic)"
+  },
+  {
+   "description": "English hero badge. Falls back to the Arabic value when blank.",
+   "fieldname": "hero_badge_en",
+   "fieldtype": "Data",
+   "label": "Hero badge (English)"
   },
   {
    "fieldname": "pages_section",
@@ -125,6 +139,14 @@
    "print": 1,
    "read": 1,
    "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Marketplace Content Editor",
    "share": 1,
    "write": 1
   }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { InfoPage, InfoSection } from "@/components/info-page";
 import { CmsRichText } from "@/components/cms-rich-text";
 import { getSiteContent, localizeSiteContent } from "@/lib/api";
+import { getDict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 
 export const metadata: Metadata = { title: "الوظائف | أوفيرا" };
@@ -9,8 +10,9 @@ export const metadata: Metadata = { title: "الوظائف | أوفيرا" };
 export default async function CareersPage() {
   const [locale, raw] = await Promise.all([getLocale(), getSiteContent()]);
   const content = localizeSiteContent(raw, locale);
+  const t = getDict(locale);
   return (
-    <InfoPage title="الوظائف" subtitle="انضم لفريق بيبني تجربة التسوّق الجاية في مصر.">
+    <InfoPage title={t.pgCareersTitle} subtitle={t.pgCareersSub}>
       {content.careers_content ? (
         <CmsRichText html={content.careers_content} />
       ) : (

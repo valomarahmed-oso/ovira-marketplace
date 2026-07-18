@@ -11,17 +11,20 @@ export function Hero({
   deal,
   t,
   multiVendor = true,
+  badge,
 }: {
   hero: Banner | null;
   deal: Product | null;
   t: Dict;
   multiVendor?: boolean;
+  /** Operator-set badge text above the title; falls back to the built-in default. */
+  badge?: string;
 }) {
-  const title = hero?.title ?? "تسوّق أذكى، من بائعين تثق فيهم.";
-  const subtitle =
-    hero?.subtitle ?? "آلاف المنتجات، أسعار تنافسية، وشحن سريع لكل مصر — كل ده في مكان واحد.";
+  const title = hero?.title ?? t.heroTitle;
+  const subtitle = hero?.subtitle ?? t.heroSubtitle;
   const ctaLink = hero?.link || "/products";
   const ctaLabel = hero?.cta_label || t.shopNow;
+  const badgeText = badge || t.heroBadge;
 
   return (
     <section className={cn("grid gap-4", deal ? "lg:grid-cols-3" : "lg:grid-cols-1")}>
@@ -44,7 +47,7 @@ export function Hero({
         <div className="relative max-w-xl">
           <div className="mb-5 flex items-center gap-2 text-sm text-white/85">
             <OviraBars tone="white" />
-            <span>{t.heroBadge}</span>
+            <span>{badgeText}</span>
           </div>
           <h1 className="text-3xl font-medium leading-snug md:text-5xl md:leading-[1.15]">{title}</h1>
           <p className="mt-4 text-base text-white/85 md:text-lg">{subtitle}</p>

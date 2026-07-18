@@ -2,6 +2,7 @@ import frappe
 
 MARKETPLACE_ROLES = [
     "Marketplace Operator",
+    "Marketplace Content Editor",
     "Marketplace Vendor",
     "Marketplace Vendor Staff",
     "Marketplace Buyer",
@@ -51,7 +52,11 @@ def _create_roles():
             continue
         role = frappe.new_doc("Role")
         role.role_name = role_name
-        role.desk_access = role_name in ("Marketplace Operator", "Marketplace Vendor")
+        role.desk_access = role_name in (
+            "Marketplace Operator",
+            "Marketplace Content Editor",
+            "Marketplace Vendor",
+        )
         role.insert(ignore_permissions=True)
 
 

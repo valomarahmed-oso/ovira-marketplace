@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { InfoPage, InfoSection } from "@/components/info-page";
 import { CmsRichText } from "@/components/cms-rich-text";
 import { getSiteContent, localizeSiteContent } from "@/lib/api";
+import { getDict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 
 export const metadata: Metadata = { title: "الشروط والأحكام | أوفيرا" };
@@ -9,8 +10,9 @@ export const metadata: Metadata = { title: "الشروط والأحكام | أو
 export default async function TermsPage() {
   const [locale, raw] = await Promise.all([getLocale(), getSiteContent()]);
   const content = localizeSiteContent(raw, locale);
+  const t = getDict(locale);
   return (
-    <InfoPage title="الشروط والأحكام" subtitle="آخر تحديث: يوليو 2026">
+    <InfoPage title={t.pgTermsTitle} subtitle={t.pgLegalUpdated}>
       {content.terms_content ? (
         <CmsRichText html={content.terms_content} />
       ) : (

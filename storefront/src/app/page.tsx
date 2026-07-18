@@ -5,32 +5,36 @@ import { CategoryRail } from "@/components/category-rail";
 import { ProductGrid } from "@/components/product-grid";
 import { SectionHeading } from "@/components/section-heading";
 import { RecommendedForYou } from "@/components/recommended-for-you";
-import { getAppConfig, getCategories, getHomepage } from "@/lib/api";
+import { getAppConfig, getCategories, getHomepage, getSiteContent, localizeBanner, localizeSiteContent } from "@/lib/api";
 import { bannerTone } from "@/lib/utils";
 import { getDict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 
 export default async function HomePage() {
-  const [categories, home, locale, config] = await Promise.all([
+  const [categories, home, locale, config, rawSite] = await Promise.all([
     getCategories(),
     getHomepage(),
     getLocale(),
     getAppConfig(),
+    getSiteContent(),
   ]);
   const t = getDict(locale);
+  const site = localizeSiteContent(rawSite, locale);
+  const hero = home.hero[0] ? localizeBanner(home.hero[0], locale) : null;
+  const promos = home.promos.map((p) => localizeBanner(p, locale));
 
   return (
     <div className="container-ovira space-y-12 py-6">
-      <Hero hero={home.hero[0] ?? null} deal={home.deal} t={t} multiVendor={config.multiVendor} />
+      <Hero hero={hero} deal={home.deal} t={t} multiVendor={config.multiVendor} badge={site.hero_badge} />
 
       <section className="animate-fade-up">
         <SectionHeading title={t.allCategories} href="/categories" />
         <CategoryRail categories={categories} />
       </section>
 
-      {home.promos.length > 0 && (
+      {promos.length > 0 && (
         <section className="grid gap-4 md:grid-cols-3">
-          {home.promos.map((promo) => (
+          {promos.map((promo) => (
             <Link
               key={promo.name ?? promo.title}
               href={promo.link || "/products"}

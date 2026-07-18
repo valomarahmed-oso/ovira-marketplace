@@ -6,13 +6,16 @@
  "engine": "InnoDB",
  "field_order": [
   "title",
+  "title_en",
   "subtitle",
+  "subtitle_en",
   "placement",
   "is_active",
   "column_break_main",
   "image",
   "link",
   "cta_label",
+  "cta_label_en",
   "tone",
   "display_order",
   "schedule_section",
@@ -25,13 +28,25 @@
    "fieldname": "title",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Title",
+   "label": "Title (Arabic)",
    "reqd": 1
+  },
+  {
+   "description": "English title. Falls back to the Arabic title when blank.",
+   "fieldname": "title_en",
+   "fieldtype": "Data",
+   "label": "Title (English)"
   },
   {
    "fieldname": "subtitle",
    "fieldtype": "Small Text",
-   "label": "Subtitle"
+   "label": "Subtitle (Arabic)"
+  },
+  {
+   "description": "English subtitle. Falls back to the Arabic subtitle when blank.",
+   "fieldname": "subtitle_en",
+   "fieldtype": "Small Text",
+   "label": "Subtitle (English)"
   },
   {
    "default": "Promo",
@@ -71,7 +86,13 @@
    "description": "Call-to-action button text. Optional.",
    "fieldname": "cta_label",
    "fieldtype": "Data",
-   "label": "CTA label"
+   "label": "CTA label (Arabic)"
+  },
+  {
+   "description": "English CTA label. Falls back to the Arabic label when blank.",
+   "fieldname": "cta_label_en",
+   "fieldtype": "Data",
+   "label": "CTA label (English)"
   },
   {
    "default": "Blue",
@@ -140,6 +161,16 @@
    "read": 1,
    "report": 1,
    "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Content Editor",
    "share": 1,
    "write": 1
   }
