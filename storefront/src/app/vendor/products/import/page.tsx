@@ -9,9 +9,11 @@ import {
   importProductsCsv,
   type ImportResult,
 } from "@/lib/product-import";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 export default function ProductImportPage() {
+  const { t } = useI18n();
   const [fileName, setFileName] = useState<string | null>(null);
   const [csvText, setCsvText] = useState<string>("");
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -25,7 +27,7 @@ export default function ProductImportPage() {
     try {
       await exportMyProductsCsv();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تصدير المنتجات.");
+      setError(err instanceof Error ? err.message : t.piExportErr);
     } finally {
       setExporting(false);
     }
@@ -43,7 +45,7 @@ export default function ProductImportPage() {
 
   async function run(dryRun: boolean) {
     if (!csvText.trim()) {
-      setError("اختر ملف CSV أولًا.");
+      setError(t.piNoFile);
       return;
     }
     setBusy(dryRun ? "check" : "import");
@@ -52,7 +54,7 @@ export default function ProductImportPage() {
       const res = await importProductsCsv(csvText, dryRun);
       setResult(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر معالجة الملف.");
+      setError(err instanceof Error ? err.message : t.piProcessErr);
     } finally {
       setBusy(null);
     }
@@ -67,27 +69,27 @@ export default function ProductImportPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-medium text-ink">استيراد وتحديث المنتجات (CSV)</h1>
-          <p className="mt-1 text-sm text-ink-400">أضف أو عدّل منتجات كتير مرة واحدة بدل ما تدخّلها واحد واحد.</p>
+          <h1 className="text-2xl font-medium text-ink">{t.piTitle}</h1>
+          <p className="mt-1 text-sm text-ink-400">{t.piSubtitle}</p>
         </div>
         <Link href="/vendor/products" className="btn btn-ghost">
-          <ArrowRight className="h-4 w-4" /> رجوع للمنتجات
+          <ArrowRight className="h-4 w-4" /> {t.piBack}
         </Link>
       </div>
 
       <section className="card space-y-4 p-5">
         <ol className="space-y-2 text-sm text-ink-600">
-          <li>١. <span className="font-medium text-ink">للإضافة:</span> نزّل القالب واملأه (سيب عمود <span className="font-tech">name</span> فاضي) — العمود <span className="font-medium text-ink">title</span> إجباري.</li>
-          <li>٢. <span className="font-medium text-ink">للتحديث:</span> نزّل «منتجاتي الحالية» وعدّل الأسعار/الكميات — عمود <span className="font-tech">name</span> بيربط كل صف بمنتجك.</li>
-          <li>٣. ارفع الملف واضغط «تحقّق» للمراجعة، وبعدها «استيراد» — أي تعديل بيرجّع المنتج لحالة «قيد المراجعة».</li>
+          <li>{t.piStep1}</li>
+          <li>{t.piStep2}</li>
+          <li>{t.piStep3}</li>
         </ol>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={downloadTemplate} className="btn btn-ghost">
-            <Download className="h-4 w-4" /> قالب فاضي (إضافة)
+            <Download className="h-4 w-4" /> {t.piTemplateBtn}
           </button>
           <button type="button" onClick={onExport} disabled={exporting} className="btn btn-ghost disabled:opacity-40">
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-            منتجاتي الحالية (تحديث)
+            {t.piCurrentBtn}
           </button>
         </div>
       </section>
@@ -95,7 +97,7 @@ export default function ProductImportPage() {
       <section className="card space-y-4 p-5">
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-line p-6 text-sm text-ink-400 transition-colors hover:border-blue hover:text-blue-600">
           <FileUp className="h-5 w-5" />
-          {fileName ? <span className="text-ink">{fileName}</span> : "اختر ملف CSV"}
+          {fileName ? <span className="text-ink">{fileName}</span> : t.piChooseFile}
           <input type="file" accept=".csv,text/csv" className="hidden" onChange={onPickFile} />
         </label>
 
@@ -107,7 +109,7 @@ export default function ProductImportPage() {
             className="btn btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy === "check" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            تحقّق
+            {t.piCheck}
           </button>
           <button
             type="button"
@@ -116,7 +118,7 @@ export default function ProductImportPage() {
             className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy === "import" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            استيراد
+            {t.piImport}
           </button>
         </div>
 
@@ -132,11 +134,11 @@ export default function ProductImportPage() {
           <div className="flex flex-wrap items-center gap-3 text-sm">
             {result.dry_run ? (
               <span className="font-medium text-ink">
-                نتيجة الفحص: {okCount} جاهز · {errCount} خطأ
+                {t.piCheckResult.replace("{ok}", String(okCount)).replace("{err}", String(errCount))}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 font-medium text-mint">
-                <CheckCircle2 className="h-4 w-4" /> {result.created} إضافة · {result.updated} تحديث · {errCount} خطأ
+                <CheckCircle2 className="h-4 w-4" /> {t.piImportResult.replace("{created}", String(result.created)).replace("{updated}", String(result.updated)).replace("{err}", String(errCount))}
               </span>
             )}
           </div>
@@ -146,8 +148,8 @@ export default function ProductImportPage() {
               <thead>
                 <tr className="border-b border-line text-ink-400">
                   <th className="py-2 pe-3 text-start font-normal">#</th>
-                  <th className="py-2 pe-3 text-start font-normal">المنتج</th>
-                  <th className="py-2 text-start font-normal">الحالة</th>
+                  <th className="py-2 pe-3 text-start font-normal">{t.invColProduct}</th>
+                  <th className="py-2 text-start font-normal">{t.voColStatus}</th>
                 </tr>
               </thead>
               <tbody>
@@ -163,12 +165,12 @@ export default function ProductImportPage() {
                         )}
                       >
                         {r.status === "error"
-                          ? r.message || "خطأ"
+                          ? r.message || t.piStatusError
                           : r.status === "created"
-                            ? "تمت الإضافة"
+                            ? t.piStatusCreated
                             : r.status === "updated"
-                              ? "تم التحديث"
-                              : r.message || "جاهز"}
+                              ? t.piStatusUpdated
+                              : r.message || t.piStatusReady}
                       </span>
                     </td>
                   </tr>

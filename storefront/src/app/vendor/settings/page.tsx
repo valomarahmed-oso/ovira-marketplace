@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ImagePlus, Loader2, Save, Upload, X } from "lucide-react";
 import { getMyStore, updateMyStore } from "@/lib/vendor";
 import { uploadImage } from "@/lib/uploads";
+import { useI18n } from "@/components/i18n-provider";
 
 /** A single image field with device upload + live preview + remove. */
 function ImageUpload({
@@ -15,6 +16,7 @@ function ImageUpload({
   onChange: (url: string) => void;
   aspect: "square" | "wide";
 }) {
+  const { t } = useI18n();
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -28,7 +30,7 @@ function ImageUpload({
     try {
       onChange(await uploadImage(file));
     } catch (e2) {
-      setErr(e2 instanceof Error ? e2.message : "تعذّر رفع الصورة.");
+      setErr(e2 instanceof Error ? e2.message : t.catUploadErr);
     } finally {
       setBusy(false);
     }
@@ -48,7 +50,7 @@ function ImageUpload({
             <button
               type="button"
               onClick={() => onChange("")}
-              aria-label="إزالة الصورة"
+              aria-label={t.bnImgRemove}
               className="absolute end-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/90 text-ink-600 shadow hover:text-coral"
             >
               <X className="h-3.5 w-3.5" />
@@ -66,7 +68,7 @@ function ImageUpload({
         className="btn btn-ghost h-9 justify-center px-3 text-sm disabled:opacity-50"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-        {busy ? "جارٍ الرفع…" : "ارفع صورة"}
+        {busy ? t.vsUploading : t.vsUploadImage}
       </button>
       {err && <p className="text-xs text-coral">{err}</p>}
     </div>
@@ -74,6 +76,7 @@ function ImageUpload({
 }
 
 export default function VendorSettingsPage() {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -122,7 +125,7 @@ export default function VendorSettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر الحفظ.");
+      setError(err instanceof Error ? err.message : t.admSaveErr);
     } finally {
       setBusy(false);
     }
@@ -135,97 +138,95 @@ export default function VendorSettingsPage() {
   if (loading) {
     return (
       <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
-        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-medium text-ink">إعدادات المتجر</h1>
+      <h1 className="text-2xl font-medium text-ink">{t.vsTitle}</h1>
       {error && (
         <div className="rounded-xl border border-coral bg-coral-50 px-4 py-3 text-sm text-coral">{error}</div>
       )}
       <form onSubmit={save} className="card max-w-2xl space-y-4 p-5">
         {/* Branding: banner + logo drive the public store page (/store/[slug]). */}
         <div>
-          <label className={label}>غلاف المتجر</label>
+          <label className={label}>{t.vsCover}</label>
           <ImageUpload value={form.banner} onChange={(banner) => setForm({ ...form, banner })} aspect="wide" />
         </div>
         <div>
-          <label className={label}>شعار المتجر</label>
+          <label className={label}>{t.vsLogo}</label>
           <ImageUpload value={form.logo} onChange={(logo) => setForm({ ...form, logo })} aspect="square" />
         </div>
 
         <div>
-          <label className={label}>اسم المتجر</label>
+          <label className={label}>{t.vsName}</label>
           <input
             value={form.vendor_name}
             onChange={(e) => setForm({ ...form, vendor_name: e.target.value })}
             className={field}
-            placeholder="اسم متجرك على أوفيرا"
+            placeholder={t.vsNamePlaceholder}
           />
         </div>
         <div>
-          <label className={label}>رقم التواصل</label>
+          <label className={label}>{t.vsPhone}</label>
           <input
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
             className={field}
             inputMode="tel"
-            placeholder="مثال: 01xxxxxxxxx"
+            placeholder={t.vsPhonePlaceholder}
           />
         </div>
         <div>
-          <label className={label}>نبذة عن المتجر</label>
+          <label className={label}>{t.vsAbout}</label>
           <textarea
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             className={area}
-            placeholder="عرّف العملاء بمتجرك"
+            placeholder={t.vsAboutPlaceholder}
           />
         </div>
         <div>
-          <label className={label}>سياسة الإرجاع</label>
+          <label className={label}>{t.vsReturnPolicy}</label>
           <textarea
             value={form.return_policy}
             onChange={(e) => setForm({ ...form, return_policy: e.target.value })}
             className={area}
-            placeholder="مثال: إرجاع مجاني خلال ١٤ يوم"
+            placeholder={t.vsReturnPlaceholder}
           />
         </div>
         <div>
-          <label className={label}>سياسة الشحن</label>
+          <label className={label}>{t.vsShippingPolicy}</label>
           <textarea
             value={form.shipping_policy}
             onChange={(e) => setForm({ ...form, shipping_policy: e.target.value })}
             className={area}
-            placeholder="مثال: شحن خلال ٢-٤ أيام عمل"
+            placeholder={t.vsShippingPlaceholder}
           />
         </div>
 
         {/* Structured shipping rate — applied only when the marketplace runs in
             Per-Vendor shipping mode; harmless to fill in otherwise. */}
         <div className="space-y-4 rounded-xl border border-line p-4">
-          <div className="text-sm font-medium text-ink">سعر الشحن</div>
-          <p className="-mt-2 text-xs text-ink-400">
-            يُطبَّق تلقائيًا لو كانت المنصة على وضع «الشحن لكل بائع». المشتري يدفعه ويُضاف لمستحقاتك.
-          </p>
+          <div className="text-sm font-medium text-ink">{t.vsShipRate}</div>
+          <p className="-mt-2 text-xs text-ink-400">{t.vsShipRateHint}</p>
           <div>
-            <label className={label}>نوع الشحن</label>
+            <label className={label}>{t.vsShipType}</label>
             <select
               value={form.shipping_type}
               onChange={(e) => setForm({ ...form, shipping_type: e.target.value })}
               className={field}
             >
-              <option value="Flat">سعر ثابت</option>
-              <option value="Free Over">مجاني فوق مبلغ</option>
-              <option value="Always Free">مجاني دائمًا</option>
+              <option value="Flat">{t.vsShipFlat}</option>
+              <option value="Free Over">{t.vsShipFreeOver}</option>
+              <option value="Always Free">{t.vsShipAlwaysFree}</option>
             </select>
           </div>
           {form.shipping_type !== "Always Free" && (
             <div>
-              <label className={label}>رسوم الشحن (ج.م)</label>
+              <label className={label}>{t.vsShipFee}</label>
               <input
                 value={form.shipping_fee}
                 onChange={(e) => setForm({ ...form, shipping_fee: e.target.value })}
@@ -233,13 +234,13 @@ export default function VendorSettingsPage() {
                 type="number"
                 inputMode="decimal"
                 min="0"
-                placeholder="مثال: 50"
+                placeholder={t.vsShipFeePlaceholder}
               />
             </div>
           )}
           {form.shipping_type === "Free Over" && (
             <div>
-              <label className={label}>شحن مجاني فوق (ج.م)</label>
+              <label className={label}>{t.vsFreeOver}</label>
               <input
                 value={form.shipping_free_over}
                 onChange={(e) => setForm({ ...form, shipping_free_over: e.target.value })}
@@ -247,7 +248,7 @@ export default function VendorSettingsPage() {
                 type="number"
                 inputMode="decimal"
                 min="0"
-                placeholder="مثال: 500"
+                placeholder={t.vsFreeOverPlaceholder}
               />
             </div>
           )}
@@ -255,7 +256,7 @@ export default function VendorSettingsPage() {
 
         <button type="submit" disabled={busy} className="btn btn-primary disabled:opacity-50">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-          {saved ? "تم الحفظ" : "حفظ التغييرات"}
+          {saved ? t.admSavedShort : t.vsSave}
         </button>
       </form>
     </div>

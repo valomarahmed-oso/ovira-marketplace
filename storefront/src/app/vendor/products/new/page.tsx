@@ -7,8 +7,10 @@ import { ArrowRight, ImagePlus, Loader2, Plus, Save, Trash2, X } from "lucide-re
 import { getCategories, type Category } from "@/lib/api";
 import { getMyProduct, upsertProduct } from "@/lib/vendor";
 import { uploadImage } from "@/lib/uploads";
+import { useI18n } from "@/components/i18n-provider";
 
 function ProductForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const editId = useSearchParams().get("id");
   const editing = !!editId;
@@ -49,7 +51,7 @@ function ProductForm() {
       for (const file of files) urls.push(await uploadImage(file));
       setForm((f) => ({ ...f, images: [...f.images, ...urls] }));
     } catch (err) {
-      setUploadErr(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
+      setUploadErr(err instanceof Error ? err.message : t.catUploadErr);
     } finally {
       setUploading(false);
     }
@@ -97,7 +99,7 @@ function ProductForm() {
     try {
       setVariant(i, "image", await uploadImage(file));
     } catch (err) {
-      setUploadErr(err instanceof Error ? err.message : "تعذّر رفع صورة المتغيّر.");
+      setUploadErr(err instanceof Error ? err.message : t.pfVariantUploadErr);
     } finally {
       setVUploading(null);
     }
@@ -162,7 +164,7 @@ function ProductForm() {
     const variantPrices = variantRows.map((v) => v.price).filter((p) => p > 0);
 
     if (form.has_variants && variantRows.length === 0) {
-      setError("أضف متغيّرًا واحدًا على الأقل أو أوقف خيار المتغيّرات.");
+      setError(t.pfNeedVariant);
       return;
     }
 
@@ -192,7 +194,7 @@ function ProductForm() {
       });
       router.push("/vendor/products");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر حفظ المنتج.");
+      setError(err instanceof Error ? err.message : t.pfSaveErr);
       setBusy(false);
     }
   }
@@ -203,7 +205,7 @@ function ProductForm() {
   if (loading) {
     return (
       <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
-        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
       </div>
     );
   }
@@ -214,7 +216,7 @@ function ProductForm() {
         <Link href="/vendor/products" className="grid h-9 w-9 place-items-center rounded-xl border border-line hover:bg-blue-50">
           <ArrowRight className="h-4 w-4" />
         </Link>
-        <h1 className="text-2xl font-medium text-ink">{editing ? "تعديل المنتج" : "إضافة منتج"}</h1>
+        <h1 className="text-2xl font-medium text-ink">{editing ? t.vpEditAria : t.pfAddTitle}</h1>
       </div>
 
       {error && (
@@ -225,30 +227,30 @@ function ProductForm() {
         <div className="space-y-4 lg:col-span-2">
           <section className="card space-y-4 p-5">
             <div>
-              <label className={label}>اسم المنتج</label>
-              <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={field} placeholder="مثال: سماعة بلوتوث لاسلكية" />
+              <label className={label}>{t.pfName}</label>
+              <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={field} placeholder={t.pfNamePlaceholder} />
             </div>
             <div>
-              <label className={label}>وصف مختصر</label>
+              <label className={label}>{t.pfShortDesc}</label>
               <input
                 value={form.short_description}
                 onChange={(e) => setForm({ ...form, short_description: e.target.value })}
                 className={field}
-                placeholder="سطر واحد يظهر في القائمة (مثال: سماعة لاسلكية بعزل ضوضاء)"
+                placeholder={t.pfShortDescPlaceholder}
                 maxLength={160}
               />
             </div>
             <div>
-              <label className={label}>الوصف</label>
+              <label className={label}>{t.pfDescription}</label>
               <textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 className="min-h-28 w-full rounded-xl border border-line bg-white p-4 text-sm outline-none focus:border-blue"
-                placeholder="اكتب وصفًا واضحًا للمنتج ومميزاته"
+                placeholder={t.pfDescriptionPlaceholder}
               />
             </div>
             <div>
-              <label className={label}>صور المنتج</label>
+              <label className={label}>{t.pfImages}</label>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {form.images.map((img, i) => (
                   <div key={img + i} className="group relative aspect-square overflow-hidden rounded-xl border border-line bg-blue-50">
@@ -256,13 +258,13 @@ function ProductForm() {
                     <img src={img} alt="" className="h-full w-full object-cover" />
                     {i === 0 && (
                       <span className="absolute start-1 top-1 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                        رئيسية
+                        {t.pfPrimary}
                       </span>
                     )}
                     <button
                       type="button"
                       onClick={() => removeImage(i)}
-                      aria-label="حذف الصورة"
+                      aria-label={t.bnImgRemove}
                       className="absolute end-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/90 text-ink-600 shadow hover:text-coral"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -273,7 +275,7 @@ function ProductForm() {
                         onClick={() => makePrimary(i)}
                         className="absolute inset-x-0 bottom-0 bg-white/85 py-1 text-[10px] text-blue-600 opacity-0 transition-opacity group-hover:opacity-100"
                       >
-                        اجعلها رئيسية
+                        {t.pfMakePrimary}
                       </button>
                     )}
                   </div>
@@ -289,7 +291,7 @@ function ProductForm() {
                   ) : (
                     <span className="flex flex-col items-center gap-1">
                       <ImagePlus className="h-5 w-5" />
-                      <span className="text-[10px]">أضف صورة</span>
+                      <span className="text-[10px]">{t.pfAddImage}</span>
                     </span>
                   )}
                 </button>
@@ -300,13 +302,13 @@ function ProductForm() {
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   className={field}
-                  placeholder="أو الصق رابط صورة https://…"
+                  placeholder={t.pfImageUrlPlaceholder}
                   inputMode="url"
                 />
-                <button type="button" onClick={addUrl} className="btn btn-ghost shrink-0 px-4">أضف</button>
+                <button type="button" onClick={addUrl} className="btn btn-ghost shrink-0 px-4">{t.pfAdd}</button>
               </div>
               {uploadErr && <p className="mt-1 text-xs text-coral">{uploadErr}</p>}
-              <p className="mt-1 text-xs text-ink-400">أول صورة هي الرئيسية اللي بتظهر في القائمة.</p>
+              <p className="mt-1 text-xs text-ink-400">{t.pfImageHint}</p>
             </div>
           </section>
 
@@ -318,26 +320,26 @@ function ProductForm() {
                 onChange={(e) => setForm({ ...form, has_variants: e.target.checked })}
                 className="h-4 w-4 accent-blue"
               />
-              بيع بمتغيّرات (مقاس، لون…)
+              {t.pfSellVariants}
             </label>
 
             {form.has_variants && (
               <>
                 <div>
-                  <label className={label}>اسم الخيار</label>
+                  <label className={label}>{t.pfOptionName}</label>
                   <input
                     value={form.variant_option_name}
                     onChange={(e) => setForm({ ...form, variant_option_name: e.target.value })}
                     className={field}
-                    placeholder="مثال: المقاس أو اللون"
+                    placeholder={t.pfOptionNamePlaceholder}
                   />
                 </div>
                 <div className="space-y-2">
                   <div className="hidden grid-cols-[auto_1.4fr_1fr_1fr_auto] gap-2 px-1 text-xs text-ink-400 sm:grid">
-                    <span>صورة</span>
-                    <span>القيمة</span>
-                    <span>السعر</span>
-                    <span>المخزون</span>
+                    <span>{t.pfColImage}</span>
+                    <span>{t.pfColValue}</span>
+                    <span>{t.cmpPrice}</span>
+                    <span>{t.pfColStock}</span>
                     <span></span>
                   </div>
                   {form.variants.map((v, i) => (
@@ -347,7 +349,7 @@ function ProductForm() {
                     >
                       <label
                         className="relative grid h-10 w-10 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-lg border border-line bg-blue-50 text-ink-400 transition-colors hover:border-blue"
-                        title="صورة المتغيّر"
+                        title={t.pfVariantImageTitle}
                       >
                         {vUploading === i ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -359,13 +361,13 @@ function ProductForm() {
                         )}
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickVariantImage(i, e)} />
                       </label>
-                      <input value={v.option_value} onChange={(e) => setVariant(i, "option_value", e.target.value)} className={field} placeholder="مثال: L" />
-                      <input type="number" min="0" value={v.price} onChange={(e) => setVariant(i, "price", e.target.value)} className={field} placeholder="السعر" />
-                      <input type="number" min="0" value={v.stock} onChange={(e) => setVariant(i, "stock", e.target.value)} className={field} placeholder="المخزون" />
+                      <input value={v.option_value} onChange={(e) => setVariant(i, "option_value", e.target.value)} className={field} placeholder={t.pfVariantValuePlaceholder} />
+                      <input type="number" min="0" value={v.price} onChange={(e) => setVariant(i, "price", e.target.value)} className={field} placeholder={t.cmpPrice} />
+                      <input type="number" min="0" value={v.stock} onChange={(e) => setVariant(i, "stock", e.target.value)} className={field} placeholder={t.pfColStock} />
                       <button
                         type="button"
                         onClick={() => removeVariant(i)}
-                        aria-label="حذف المتغيّر"
+                        aria-label={t.pfVariantRemove}
                         className="grid h-10 w-10 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-coral-50 hover:text-coral"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -373,7 +375,7 @@ function ProductForm() {
                     </div>
                   ))}
                   <button type="button" onClick={addVariant} className="btn btn-ghost w-full justify-center">
-                    <Plus className="h-4 w-4" /> أضف متغيّر
+                    <Plus className="h-4 w-4" /> {t.pfAddVariant}
                   </button>
                 </div>
               </>
@@ -384,7 +386,7 @@ function ProductForm() {
         <div className="space-y-4">
           <section className="card space-y-4 p-5">
             <div>
-              <label className={label}>القسم</label>
+              <label className={label}>{t.pfCategory}</label>
               <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={field}>
                 {categories.map((c) => (
                   <option key={c.name} value={c.name}>{c.category_name}</option>
@@ -392,47 +394,47 @@ function ProductForm() {
               </select>
             </div>
             <div>
-              <label className={label}>العلامة التجارية</label>
+              <label className={label}>{t.pfBrand}</label>
               <input
                 value={form.brand}
                 onChange={(e) => setForm({ ...form, brand: e.target.value })}
                 className={field}
-                placeholder="اختياري — مثال: Samsung"
+                placeholder={t.pfBrandPlaceholder}
               />
             </div>
             <div>
-              <label className={label}>الحالة</label>
+              <label className={label}>{t.pfCondition}</label>
               <select
                 value={form.condition}
                 onChange={(e) => setForm({ ...form, condition: e.target.value as "New" | "Used" | "Refurbished" })}
                 className={field}
               >
-                <option value="New">جديد</option>
-                <option value="Used">مستعمل</option>
-                <option value="Refurbished">مُجدّد</option>
+                <option value="New">{t.pfCondNew}</option>
+                <option value="Used">{t.pfCondUsed}</option>
+                <option value="Refurbished">{t.pfCondRefurbished}</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {!form.has_variants && (
                 <div>
-                  <label className={label}>السعر</label>
+                  <label className={label}>{t.cmpPrice}</label>
                   <input required type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={field} placeholder="0" />
                 </div>
               )}
               <div>
-                <label className={label}>قبل الخصم</label>
+                <label className={label}>{t.pfCompareAt}</label>
                 <input type="number" min="0" value={form.compare_at_price} onChange={(e) => setForm({ ...form, compare_at_price: e.target.value })} className={field} placeholder="—" />
               </div>
             </div>
             {form.has_variants ? (
               <p className="rounded-xl bg-blue-50 px-3 py-2 text-xs text-ink-600">
-                الأسعار والمخزون بتتحدّد لكل متغيّر بالأسفل.
+                {t.pfVariantPriceNote}
               </p>
             ) : (
               <div>
-                <label className={label}>المخزون (الكمية المتاحة)</label>
+                <label className={label}>{t.pfStock}</label>
                 <input required type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className={field} placeholder="0" />
-                <p className="mt-1 text-xs text-ink-400">لإعادة التوفّر بعد النفاد، عدّل هذا الرقم واحفظ.</p>
+                <p className="mt-1 text-xs text-ink-400">{t.pfStockHint}</p>
               </div>
             )}
 
@@ -444,34 +446,34 @@ function ProductForm() {
                 className="mt-0.5 h-4 w-4 accent-blue-600"
               />
               <span className="text-sm text-ink">
-                تتبّع المخزون في ERPNext
-                <span className="mt-0.5 block text-xs text-ink-400">
-                  مفعّل: الكمية بتتسجّل كرصيد فعلي في المستودع، ويتخصم منها تلقائيًا عند شحن الطلب (Delivery Note).
-                  مقفول: الكمية تُدار يدويًا هنا فقط بدون حركة مخزون في ERPNext.
-                </span>
+                {t.pfTrackInventory}
+                <span className="mt-0.5 block text-xs text-ink-400">{t.pfTrackHint}</span>
               </span>
             </label>
           </section>
 
           <button type="submit" disabled={busy} className="btn btn-primary w-full disabled:opacity-50">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} حفظ المنتج
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {t.pfSaveProduct}
           </button>
-          {!editing && <p className="text-center text-xs text-ink-400">المنتج هيتراجع من الإدارة قبل النشر</p>}
+          {!editing && <p className="text-center text-xs text-ink-400">{t.pfReviewNote}</p>}
         </div>
       </form>
     </div>
   );
 }
 
+function ProductFormFallback() {
+  const { t } = useI18n();
+  return (
+    <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
+      <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
+    </div>
+  );
+}
+
 export default function ProductFormPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
-        </div>
-      }
-    >
+    <Suspense fallback={<ProductFormFallback />}>
       <ProductForm />
     </Suspense>
   );
