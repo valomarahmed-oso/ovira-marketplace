@@ -72,7 +72,7 @@ export default function AdminSettingsPage() {
       setSettings(next);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر الحفظ.");
+      setError(err instanceof Error ? err.message : t.admSaveErr);
     } finally {
       setBusy(false);
     }
@@ -104,7 +104,7 @@ export default function AdminSettingsPage() {
         >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            {t.emailNotConfigured} <span className="font-medium underline">اضبطه الآن</span>
+            {t.emailNotConfigured} <span className="font-medium underline">{t.admConfigureNow}</span>
           </span>
         </Link>
       )}

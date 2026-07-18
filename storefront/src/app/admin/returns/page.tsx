@@ -3,10 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Loader2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
+import { useI18n } from "@/components/i18n-provider";
 import {
   listReturns,
-  RETURN_REASON_LABEL,
-  RETURN_STATUS_LABEL,
   RETURN_STATUS_STYLE,
   setReturnStatus,
   type ReturnRequest,
@@ -14,12 +13,26 @@ import {
 } from "@/lib/returns-api";
 
 const TABS: (ReturnStatus | "All")[] = ["All", "Requested", "Approved", "Rejected", "Completed"];
-const TAB_LABEL: Record<string, string> = { All: "الكل", ...RETURN_STATUS_LABEL };
 
 export default function AdminReturnsPage() {
+  const { t } = useI18n();
   const user = useAuth((s) => s.user);
   const ready = useAuth((s) => s.ready);
   const isOperator = !!user?.isOperator;
+  const statusLabel: Record<string, string> = {
+    Requested: t.rstRequested,
+    Approved: t.rstApproved,
+    Rejected: t.rstRejected,
+    Completed: t.rstCompleted,
+  };
+  const tabLabel: Record<string, string> = { All: t.rtnAll, ...statusLabel };
+  const reasonLabel: Record<string, string> = {
+    Damaged: t.rrnDamaged,
+    "Wrong item": t.rrnWrongItem,
+    "Not as described": t.rrnNotAsDescribed,
+    "Changed mind": t.rrnChangedMind,
+    Other: t.rrnOther,
+  };
 
   const [rows, setRows] = useState<ReturnRequest[]>([]);
   const [tab, setTab] = useState<string>("All");
@@ -52,7 +65,7 @@ export default function AdminReturnsPage() {
         }),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تحديث الطلب.");
+      setError(err instanceof Error ? err.message : t.rtnUpdateErr);
     } finally {
       setActingOn(null);
     }
@@ -61,8 +74,8 @@ export default function AdminReturnsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-medium text-ink">المرتجعات</h2>
-        <p className="text-sm text-ink-400">راجِع طلبات الإرجاع من المشترين وحدّد قرارك.</p>
+        <h2 className="text-xl font-medium text-ink">{t.rtnTitle}</h2>
+        <p className="text-sm text-ink-400">{t.rtnSubtitle}</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -75,7 +88,7 @@ export default function AdminReturnsPage() {
               tab === s ? "bg-blue text-white" : "border border-line text-ink-600 hover:bg-blue-50"
             }`}
           >
-            {TAB_LABEL[s]}
+            {tabLabel[s]}
           </button>
         ))}
       </div>
@@ -93,7 +106,7 @@ export default function AdminReturnsPage() {
       ) : rows.length === 0 ? (
         <div className="card flex flex-col items-center gap-2 p-12 text-center text-ink-400">
           <RotateCcw className="h-8 w-8" />
-          <p>لا توجد طلبات إرجاع.</p>
+          <p>{t.rtnEmpty}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -107,20 +120,20 @@ export default function AdminReturnsPage() {
                     <span className="font-tech text-sm text-ink-400">{r.name}</span>
                     <span className="font-tech text-sm text-ink">{r.order}</span>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${RETURN_STATUS_STYLE[r.status] ?? "bg-blue-50 text-blue-600"}`}>
-                      {RETURN_STATUS_LABEL[r.status] ?? r.status}
+                      {statusLabel[r.status] ?? r.status}
                     </span>
                   </div>
                   <span className="text-xs text-ink-400">{r.date}</span>
                 </div>
 
                 <div className="text-sm text-ink-600">
-                  <span className="text-ink-400">السبب: </span>
-                  {RETURN_REASON_LABEL[r.reason ?? ""] ?? r.reason ?? "—"}
+                  <span className="text-ink-400">{t.rtnReason} </span>
+                  {reasonLabel[r.reason ?? ""] ?? r.reason ?? "—"}
                   {r.customer_email && <span className="text-ink-400"> · {r.customer_email}</span>}
                 </div>
                 {r.details && <p className="rounded-lg bg-canvas px-3 py-2 text-sm text-ink-600">{r.details}</p>}
                 {r.operator_note && (
-                  <p className="text-sm text-ink-400">ملاحظتك: {r.operator_note}</p>
+                  <p className="text-sm text-ink-400">{t.rtnYourNote} {r.operator_note}</p>
                 )}
 
                 {open ? (
@@ -128,7 +141,7 @@ export default function AdminReturnsPage() {
                     <input
                       value={notes[r.name] ?? ""}
                       onChange={(e) => setNotes((n) => ({ ...n, [r.name]: e.target.value }))}
-                      placeholder="ملاحظة للمشتري (اختياري)"
+                      placeholder={t.rtnNotePlaceholder}
                       className="h-10 w-full rounded-xl border border-line bg-white px-4 text-sm outline-none focus:border-blue"
                     />
                     <div className="flex flex-wrap gap-2">
@@ -138,7 +151,7 @@ export default function AdminReturnsPage() {
                         onClick={() => decide(r, "Approved")}
                         className="btn btn-primary disabled:opacity-50"
                       >
-                        {acting && <Loader2 className="h-4 w-4 animate-spin" />} قبول
+                        {acting && <Loader2 className="h-4 w-4 animate-spin" />} {t.rtnApprove}
                       </button>
                       <button
                         type="button"
@@ -146,7 +159,7 @@ export default function AdminReturnsPage() {
                         onClick={() => decide(r, "Rejected")}
                         className="btn btn-ghost text-coral disabled:opacity-50"
                       >
-                        رفض
+                        {t.rtnReject}
                       </button>
                     </div>
                   </div>
@@ -158,7 +171,7 @@ export default function AdminReturnsPage() {
                       onClick={() => decide(r, "Completed")}
                       className="btn btn-ghost disabled:opacity-50"
                     >
-                      {acting && <Loader2 className="h-4 w-4 animate-spin" />} تحديد كمكتمل
+                      {acting && <Loader2 className="h-4 w-4 animate-spin" />} {t.rtnMarkComplete}
                     </button>
                   </div>
                 ) : null}

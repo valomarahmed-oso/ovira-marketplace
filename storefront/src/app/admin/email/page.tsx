@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { Check, CheckCircle2, Loader2, Mail, Save } from "lucide-react";
 import { getEmailConfig, updateEmailConfig } from "@/lib/admin";
+import { useI18n } from "@/components/i18n-provider";
 
 export default function AdminEmailPage() {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -60,7 +62,7 @@ export default function AdminEmailPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 1600);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر الحفظ.");
+      setError(err instanceof Error ? err.message : t.admSaveErr);
     } finally {
       setBusy(false);
     }
@@ -72,7 +74,7 @@ export default function AdminEmailPage() {
   if (loading) {
     return (
       <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
-        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
       </div>
     );
   }
@@ -81,15 +83,13 @@ export default function AdminEmailPage() {
     <div className="max-w-2xl space-y-6">
       <div className="flex items-center gap-2">
         <Mail className="h-6 w-6 text-blue-600" />
-        <h1 className="text-2xl font-medium text-ink">إعدادات البريد الصادر</h1>
+        <h1 className="text-2xl font-medium text-ink">{t.emTitle}</h1>
       </div>
-      <p className="text-sm text-ink-400">
-        اضبط حساب SMTP لإرسال رسائل الطلبات والمرتجعات — من غير ما تفتح ERPNext Desk.
-      </p>
+      <p className="text-sm text-ink-400">{t.emSubtitle}</p>
 
       {configured && (
         <div className="flex items-center gap-2 rounded-xl bg-[#e7f8f1] px-4 py-3 text-sm text-mint">
-          <CheckCircle2 className="h-4 w-4" /> البريد مُفعّل حاليًا{hasPassword ? " (كلمة المرور محفوظة)" : ""}.
+          <CheckCircle2 className="h-4 w-4" /> {t.emConfigured}{hasPassword ? t.emPwSaved : ""}.
         </div>
       )}
       {error && (
@@ -98,7 +98,7 @@ export default function AdminEmailPage() {
 
       <form onSubmit={save} className="card space-y-4 p-5">
         <div>
-          <label className={label}>البريد المُرسِل منه</label>
+          <label className={label}>{t.emFrom}</label>
           <input
             required
             type="email"
@@ -110,7 +110,7 @@ export default function AdminEmailPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>خادم SMTP</label>
+            <label className={label}>{t.emSmtpServer}</label>
             <input
               required
               value={form.smtp_server}
@@ -120,7 +120,7 @@ export default function AdminEmailPage() {
             />
           </div>
           <div>
-            <label className={label}>المنفذ (Port)</label>
+            <label className={label}>{t.emPort}</label>
             <input
               type="number"
               value={form.smtp_port}
@@ -137,10 +137,10 @@ export default function AdminEmailPage() {
             onChange={(e) => setForm({ ...form, use_tls: e.target.checked })}
             className="h-4 w-4 accent-blue-600"
           />
-          استخدام TLS (موصى به لمعظم الخوادم مثل Gmail على المنفذ 587)
+          {t.emUseTls}
         </label>
         <div>
-          <label className={label}>اسم الدخول (اختياري — لو مختلف عن البريد)</label>
+          <label className={label}>{t.emLogin}</label>
           <input
             value={form.login_id}
             onChange={(e) => setForm({ ...form, login_id: e.target.value })}
@@ -149,26 +149,22 @@ export default function AdminEmailPage() {
           />
         </div>
         <div>
-          <label className={label}>كلمة مرور SMTP {hasPassword ? "(اتركها فارغة للإبقاء على الحالية)" : ""}</label>
+          <label className={label}>{t.emPassword}{hasPassword ? t.emPasswordKeep : ""}</label>
           <input
             type="password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             className={field}
-            placeholder={hasPassword ? "••••••••" : "كلمة المرور أو App Password"}
+            placeholder={hasPassword ? "••••••••" : t.emPasswordPlaceholder}
             autoComplete="new-password"
           />
-          <p className="mt-1 text-xs text-ink-400">
-            تُحفظ مُشفّرة في ERPNext ولا تظهر بعد الحفظ. لحسابات Gmail استخدم «App Password».
-          </p>
+          <p className="mt-1 text-xs text-ink-400">{t.emPasswordHint}</p>
         </div>
         <button type="submit" disabled={busy} className="btn btn-primary disabled:opacity-50">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-          {saved ? "تم الحفظ" : "حفظ وتفعيل"}
+          {saved ? t.admSavedShort : t.emSave}
         </button>
-        <p className="text-xs text-ink-400">
-          عند الحفظ، يتحقّق ERPNext من الاتصال بالخادم — فلو ظهر خطأ، راجع الخادم/المنفذ/كلمة المرور.
-        </p>
+        <p className="text-xs text-ink-400">{t.emVerifyHint}</p>
       </form>
     </div>
   );

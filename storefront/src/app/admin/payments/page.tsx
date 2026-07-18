@@ -34,13 +34,6 @@ const PROVIDER_FIELDS: Record<
   ],
 };
 
-const PROVIDER_LABEL: Record<Provider, string> = {
-  "Cash on Delivery": "الدفع عند الاستلام",
-  Paymob: "Paymob",
-  Fawry: "Fawry",
-  Stripe: "Stripe",
-};
-
 /** Gateways whose connector code isn't live yet — config stored, not used. */
 const COMING_SOON: Provider[] = ["Fawry", "Stripe"];
 
@@ -49,6 +42,12 @@ export default function AdminPaymentsPage() {
   const user = useAuth((s) => s.user);
   const ready = useAuth((s) => s.ready);
   const isOperator = !!user?.isOperator;
+  const providerLabel: Record<Provider, string> = {
+    "Cash on Delivery": t.odtCod,
+    Paymob: "Paymob",
+    Fawry: "Fawry",
+    Stripe: "Stripe",
+  };
 
   const [rows, setRows] = useState<PaymentConnector[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,7 +131,7 @@ export default function AdminPaymentsPage() {
                       <CreditCard className="h-5 w-5 text-blue-600" />
                     </span>
                     <div>
-                      <div className="font-medium text-ink">{PROVIDER_LABEL[row.provider]}</div>
+                      <div className="font-medium text-ink">{providerLabel[row.provider]}</div>
                       <div className={`text-xs ${row.enabled ? "text-mint" : "text-ink-400"}`}>
                         {row.enabled ? t.payEnabled : t.payDisabled}
                       </div>

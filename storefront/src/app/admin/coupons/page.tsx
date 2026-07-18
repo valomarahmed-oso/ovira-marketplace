@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Loader2, Plus, Tag, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
+import { useI18n } from "@/components/i18n-provider";
 import { deleteCoupon, listCoupons, upsertCoupon, type Coupon } from "@/lib/coupons-api";
 
 const BLANK = {
@@ -17,6 +18,7 @@ const BLANK = {
 };
 
 export default function AdminCouponsPage() {
+  const { t } = useI18n();
   const user = useAuth((s) => s.user);
   const ready = useAuth((s) => s.ready);
   const isOperator = !!user?.isOperator;
@@ -57,7 +59,7 @@ export default function AdminCouponsPage() {
       setForm({ ...BLANK });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر حفظ الكوبون.");
+      setError(err instanceof Error ? err.message : t.cpnSaveErr);
     } finally {
       setBusy(false);
     }
@@ -79,18 +81,18 @@ export default function AdminCouponsPage() {
       });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر التحديث.");
+      setError(err instanceof Error ? err.message : t.cpnUpdateErr);
     }
   }
 
   async function remove(code: string) {
-    if (!window.confirm(`حذف الكوبون ${code}؟`)) return;
+    if (!window.confirm(t.cpnDeleteConfirm.replace("{code}", code))) return;
     setError(null);
     try {
       await deleteCoupon(code);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر الحذف.");
+      setError(err instanceof Error ? err.message : t.cpnDeleteErr);
     }
   }
 
@@ -99,8 +101,8 @@ export default function AdminCouponsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-medium text-ink">الكوبونات</h2>
-        <p className="text-sm text-ink-400">أنشئ أكواد خصم — الخصم يتحمّله المتجر ولا يؤثّر على مستحقات البائعين.</p>
+        <h2 className="text-xl font-medium text-ink">{t.cpnTitle}</h2>
+        <p className="text-sm text-ink-400">{t.cpnSubtitle}</p>
       </div>
 
       {error && (
@@ -114,7 +116,7 @@ export default function AdminCouponsPage() {
           required
           value={form.code}
           onChange={(e) => setForm({ ...form, code: e.target.value })}
-          placeholder="الكود (مثال: WELCOME10)"
+          placeholder={t.cpnCodePlaceholder}
           className={`${field} uppercase`}
         />
         <select
@@ -122,8 +124,8 @@ export default function AdminCouponsPage() {
           onChange={(e) => setForm({ ...form, discount_type: e.target.value as "Percentage" | "Fixed" })}
           className={field}
         >
-          <option value="Percentage">نسبة %</option>
-          <option value="Fixed">مبلغ ثابت</option>
+          <option value="Percentage">{t.cpnTypePercent}</option>
+          <option value="Fixed">{t.cpnTypeFixed}</option>
         </select>
         <input
           required
@@ -132,7 +134,7 @@ export default function AdminCouponsPage() {
           step="any"
           value={form.discount_value}
           onChange={(e) => setForm({ ...form, discount_value: e.target.value })}
-          placeholder={form.discount_type === "Percentage" ? "قيمة الخصم %" : "قيمة الخصم"}
+          placeholder={form.discount_type === "Percentage" ? t.cpnValuePercent : t.cpnValueFixed}
           className={field}
         />
         {form.discount_type === "Percentage" && (
@@ -142,7 +144,7 @@ export default function AdminCouponsPage() {
             step="any"
             value={form.max_discount}
             onChange={(e) => setForm({ ...form, max_discount: e.target.value })}
-            placeholder="أقصى خصم (اختياري)"
+            placeholder={t.cpnMaxDiscount}
             className={field}
           />
         )}
@@ -152,7 +154,7 @@ export default function AdminCouponsPage() {
           step="any"
           value={form.min_subtotal}
           onChange={(e) => setForm({ ...form, min_subtotal: e.target.value })}
-          placeholder="حد أدنى للطلب (اختياري)"
+          placeholder={t.cpnMinSubtotal}
           className={field}
         />
         <input
@@ -160,7 +162,7 @@ export default function AdminCouponsPage() {
           min="0"
           value={form.usage_limit}
           onChange={(e) => setForm({ ...form, usage_limit: e.target.value })}
-          placeholder="حد الاستخدام (0 = بلا حد)"
+          placeholder={t.cpnUsageLimit}
           className={field}
         />
         <input
@@ -171,7 +173,7 @@ export default function AdminCouponsPage() {
         />
         <button type="submit" disabled={busy} className="btn btn-primary disabled:opacity-50">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          حفظ الكوبون
+          {t.cpnSave}
         </button>
       </form>
 
@@ -182,7 +184,7 @@ export default function AdminCouponsPage() {
       ) : rows.length === 0 ? (
         <div className="card flex flex-col items-center gap-2 p-12 text-center text-ink-400">
           <Tag className="h-8 w-8" />
-          <p>لا توجد كوبونات بعد.</p>
+          <p>{t.cpnEmpty}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -194,23 +196,23 @@ export default function AdminCouponsPage() {
                   <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-600">
                     {c.discount_type === "Percentage" ? `${c.discount_value}%` : `${c.discount_value}`}
                   </span>
-                  {!c.active && <span className="rounded-full bg-[#f1efe8] px-2 py-0.5 text-xs text-ink-400">موقوف</span>}
+                  {!c.active && <span className="rounded-full bg-[#f1efe8] px-2 py-0.5 text-xs text-ink-400">{t.cpnInactive}</span>}
                 </div>
                 <div className="mt-0.5 text-xs text-ink-400">
-                  {c.min_subtotal ? `حد أدنى ${c.min_subtotal} · ` : ""}
-                  {c.usage_limit ? `${c.used_count ?? 0}/${c.usage_limit} استُخدم` : `${c.used_count ?? 0} استُخدم`}
-                  {c.expires_on ? ` · ينتهي ${c.expires_on}` : ""}
+                  {c.min_subtotal ? `${t.cpnMinLabel} ${c.min_subtotal} · ` : ""}
+                  {c.usage_limit ? `${c.used_count ?? 0}/${c.usage_limit} ${t.cpnUsedWord}` : `${c.used_count ?? 0} ${t.cpnUsedWord}`}
+                  {c.expires_on ? ` · ${t.cpnExpiresWord} ${c.expires_on}` : ""}
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <button type="button" onClick={() => toggleActive(c)} className="btn btn-ghost h-9 px-3 text-sm">
-                  {c.active ? "إيقاف" : "تفعيل"}
+                  {c.active ? t.cpnDisable : t.cpnEnable}
                 </button>
                 <button
                   type="button"
                   onClick={() => remove(c.code)}
                   className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 hover:bg-coral-50 hover:text-coral"
-                  aria-label="حذف"
+                  aria-label={t.adrDelete}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

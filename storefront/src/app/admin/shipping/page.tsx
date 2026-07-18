@@ -28,13 +28,6 @@ const PROVIDER_FIELDS: Record<
   Mylerz: [{ name: "api_key", label: "API Key", secret: true, hasKey: "has_api_key" }],
 };
 
-const PROVIDER_LABEL: Record<Provider, string> = {
-  Manual: "شحن يدوي (أسعار ثابتة)",
-  Bosta: "Bosta — بوسطة",
-  Aramex: "Aramex — أرامكس",
-  Mylerz: "Mylerz — مايلرز",
-};
-
 /** Carriers whose connector code isn't live yet. */
 const COMING_SOON: Provider[] = ["Mylerz"];
 
@@ -51,6 +44,12 @@ export default function AdminShippingPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shippingAccount, setShippingAccount] = useState<string>("");
+  const providerLabel: Record<Provider, string> = {
+    Manual: t.shipProviderManual,
+    Bosta: t.shipProviderBosta,
+    Aramex: t.shipProviderAramex,
+    Mylerz: t.shipProviderMylerz,
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -142,7 +141,7 @@ export default function AdminShippingPage() {
                       <Truck className="h-5 w-5 text-blue-600" />
                     </span>
                     <div>
-                      <div className="font-medium text-ink">{PROVIDER_LABEL[row.provider]}</div>
+                      <div className="font-medium text-ink">{providerLabel[row.provider]}</div>
                       <div className={`text-xs ${row.enabled ? "text-mint" : "text-ink-400"}`}>
                         {row.enabled ? t.payEnabled : t.payDisabled}
                       </div>
