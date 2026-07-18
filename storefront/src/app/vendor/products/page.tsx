@@ -5,17 +5,24 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AlertTriangle, FileUp, Loader2, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import {
-  APPROVAL_LABEL,
   APPROVAL_STYLE,
   deleteProduct,
   getMyProducts,
   type VendorProduct,
 } from "@/lib/vendor";
+import { useI18n } from "@/components/i18n-provider";
 import { cn, formatPrice } from "@/lib/utils";
 
 const LOW_STOCK = 5;
 
 export default function VendorProductsPage() {
+  const { t } = useI18n();
+  const approvalLabel: Record<string, string> = {
+    Draft: t.vappDraft,
+    Pending: t.vappPending,
+    Approved: t.vappApproved,
+    Rejected: t.vappRejected,
+  };
   const [products, setProducts] = useState<VendorProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -43,7 +50,7 @@ export default function VendorProductsPage() {
   if (loading) {
     return (
       <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
-        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
       </div>
     );
   }
@@ -51,7 +58,7 @@ export default function VendorProductsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-medium text-ink">المنتجات ({products.length})</h1>
+        <h1 className="text-2xl font-medium text-ink">{t.vndProducts} ({products.length})</h1>
         <div className="flex flex-wrap gap-2">
           {lowCount > 0 && (
             <button
@@ -63,14 +70,14 @@ export default function VendorProductsPage() {
                 lowOnly ? "border-gold bg-gold/10 text-gold" : "border-line text-ink-600 hover:border-gold",
               )}
             >
-              <AlertTriangle className="h-4 w-4" /> مخزون منخفض ({lowCount})
+              <AlertTriangle className="h-4 w-4" /> {t.vpLowStockN.replace("{n}", String(lowCount))}
             </button>
           )}
           <Link href="/vendor/products/import" className="btn btn-ghost">
-            <FileUp className="h-4 w-4" /> استيراد CSV
+            <FileUp className="h-4 w-4" /> {t.vpImportCsv}
           </Link>
           <Link href="/vendor/products/new" className="btn btn-primary">
-            <Plus className="h-4 w-4" /> أضف منتج
+            <Plus className="h-4 w-4" /> {t.vndAddProduct}
           </Link>
         </div>
       </div>
@@ -80,9 +87,9 @@ export default function VendorProductsPage() {
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-50">
             <Package className="h-7 w-7 text-blue-600" />
           </div>
-          <p className="text-ink-400">لسه مفيش منتجات — أضف أول منتج لمتجرك.</p>
+          <p className="text-ink-400">{t.vpEmpty}</p>
           <Link href="/vendor/products/new" className="btn btn-primary inline-flex">
-            <Plus className="h-4 w-4" /> أضف منتج
+            <Plus className="h-4 w-4" /> {t.vndAddProduct}
           </Link>
         </div>
       ) : (
@@ -105,17 +112,17 @@ export default function VendorProductsPage() {
                   )}
                 >
                   {p.stock_qty <= 0
-                    ? "نفد المخزون"
+                    ? t.vpOutOfStock
                     : p.stock_qty <= LOW_STOCK
-                      ? `منخفض: ${p.stock_qty}`
-                      : `${p.stock_qty} قطعة`}
+                      ? t.vpLow.replace("{n}", String(p.stock_qty))
+                      : `${p.stock_qty} ${t.vndPieces}`}
                 </span>
                 <span className={cn("rounded-full px-2 py-0.5 text-xs", APPROVAL_STYLE[p.approval_status])}>
-                  {APPROVAL_LABEL[p.approval_status]}
+                  {approvalLabel[p.approval_status]}
                 </span>
                 <Link
                   href={`/vendor/products/new?id=${encodeURIComponent(p.name)}`}
-                  aria-label="تعديل المنتج"
+                  aria-label={t.vpEditAria}
                   className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
                 >
                   <Pencil className="h-4 w-4" />
@@ -124,7 +131,7 @@ export default function VendorProductsPage() {
                   type="button"
                   onClick={() => remove(p.name)}
                   disabled={removing === p.name}
-                  aria-label="حذف المنتج"
+                  aria-label={t.vpDeleteAria}
                   className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-coral-50 hover:text-coral disabled:opacity-50"
                 >
                   {removing === p.name ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}

@@ -5,16 +5,23 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Clock, Loader2, Package, Plus, ShoppingBag, TrendingUp } from "lucide-react";
 import {
-  APPROVAL_LABEL,
   APPROVAL_STYLE,
   getMyOrders,
   getMyProducts,
   type VendorOrder,
   type VendorProduct,
 } from "@/lib/vendor";
+import { useI18n } from "@/components/i18n-provider";
 import { cn, formatPrice } from "@/lib/utils";
 
 export default function VendorOverview() {
+  const { t } = useI18n();
+  const approvalLabel: Record<string, string> = {
+    Draft: t.vappDraft,
+    Pending: t.vappPending,
+    Approved: t.vappApproved,
+    Rejected: t.vappRejected,
+  };
   const [products, setProducts] = useState<VendorProduct[]>([]);
   const [orders, setOrders] = useState<VendorOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +38,7 @@ export default function VendorOverview() {
   if (loading) {
     return (
       <div className="card flex items-center justify-center gap-2 p-10 text-ink-400">
-        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> جارٍ التحميل…
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> {t.loading}
       </div>
     );
   }
@@ -40,18 +47,18 @@ export default function VendorOverview() {
   const revenue = orders.reduce((sum, o) => sum + (o.vendor_total || 0), 0);
 
   const stats = [
-    { label: "إجمالي المبيعات", value: formatPrice(revenue), icon: TrendingUp, hint: `${orders.length} طلب` },
-    { label: "الطلبات", value: String(orders.length), icon: ShoppingBag, hint: "كل الطلبات" },
-    { label: "المنتجات", value: String(products.length), icon: Package, hint: `${pending} بانتظار المراجعة` },
-    { label: "بانتظار المراجعة", value: String(pending), icon: Clock, hint: "منتجات غير منشورة" },
+    { label: t.vndTotalSales, value: formatPrice(revenue), icon: TrendingUp, hint: `${orders.length} ${t.vndOrdersWord}` },
+    { label: t.vndOrders, value: String(orders.length), icon: ShoppingBag, hint: t.vndAllOrders },
+    { label: t.vndProducts, value: String(products.length), icon: Package, hint: `${pending} ${t.vndAwaitingReview}` },
+    { label: t.vndAwaitingReview, value: String(pending), icon: Clock, hint: t.vndUnpublished },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-medium text-ink">نظرة عامة</h1>
+        <h1 className="text-2xl font-medium text-ink">{t.vndOverview}</h1>
         <Link href="/vendor/products/new" className="btn btn-primary">
-          <Plus className="h-4 w-4" /> أضف منتج
+          <Plus className="h-4 w-4" /> {t.vndAddProduct}
         </Link>
       </div>
 
@@ -72,13 +79,13 @@ export default function VendorOverview() {
 
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-line p-4">
-          <h2 className="font-medium text-ink">أحدث المنتجات</h2>
+          <h2 className="font-medium text-ink">{t.vndLatestProducts}</h2>
           <Link href="/vendor/products" className="text-sm text-blue-600 hover:underline">
-            عرض الكل
+            {t.vndViewAll}
           </Link>
         </div>
         {products.length === 0 ? (
-          <div className="p-8 text-center text-sm text-ink-400">لسه مفيش منتجات.</div>
+          <div className="p-8 text-center text-sm text-ink-400">{t.vndNoProducts}</div>
         ) : (
           <div className="divide-y divide-line">
             {products.slice(0, 5).map((p) => (
@@ -92,10 +99,10 @@ export default function VendorOverview() {
                 </div>
                 <span className="hidden font-tech text-sm text-ink sm:block">{formatPrice(p.price, p.currency)}</span>
                 <span className="hidden w-16 text-center text-xs text-ink-400 sm:block">
-                  {p.stock_qty > 0 ? `${p.stock_qty} قطعة` : "نفد"}
+                  {p.stock_qty > 0 ? `${p.stock_qty} ${t.vndPieces}` : t.vndOutOfStock}
                 </span>
                 <span className={cn("rounded-full px-2 py-0.5 text-xs", APPROVAL_STYLE[p.approval_status])}>
-                  {APPROVAL_LABEL[p.approval_status]}
+                  {approvalLabel[p.approval_status]}
                 </span>
               </div>
             ))}
