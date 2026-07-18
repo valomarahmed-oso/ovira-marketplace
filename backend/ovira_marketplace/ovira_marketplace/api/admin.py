@@ -450,3 +450,82 @@ def delete_banner(name):
         frappe.delete_doc("Marketplace Banner", name, ignore_permissions=True)
         frappe.db.commit()
     return {"ok": True}
+
+
+# -- team / staff access (grant marketplace roles from the portal) -----------
+
+# Roles the operator can hand out from the storefront team page. Deliberately
+# excludes System Manager and any Frappe/ERPNext role, so this endpoint can never
+# be used to escalate to full desk/admin access — it only manages store staff.
+MANAGED_ROLES = ("Marketplace Operator", "Marketplace Content Editor")
+
+
+def _member_payload(user_id):
+    u = frappe.db.get_value("User", user_id, ["name", "full_name", "enabled"], as_dict=True)
+    if not u:
+        return None
+    roles = set(frappe.get_roles(user_id))
+    return {
+        "email": u.name,
+        "full_name": u.full_name or u.name,
+        "enabled": bool(u.enabled),
+        "roles": [r for r in MANAGED_ROLES if r in roles],
+    }
+
+
+@frappe.whitelist()
+def list_team():
+    """Everyone who holds a marketplace management role (operator / content
+    editor), for the portal team page. Operator-only."""
+    _require_operator()
+    rows = frappe.get_all(
+        "Has Role",
+        filters={"role": ["in", list(MANAGED_ROLES)], "parenttype": "User"},
+        fields=["parent"],
+        ignore_permissions=True,
+    )
+    emails = sorted({r.parent for r in rows if r.parent not in ("Administrator", "Guest")})
+    members = [m for m in (_member_payload(e) for e in emails) if m and m["roles"]]
+    return members
+
+
+@frappe.whitelist()
+def set_team_member(email=None, role=None, grant=None):
+    """Grant or revoke ONE managed role for an existing storefront account.
+
+    Operator-only. The person must already have an account (they can sign up from
+    the storefront); this never creates users or touches passwords, and only ever
+    toggles the whitelisted MANAGED_ROLES — never System Manager or any other role.
+    """
+    _require_operator()
+
+    email = (email or "").strip().lower()
+    if role not in MANAGED_ROLES:
+        frappe.throw(_("هذه الصلاحية غير مسموح بإدارتها من هنا."))
+    if not email:
+        frappe.throw(_("من فضلك أدخل البريد الإلكتروني."))
+    if email in ("administrator", "guest"):
+        frappe.throw(_("لا يمكن تعديل هذا المستخدم."))
+
+    if not frappe.db.exists("User", email):
+        frappe.throw(
+            _("لا يوجد حساب بهذا البريد. اطلب من الشخص إنشاء حساب على المتجر أولًا ثم امنحه الصلاحية."),
+            frappe.DoesNotExistError,
+        )
+
+    grant_flag = cint(grant)
+    # Guard against self-lockout: don't let an operator strip their own operator role.
+    if (
+        not grant_flag
+        and role == "Marketplace Operator"
+        and email == (frappe.session.user or "").lower()
+    ):
+        frappe.throw(_("لا يمكنك سحب صلاحية التشغيل من نفسك."))
+
+    user = frappe.get_doc("User", email)
+    if grant_flag:
+        user.add_roles(role)
+    else:
+        user.remove_roles(role)
+    frappe.db.commit()
+    return _member_payload(email)

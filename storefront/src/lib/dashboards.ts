@@ -24,6 +24,7 @@ import {
   Store,
   Tag,
   Truck,
+  Users,
   Wallet,
   Zap,
   type LucideIcon,
@@ -86,6 +87,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/admin/email", key: "adminNavEmail", icon: Mail },
       { href: "/admin/content", key: "adminNavContent", icon: FileText, contentEditor: true },
       { href: "/admin/banners", key: "adminNavBanners", icon: Images, contentEditor: true },
+      { href: "/admin/team", key: "adminNavTeam", icon: Users },
     ],
   },
   vendor: {
