@@ -20,6 +20,7 @@ import {
   type AdminCategory,
 } from "@/lib/categories-admin";
 import { uploadImage } from "@/lib/uploads";
+import { useI18n } from "@/components/i18n-provider";
 
 const FRAPPE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const abs = (p?: string | null) =>
@@ -28,6 +29,7 @@ const abs = (p?: string | null) =>
 const blank = { name: "", category_name: "", parent: "", image: "", display_order: "", description: "" };
 
 export default function AdminCategoriesPage() {
+  const { t } = useI18n();
   const user = useAuth((s) => s.user);
   const ready = useAuth((s) => s.ready);
   const isOperator = !!user?.isOperator;
@@ -79,7 +81,7 @@ export default function AdminCategoriesPage() {
       const url = await uploadImage(file);
       setForm((f) => ({ ...f, image: url }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
+      setError(err instanceof Error ? err.message : t.catUploadErr);
     } finally {
       setUploading(false);
     }
@@ -101,24 +103,24 @@ export default function AdminCategoriesPage() {
         description: form.description || undefined,
       });
       setForm({ ...blank });
-      setNotice("تم حفظ القسم.");
+      setNotice(t.catSaved);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر حفظ القسم.");
+      setError(err instanceof Error ? err.message : t.catSaveErr);
     } finally {
       setSaving(false);
     }
   }
 
   async function remove(c: AdminCategory) {
-    if (!confirm(`حذف قسم "${c.category_name}"؟`)) return;
+    if (!confirm(t.catDeleteConfirm.replace("{name}", c.category_name))) return;
     setError(null);
     try {
       await deleteCategory(c.name);
       if (form.name === c.name) setForm({ ...blank });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر حذف القسم.");
+      setError(err instanceof Error ? err.message : t.catDeleteErr);
     }
   }
 
@@ -126,14 +128,14 @@ export default function AdminCategoriesPage() {
   const label = "mb-1.5 block text-sm font-medium text-ink";
 
   if (ready && !isOperator) {
-    return <div className="card p-10 text-center text-ink-400">هذه الصفحة متاحة لمشغّلي المتجر فقط.</div>;
+    return <div className="card p-10 text-center text-ink-400">{t.tmNoPermission}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-medium text-ink">الأقسام</h2>
-        <p className="text-sm text-ink-400">عرّف تصنيفات المتجر اللي البائعين بيختاروا منها.</p>
+        <h2 className="text-xl font-medium text-ink">{t.catTitle}</h2>
+        <p className="text-sm text-ink-400">{t.catSubtitle}</p>
       </div>
 
       {error && (
@@ -150,27 +152,27 @@ export default function AdminCategoriesPage() {
       {/* Add / edit form */}
       <form onSubmit={save} className="card grid gap-4 p-5 sm:grid-cols-2">
         <div className="sm:col-span-2 flex items-center justify-between">
-          <div className="font-medium text-ink">{editing ? "تعديل قسم" : "إضافة قسم"}</div>
+          <div className="font-medium text-ink">{editing ? t.catEditTitle : t.catAddTitle}</div>
           {editing && (
             <button type="button" onClick={() => setForm({ ...blank })} className="text-xs text-ink-400 hover:text-blue-600">
-              إلغاء التعديل
+              {t.catCancelEdit}
             </button>
           )}
         </div>
         <div>
-          <label className={label}>اسم القسم</label>
+          <label className={label}>{t.catName}</label>
           <input
             required
             value={form.category_name}
             onChange={(e) => setForm({ ...form, category_name: e.target.value })}
             className={field}
-            placeholder="مثال: إلكترونيات"
+            placeholder={t.catNamePlaceholder}
           />
         </div>
         <div>
-          <label className={label}>القسم الأب (اختياري)</label>
+          <label className={label}>{t.catParent}</label>
           <select value={form.parent} onChange={(e) => setForm({ ...form, parent: e.target.value })} className={field}>
-            <option value="">— بدون (قسم رئيسي) —</option>
+            <option value="">{t.catParentNone}</option>
             {cats
               .filter((c) => c.name !== form.name)
               .map((c) => (
@@ -179,7 +181,7 @@ export default function AdminCategoriesPage() {
           </select>
         </div>
         <div>
-          <label className={label}>ترتيب العرض</label>
+          <label className={label}>{t.bnOrder}</label>
           <input
             type="number"
             value={form.display_order}
@@ -189,7 +191,7 @@ export default function AdminCategoriesPage() {
           />
         </div>
         <div>
-          <label className={label}>صورة القسم</label>
+          <label className={label}>{t.catImage}</label>
           <div className="flex items-center gap-3">
             <div className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-blue-50">
               {form.image ? (
@@ -199,7 +201,7 @@ export default function AdminCategoriesPage() {
                   <button
                     type="button"
                     onClick={() => setForm({ ...form, image: "" })}
-                    aria-label="إزالة الصورة"
+                    aria-label={t.bnImgRemove}
                     className="absolute end-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-white/90 text-ink-600 shadow hover:text-coral"
                   >
                     <X className="h-3 w-3" />
@@ -216,23 +218,23 @@ export default function AdminCategoriesPage() {
               disabled={uploading}
               className="btn btn-ghost h-10 px-3 text-sm disabled:opacity-50"
             >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} رفع
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {t.bnUpload}
             </button>
           </div>
         </div>
         <div className="sm:col-span-2">
-          <label className={label}>وصف (اختياري)</label>
+          <label className={label}>{t.catDescription}</label>
           <input
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             className={field}
-            placeholder="نبذة قصيرة عن القسم"
+            placeholder={t.catDescriptionPlaceholder}
           />
         </div>
         <div className="sm:col-span-2">
           <button type="submit" disabled={saving} className="btn btn-primary disabled:opacity-50">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            {editing ? "حفظ التعديل" : "إضافة القسم"}
+            {editing ? t.catSaveEdit : t.catAdd}
           </button>
         </div>
       </form>
@@ -243,7 +245,7 @@ export default function AdminCategoriesPage() {
           <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
         </div>
       ) : cats.length === 0 ? (
-        <div className="card p-10 text-center text-ink-400">لا توجد أقسام بعد — أضف أول قسم.</div>
+        <div className="card p-10 text-center text-ink-400">{t.catEmpty}</div>
       ) : (
         <div className="card divide-y divide-line">
           {cats.map((c) => (
@@ -259,14 +261,14 @@ export default function AdminCategoriesPage() {
               <div className="min-w-0 grow">
                 <div className="truncate text-sm font-medium text-ink">{c.category_name}</div>
                 <div className="font-tech text-xs text-ink-400">
-                  {c.product_count} منتج
-                  {c.parent_marketplace_category ? " · قسم فرعي" : ""}
+                  {c.product_count} {t.ordItemsCount}
+                  {c.parent_marketplace_category ? ` · ${t.catSubcategory}` : ""}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => edit(c)}
-                aria-label="تعديل"
+                aria-label={t.catEditAria}
                 className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
               >
                 <Pencil className="h-4 w-4" />
@@ -274,7 +276,7 @@ export default function AdminCategoriesPage() {
               <button
                 type="button"
                 onClick={() => remove(c)}
-                aria-label="حذف"
+                aria-label={t.adrDelete}
                 className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 transition-colors hover:bg-coral-50 hover:text-coral"
               >
                 <Trash2 className="h-4 w-4" />
