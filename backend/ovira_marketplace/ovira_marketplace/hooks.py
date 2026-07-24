@@ -44,6 +44,9 @@ scheduler_events = {
         "ovira_marketplace.api.trust.recompute_all_vendor_trust",
         "ovira_marketplace.api.stock_alerts.sweep_back_in_stock",
     ],
+    "weekly": [
+        "ovira_marketplace.api.reports.email_operator_report",
+    ],
 }
 
 # ---------------------------------------------------------------------------

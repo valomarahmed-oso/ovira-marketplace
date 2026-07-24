@@ -108,6 +108,26 @@ def send_delivery_otp(order, otp):
     )
 
 
+def send_operator_report(recipient, report):
+    """Weekly performance digest for an operator. `report` is the dict from
+    reports.full_report."""
+    s = report.get("summary", {})
+    ccy = report.get("currency", "")
+    lines = [
+        f"الفترة: {report.get('from_date')} → {report.get('to_date')}",
+        f"الإيرادات: <b>{flt(s.get('revenue')):g} {ccy}</b>",
+        f"الطلبات المدفوعة: <b>{int(s.get('paid_orders') or 0)}</b>",
+        f"متوسط قيمة الطلب: {flt(s.get('aov')):g} {ccy}",
+        f"إجمالي الطلبات: {int(s.get('orders') or 0)}",
+    ]
+    top = report.get("top_products") or []
+    if top:
+        lines.append("<br><b>أفضل المنتجات:</b>")
+        for r in top[:5]:
+            lines.append(f"• {r.get('title')} — {int(r.get('qty') or 0)} قطعة")
+    _send(recipient, "تقرير أداء المتجر الأسبوعي", _shell("تقرير الأداء الأسبوعي", lines))
+
+
 def send_abandoned_cart(cart):
     """Gentle reminder for a cart left behind. `cart` is a dict/row with email,
     customer_name, subtotal, currency."""

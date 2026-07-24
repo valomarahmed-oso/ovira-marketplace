@@ -5,11 +5,23 @@ Marketplace Category is a nested set; assigning a parent promotes that parent to
 a group node. Everything here is operator-gated.
 """
 
+import re
+
 import frappe
 from frappe import _
 from frappe.utils import cint
 
 from ovira_marketplace.api.admin import _require_operator
+
+
+def _slugify(name):
+    """A clean ASCII slug for a category. Arabic-only names (no derivable ASCII)
+    fall back to a short stable id so the URL stays tidy instead of a percent-
+    encoded Arabic string."""
+    s = frappe.scrub(name or "").replace("_", "-")
+    s = re.sub(r"[^a-z0-9-]", "", s)
+    s = re.sub(r"-+", "-", s).strip("-")
+    return s or ("cat-" + frappe.generate_hash(length=6))
 
 CATEGORY_FIELDS = [
     "name",
@@ -73,7 +85,7 @@ def upsert_category(
     )
     doc.category_name = category_name
     if not doc.slug:
-        doc.slug = frappe.scrub(category_name).replace("_", "-")
+        doc.slug = _slugify(category_name)
     doc.parent_marketplace_category = parent or None
     if icon is not None:
         doc.icon = icon

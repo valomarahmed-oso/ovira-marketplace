@@ -14,12 +14,42 @@ def _range(from_date, to_date):
     return str(from_d), str(to_d)
 
 
+def email_operator_report():
+    """Weekly scheduler: email the last-7-days performance digest to every
+    operator. Best-effort; only runs when outgoing mail is configured."""
+    from ovira_marketplace.emails import outgoing_configured, send_operator_report
+
+    if not outgoing_configured():
+        return
+    frm = str(add_days(getdate(nowdate()), -7))
+    report = _report_data(frm, str(getdate(nowdate())))
+
+    recipients = set()
+    for u in frappe.get_all(
+        "Has Role",
+        filters={"role": ["in", ["Marketplace Operator", "System Manager"]], "parenttype": "User"},
+        pluck="parent",
+    ):
+        email = frappe.db.get_value("User", u, "email")
+        if email and "@" in email and email not in ("Guest", "Administrator"):
+            recipients.add(email)
+    for email in recipients:
+        try:
+            send_operator_report(email, report)
+        except Exception:
+            frappe.log_error(title="Ovira: operator report email failed")
+
+
 @frappe.whitelist()
 def full_report(from_date=None, to_date=None):
     """Everything for the operator's report over a date range: sales summary,
     status breakdown, top products, per-vendor sales, low stock, coupons."""
     _require_operator()
     frm, to = _range(from_date, to_date)
+    return _report_data(frm, to)
+
+
+def _report_data(frm, to):
     p = {"frm": frm, "to": to}
 
     summary = frappe.db.sql(

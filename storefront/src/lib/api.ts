@@ -67,7 +67,9 @@ async function callMethod<T>(method: string, params: Record<string, string> = {}
   try {
     const res = await fetch(`${BASE}/api/method/${method}${qs ? `?${qs}` : ""}`, {
       headers: { Accept: "application/json" },
-      next: { revalidate: 60 },
+      // Short ISR so operator edits (products, categories, banners, content,
+      // homepage) reflect across the whole storefront within seconds.
+      next: { revalidate: 15 },
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -367,7 +369,7 @@ export async function getAppConfig(): Promise<AppConfig> {
   try {
     const res = await fetch(
       `${BASE}/api/method/ovira_marketplace.api.settings.get_public_config`,
-      { headers: { Accept: "application/json" }, next: { revalidate: 30 } },
+      { headers: { Accept: "application/json" }, next: { revalidate: 15 } },
     );
     if (!res.ok) return DEFAULT_CONFIG;
     const live = (await res.json()).message as {
