@@ -162,3 +162,153 @@ def _report_data(frm, to):
         },
         "coupons": coupons,
     }
+
+
+def _currency():
+    return frappe.db.get_single_value("Marketplace Settings", "default_currency") or "EGP"
+
+
+# -- vendor report (a vendor's own store) -----------------------------------
+
+
+@frappe.whitelist()
+def vendor_report(from_date=None, to_date=None):
+    """A vendor's own performance over a date range: gross sales, commission,
+    net payout, orders, top products, order-status split, and their low stock."""
+    from ovira_marketplace.api.vendor import _my_vendor
+
+    vendor = _my_vendor()
+    if not vendor:
+        frappe.throw(frappe._("You don't have a vendor store."), frappe.PermissionError)
+    frm, to = _range(from_date, to_date)
+    p = {"frm": frm, "to": to, "v": vendor}
+
+    summ = frappe.db.sql(
+        """
+        select count(distinct o.name) as orders, sum(oi.qty) as units,
+          sum(oi.amount) as gross, sum(oi.commission_amount) as commission,
+          sum(oi.vendor_shipping) as shipping
+        from `tabMarketplace Order Item` oi
+        join `tabMarketplace Order` o on o.name = oi.parent
+        where oi.vendor = %(v)s and o.payment_status='Paid'
+          and date(o.creation) between %(frm)s and %(to)s
+        """,
+        p,
+        as_dict=True,
+    )[0]
+    gross = flt(summ.gross)
+    commission = flt(summ.commission)
+    net = round(gross - commission + flt(summ.shipping), 2)
+    summary = {
+        "orders": cint(summ.orders),
+        "units": cint(summ.units),
+        "gross": round(gross, 2),
+        "commission": round(commission, 2),
+        "net": net,
+        "aov": round(gross / cint(summ.orders), 2) if cint(summ.orders) else 0,
+    }
+
+    by_status = frappe.db.sql(
+        """
+        select o.status as status, count(distinct o.name) as cnt
+        from `tabMarketplace Order Item` oi
+        join `tabMarketplace Order` o on o.name = oi.parent
+        where oi.vendor = %(v)s and date(o.creation) between %(frm)s and %(to)s
+        group by o.status order by cnt desc
+        """,
+        p,
+        as_dict=True,
+    )
+
+    top_products = frappe.db.sql(
+        """
+        select oi.title as title, sum(oi.qty) as qty, sum(oi.amount) as revenue
+        from `tabMarketplace Order Item` oi
+        join `tabMarketplace Order` o on o.name = oi.parent
+        where oi.vendor = %(v)s and o.payment_status='Paid'
+          and date(o.creation) between %(frm)s and %(to)s
+        group by oi.title order by revenue desc limit 20
+        """,
+        p,
+        as_dict=True,
+    )
+
+    low_stock = frappe.db.sql(
+        """
+        select title, stock_qty, low_stock_threshold
+        from `tabMarketplace Product`
+        where vendor = %(v)s and approval_status='Approved' and published=1
+          and track_inventory=1 and stock_qty <= greatest(coalesce(low_stock_threshold,0),0)
+        order by stock_qty asc limit 50
+        """,
+        {"v": vendor},
+        as_dict=True,
+    )
+
+    return {
+        "from_date": frm,
+        "to_date": to,
+        "generated_on": frappe.utils.now_datetime().strftime("%Y-%m-%d %H:%M"),
+        "currency": _currency(),
+        "summary": summary,
+        "by_status": by_status,
+        "top_products": top_products,
+        "low_stock": low_stock,
+    }
+
+
+# -- buyer report (a shopper's own purchases) -------------------------------
+
+
+@frappe.whitelist()
+def buyer_report(from_date=None, to_date=None):
+    """The signed-in buyer's own purchase summary over a date range."""
+    from ovira_marketplace.api.orders import _order_or_filters, _session_email
+
+    email = _session_email()
+    if not email:
+        frappe.throw(frappe._("Please sign in."), frappe.PermissionError)
+    frm, to = _range(from_date, to_date)
+
+    orders = frappe.get_all(
+        "Marketplace Order",
+        or_filters=_order_or_filters(email),
+        filters=[["creation", ">=", frm + " 00:00:00"], ["creation", "<=", to + " 23:59:59"]],
+        fields=["name", "status", "payment_status", "total", "creation"],
+        ignore_permissions=True,
+        limit_page_length=0,
+    )
+    paid = [o for o in orders if o.payment_status == "Paid"]
+    spent = round(sum(flt(o.total) for o in paid), 2)
+    by_status = {}
+    for o in orders:
+        by_status[o.status] = by_status.get(o.status, 0) + 1
+
+    order_ids = [o.name for o in orders]
+    top_products = []
+    if order_ids:
+        top_products = frappe.db.sql(
+            """
+            select title, sum(qty) as qty, sum(amount) as spent
+            from `tabMarketplace Order Item`
+            where parent in %(ids)s
+            group by title order by spent desc limit 20
+            """,
+            {"ids": order_ids},
+            as_dict=True,
+        )
+
+    return {
+        "from_date": frm,
+        "to_date": to,
+        "generated_on": frappe.utils.now_datetime().strftime("%Y-%m-%d %H:%M"),
+        "currency": _currency(),
+        "summary": {
+            "orders": len(orders),
+            "paid_orders": len(paid),
+            "spent": spent,
+            "aov": round(spent / len(paid), 2) if paid else 0,
+        },
+        "by_status": [{"status": k, "cnt": v} for k, v in sorted(by_status.items(), key=lambda x: -x[1])],
+        "top_products": top_products,
+    }

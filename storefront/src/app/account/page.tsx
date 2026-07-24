@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Heart, LogOut, MapPin, Package } from "lucide-react";
+import { Bell, FileBarChart, Heart, LogOut, MapPin, Package } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { signOutServer } from "@/lib/auth";
 import { useI18n } from "@/components/i18n-provider";
@@ -22,6 +22,7 @@ export default function AccountPage() {
     { href: "/wishlist", icon: Heart, title: t.wishlist, note: t.wishlistNote },
     { href: "/account/addresses", icon: MapPin, title: t.addresses, note: t.addressesNote },
     { href: "/account/notifications", icon: Bell, title: t.notifications, note: t.notificationsNote },
+    { href: "/account/reports", icon: FileBarChart, title: t.brepTitle, note: t.brepSubtitle },
   ];
 
   return (
