@@ -33,6 +33,7 @@ export type Product = {
   attributes?: { attribute: string; value: string }[];
   has_variants?: number | boolean;
   variant_option_name?: string;
+  variant_option_name2?: string | null;
   variants?: ProductVariant[];
   // Set when a live flash deal overlays the price (single-price products only).
   deal_ends_on?: string;
@@ -45,6 +46,7 @@ export type Product = {
 
 export type ProductVariant = {
   option_value: string;
+  option_value2?: string | null;
   sku: string;
   price: number;
   stock_qty: number;

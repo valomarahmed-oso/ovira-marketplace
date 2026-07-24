@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "option_value",
+  "option_value2",
   "sku",
   "price",
   "stock_qty",
@@ -15,12 +16,20 @@
  ],
  "fields": [
   {
-   "columns": 3,
+   "columns": 2,
    "fieldname": "option_value",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Option value",
    "reqd": 1
+  },
+  {
+   "columns": 2,
+   "description": "Second axis value (e.g. colour), for size x colour products.",
+   "fieldname": "option_value2",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Option value 2"
   },
   {
    "columns": 2,

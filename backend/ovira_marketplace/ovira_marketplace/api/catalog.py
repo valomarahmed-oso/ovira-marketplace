@@ -378,6 +378,7 @@ def get_product(slug):
         doc["variants"] = [
             {
                 "option_value": v.get("option_value"),
+                "option_value2": v.get("option_value2"),
                 "sku": v.get("sku") or v.get("name"),
                 "price": flt(v.get("price")) or flt(doc.get("price")),
                 "stock_qty": flt(v.get("stock_qty")),

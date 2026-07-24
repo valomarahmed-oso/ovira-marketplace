@@ -55,6 +55,7 @@ def upsert_product(
     description=None,
     has_variants=None,
     variant_option_name=None,
+    variant_option_name2=None,
     variants=None,
     track_inventory=None,
     video_url=None,
@@ -115,7 +116,7 @@ def upsert_product(
 
     # Variants (e.g. sizes/colours): rebuild the child table when supplied.
     if has_variants is not None:
-        _apply_variants(doc, has_variants, variant_option_name, variants)
+        _apply_variants(doc, has_variants, variant_option_name, variants, variant_option_name2)
 
     old_stock = flt(doc.get("stock_qty")) if name else 0.0
     doc.save(ignore_permissions=True)
@@ -205,9 +206,11 @@ def get_my_product(name):
         ],
         "has_variants": cint(doc.has_variants),
         "variant_option_name": doc.variant_option_name,
+        "variant_option_name2": doc.get("variant_option_name2"),
         "variants": [
             {
                 "option_value": v.option_value,
+                "option_value2": v.get("option_value2"),
                 "price": flt(v.price),
                 "stock_qty": flt(v.stock_qty),
                 "image": v.image,
@@ -322,10 +325,12 @@ def list_warehouses(company=None):
     )
 
 
-def _apply_variants(doc, has_variants, option_name, variants):
+def _apply_variants(doc, has_variants, option_name, variants, option_name2=None):
     """Turn variant selling on/off and rebuild the variant rows. Each row is
-    {option_value, price, stock_qty}; a stable SKU is generated when missing.
-    The base price becomes the cheapest variant so cards show a real 'from'."""
+    {option_value, option_value2?, price, stock_qty}; a stable SKU is generated
+    when missing (from both axes). Supports one axis (size) or two (size x
+    colour). The base price becomes the cheapest variant so cards show a real
+    'from'."""
     if not cint(has_variants):
         doc.has_variants = 0
         doc.set("variants", [])
@@ -338,19 +343,37 @@ def _apply_variants(doc, has_variants, option_name, variants):
     base = doc.slug or frappe.scrub(doc.title or "variant")
     doc.has_variants = 1
     doc.variant_option_name = (option_name or "").strip() or "الخيار"
+    if option_name2 is not None:
+        doc.variant_option_name2 = (option_name2 or "").strip() or None
     doc.set("variants", [])
     prices = []
+    seen_skus = set()
     for r in rows or []:
         value = (str(r.get("option_value") or "")).strip()
         if not value:
             continue
+        value2 = (str(r.get("option_value2") or "")).strip()
         price = flt(r.get("price")) or flt(doc.price)
         prices.append(price)
+        sku = (r.get("sku") or "").strip()
+        if not sku:
+            parts = [base, frappe.scrub(value)]
+            if value2:
+                parts.append(frappe.scrub(value2))
+            sku = "-".join(parts)[:140]
+        # Guarantee unique SKUs across the matrix (checkout resolves by SKU).
+        base_sku = sku
+        i = 2
+        while sku in seen_skus:
+            sku = f"{base_sku[:135]}-{i}"
+            i += 1
+        seen_skus.add(sku)
         doc.append(
             "variants",
             {
                 "option_value": value,
-                "sku": (r.get("sku") or f"{base}-{frappe.scrub(value)}")[:140],
+                "option_value2": value2 or None,
+                "sku": sku,
                 "price": price,
                 "stock_qty": flt(r.get("stock_qty")),
                 "image": (str(r.get("image") or "")).strip() or None,

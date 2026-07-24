@@ -22,14 +22,46 @@ export function ProductPurchase({ p }: { p: Product }) {
   const [sel, setSel] = useState<ProductVariant | null>(null);
   const setVariantImage = useVariantImage((s) => s.setImage);
 
+  // Two-axis variants (e.g. size x colour): render two selectors and resolve the
+  // matching variant once both are picked. Single-axis keeps the simple picker.
+  const twoAxis = variants.some((v) => !!v.option_value2);
+  const axis1 = [...new Set(variants.map((v) => v.option_value))];
+  const axis2 = [...new Set(variants.map((v) => (v.option_value2 || "").trim()).filter(Boolean))];
+  const [v1, setV1] = useState<string | null>(null);
+  const [v2, setV2] = useState<string | null>(null);
+
+  function findVariant(a: string | null, b: string | null) {
+    return variants.find((v) => v.option_value === a && (v.option_value2 || "") === (b || "")) ?? null;
+  }
+  function comboStock(a: string, b: string) {
+    const v = findVariant(a, b);
+    return v ? v.stock_qty : 0;
+  }
+
   // Clear any lingering variant image when leaving the product (the store is
   // global, so the next product must start from its own photos).
   useEffect(() => () => setVariantImage(null), [setVariantImage]);
 
   function chooseVariant(v: ProductVariant) {
     setSel(v);
+    setV1(v.option_value);
     setQty(1);
     setVariantImage(v.image ?? null);
+  }
+
+  function pickAxis1(a: string) {
+    setV1(a);
+    const v = findVariant(a, v2);
+    setSel(v);
+    setQty(1);
+    setVariantImage(v?.image ?? null);
+  }
+  function pickAxis2(b: string) {
+    setV2(b);
+    const v = findVariant(v1, b);
+    setSel(v);
+    setQty(1);
+    setVariantImage(v?.image ?? null);
   }
 
   // Effective price/stock reflect the chosen variant (if any).
@@ -56,7 +88,9 @@ export function ProductPurchase({ p }: { p: Product }) {
   const off = discountPercent(unitPrice, p.compare_at_price);
 
   function cartVariant() {
-    return sel ? { sku: sel.sku, value: sel.option_value, price: sel.price } : undefined;
+    if (!sel) return undefined;
+    const value = sel.option_value2 ? `${sel.option_value} / ${sel.option_value2}` : sel.option_value;
+    return { sku: sel.sku, value, price: sel.price };
   }
 
   function addToCart() {
@@ -121,7 +155,7 @@ export function ProductPurchase({ p }: { p: Product }) {
         </div>
       )}
 
-      {hasVariants && (
+      {hasVariants && !twoAxis && (
         <div className="space-y-2">
           <span className="text-sm text-ink-600">{p.variant_option_name || t.purOption}</span>
           <div className="flex flex-wrap gap-2">
@@ -144,6 +178,60 @@ export function ProductPurchase({ p }: { p: Product }) {
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {hasVariants && twoAxis && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <span className="text-sm text-ink-600">{p.variant_option_name || t.purOption}</span>
+            <div className="flex flex-wrap gap-2">
+              {axis1.map((a) => {
+                const active = v1 === a;
+                // Sold out if, given the chosen 2nd axis, no stock (or none across b2 when unset).
+                const out = v2 ? comboStock(a, v2) <= 0 : !axis2.some((b) => comboStock(a, b) > 0) && (axis2.length ? true : comboStock(a, "") <= 0);
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    disabled={out}
+                    onClick={() => pickAxis1(a)}
+                    className={cn(
+                      "rounded-xl border px-4 py-2 text-sm transition-colors",
+                      active ? "border-blue bg-blue-50 text-blue-600" : "border-line text-ink-600 hover:border-blue",
+                      out && "cursor-not-allowed text-ink-400 line-through opacity-60",
+                    )}
+                  >
+                    {a}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <span className="text-sm text-ink-600">{p.variant_option_name2 || t.purOption}</span>
+            <div className="flex flex-wrap gap-2">
+              {axis2.map((b) => {
+                const active = v2 === b;
+                const out = v1 ? comboStock(v1, b) <= 0 : !axis1.some((a) => comboStock(a, b) > 0);
+                return (
+                  <button
+                    key={b}
+                    type="button"
+                    disabled={out}
+                    onClick={() => pickAxis2(b)}
+                    className={cn(
+                      "rounded-xl border px-4 py-2 text-sm transition-colors",
+                      active ? "border-blue bg-blue-50 text-blue-600" : "border-line text-ink-600 hover:border-blue",
+                      out && "cursor-not-allowed text-ink-400 line-through opacity-60",
+                    )}
+                  >
+                    {b}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

@@ -33,7 +33,8 @@ function ProductForm() {
     description: "",
     has_variants: false,
     variant_option_name: "",
-    variants: [] as { option_value: string; price: string; stock: string; image: string }[],
+    variant_option_name2: "",
+    variants: [] as { option_value: string; option_value2: string; price: string; stock: string; image: string }[],
     price_tiers: [] as { min_qty: string; price: string }[],
     stock_locations: [] as { company: string; warehouse: string; governorate: string; stock_qty: string; priority: string }[],
   });
@@ -84,11 +85,11 @@ function ProductForm() {
   const addVariant = () =>
     setForm((f) => ({
       ...f,
-      variants: [...f.variants, { option_value: "", price: "", stock: "", image: "" }],
+      variants: [...f.variants, { option_value: "", option_value2: "", price: "", stock: "", image: "" }],
     }));
   const removeVariant = (i: number) =>
     setForm((f) => ({ ...f, variants: f.variants.filter((_, j) => j !== i) }));
-  const setVariant = (i: number, key: "option_value" | "price" | "stock" | "image", value: string) =>
+  const setVariant = (i: number, key: "option_value" | "option_value2" | "price" | "stock" | "image", value: string) =>
     setForm((f) => ({
       ...f,
       variants: f.variants.map((v, j) => (j === i ? { ...v, [key]: value } : v)),
@@ -142,8 +143,10 @@ function ProductForm() {
           description: p.description ?? "",
           has_variants: !!p.has_variants,
           variant_option_name: p.variant_option_name ?? "",
+          variant_option_name2: p.variant_option_name2 ?? "",
           variants: (p.variants ?? []).map((v) => ({
             option_value: v.option_value ?? "",
+            option_value2: v.option_value2 ?? "",
             price: v.price != null ? String(v.price) : "",
             stock: v.stock_qty != null ? String(v.stock_qty) : "",
             image: v.image ?? "",
@@ -177,6 +180,7 @@ function ProductForm() {
       .filter((v) => v.option_value.trim())
       .map((v) => ({
         option_value: v.option_value.trim(),
+        option_value2: v.option_value2.trim() || undefined,
         price: Number(v.price) || 0,
         stock_qty: Number(v.stock) || 0,
         image: v.image.trim() || undefined,
@@ -211,6 +215,7 @@ function ProductForm() {
         description: form.description || undefined,
         has_variants: form.has_variants ? 1 : 0,
         variant_option_name: form.has_variants ? form.variant_option_name || undefined : undefined,
+        variant_option_name2: form.has_variants ? form.variant_option_name2 || undefined : undefined,
         variants: form.has_variants ? variantRows : undefined,
         price_tiers: form.has_variants
           ? []
@@ -373,19 +378,34 @@ function ProductForm() {
 
             {form.has_variants && (
               <>
-                <div>
-                  <label className={label}>{t.pfOptionName}</label>
-                  <input
-                    value={form.variant_option_name}
-                    onChange={(e) => setForm({ ...form, variant_option_name: e.target.value })}
-                    className={field}
-                    placeholder={t.pfOptionNamePlaceholder}
-                  />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className={label}>{t.pfOptionName}</label>
+                    <input
+                      value={form.variant_option_name}
+                      onChange={(e) => setForm({ ...form, variant_option_name: e.target.value })}
+                      className={field}
+                      placeholder={t.pfOptionNamePlaceholder}
+                    />
+                  </div>
+                  <div>
+                    <label className={label}>{t.pfOptionName2}</label>
+                    <input
+                      value={form.variant_option_name2}
+                      onChange={(e) => setForm({ ...form, variant_option_name2: e.target.value })}
+                      className={field}
+                      placeholder={t.pfOptionName2Placeholder}
+                    />
+                  </div>
                 </div>
+                {form.variant_option_name2.trim() && (
+                  <p className="-mt-1 text-xs text-ink-400">{t.pfMatrixHint}</p>
+                )}
                 <div className="space-y-2">
-                  <div className="hidden grid-cols-[auto_1.4fr_1fr_1fr_auto] gap-2 px-1 text-xs text-ink-400 sm:grid">
+                  <div className="hidden grid-cols-[auto_1.2fr_1.2fr_1fr_1fr_auto] gap-2 px-1 text-xs text-ink-400 sm:grid">
                     <span>{t.pfColImage}</span>
                     <span>{t.pfColValue}</span>
+                    <span>{form.variant_option_name2.trim() || t.pfColValue2}</span>
                     <span>{t.cmpPrice}</span>
                     <span>{t.pfColStock}</span>
                     <span></span>
@@ -393,7 +413,7 @@ function ProductForm() {
                   {form.variants.map((v, i) => (
                     <div
                       key={i}
-                      className="grid grid-cols-2 items-center gap-2 rounded-xl border border-line p-2 sm:grid-cols-[auto_1.4fr_1fr_1fr_auto]"
+                      className="grid grid-cols-2 items-center gap-2 rounded-xl border border-line p-2 sm:grid-cols-[auto_1.2fr_1.2fr_1fr_1fr_auto]"
                     >
                       <label
                         className="relative grid h-10 w-10 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-lg border border-line bg-blue-50 text-ink-400 transition-colors hover:border-blue"
@@ -410,6 +430,7 @@ function ProductForm() {
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => onPickVariantImage(i, e)} />
                       </label>
                       <input value={v.option_value} onChange={(e) => setVariant(i, "option_value", e.target.value)} className={field} placeholder={t.pfVariantValuePlaceholder} />
+                      <input value={v.option_value2} onChange={(e) => setVariant(i, "option_value2", e.target.value)} className={field} placeholder={t.pfColValue2} />
                       <input type="number" min="0" value={v.price} onChange={(e) => setVariant(i, "price", e.target.value)} className={field} placeholder={t.cmpPrice} />
                       <input type="number" min="0" value={v.stock} onChange={(e) => setVariant(i, "stock", e.target.value)} className={field} placeholder={t.pfColStock} />
                       <button

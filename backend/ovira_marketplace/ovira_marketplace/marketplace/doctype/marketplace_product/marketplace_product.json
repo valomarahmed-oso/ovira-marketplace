@@ -38,6 +38,7 @@
   "variants_section",
   "has_variants",
   "variant_option_name",
+  "variant_option_name2",
   "variants",
   "ratings_section",
   "rating",
@@ -261,6 +262,13 @@
    "fieldname": "variant_option_name",
    "fieldtype": "Data",
    "label": "Option name"
+  },
+  {
+   "depends_on": "has_variants",
+   "description": "Optional second axis, e.g. اللون — for size x colour products.",
+   "fieldname": "variant_option_name2",
+   "fieldtype": "Data",
+   "label": "Option name 2"
   },
   {
    "depends_on": "has_variants",

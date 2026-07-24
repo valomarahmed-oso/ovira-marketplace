@@ -83,7 +83,7 @@ export type VendorProduct = {
   image?: string;
 };
 
-export type VariantInput = { option_value: string; price: number; stock_qty: number; image?: string };
+export type VariantInput = { option_value: string; option_value2?: string; price: number; stock_qty: number; image?: string };
 
 export type ProductInput = {
   name?: string;
@@ -100,6 +100,7 @@ export type ProductInput = {
   description?: string;
   has_variants?: number;
   variant_option_name?: string;
+  variant_option_name2?: string;
   variants?: VariantInput[];
   track_inventory?: number;
   video_url?: string;
@@ -174,6 +175,7 @@ export type ProductDetail = {
   images?: string[];
   has_variants?: number;
   variant_option_name?: string | null;
+  variant_option_name2?: string | null;
   variants?: VariantInput[];
   track_inventory?: number;
   video_url?: string | null;
