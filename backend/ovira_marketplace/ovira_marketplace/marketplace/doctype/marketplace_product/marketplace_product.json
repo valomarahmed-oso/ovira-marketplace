@@ -34,6 +34,7 @@
   "stock_qty",
   "column_break_inventory",
   "low_stock_threshold",
+  "stock_locations",
   "variants_section",
   "has_variants",
   "variant_option_name",
@@ -233,6 +234,13 @@
    "fieldname": "low_stock_threshold",
    "fieldtype": "Int",
    "label": "Low stock threshold"
+  },
+  {
+   "description": "Optional multi-branch stock. When set, availability is the sum across branches and an order auto-routes to the nearest branch (by governorate) that has stock; the Sales Order is booked under that branch's company.",
+   "fieldname": "stock_locations",
+   "fieldtype": "Table",
+   "label": "Branch stock (multi-warehouse)",
+   "options": "Marketplace Product Warehouse"
   },
   {
    "collapsible": 1,

@@ -14,6 +14,8 @@
   "amount",
   "commission_amount",
   "vendor_shipping",
+  "fulfil_company",
+  "fulfil_warehouse",
   "sales_order"
  ],
  "fields": [
@@ -78,6 +80,22 @@
    "fieldname": "vendor_shipping",
    "fieldtype": "Currency",
    "label": "Vendor shipping",
+   "read_only": 1
+  },
+  {
+   "description": "Company this line is fulfilled + invoiced under (multi-company routing).",
+   "fieldname": "fulfil_company",
+   "fieldtype": "Link",
+   "label": "Fulfilment company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "description": "Branch/warehouse this line ships from (multi-warehouse routing).",
+   "fieldname": "fulfil_warehouse",
+   "fieldtype": "Link",
+   "label": "Fulfilment warehouse",
+   "options": "Warehouse",
    "read_only": 1
   },
   {

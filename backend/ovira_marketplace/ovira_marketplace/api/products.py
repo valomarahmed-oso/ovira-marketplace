@@ -59,6 +59,7 @@ def upsert_product(
     track_inventory=None,
     video_url=None,
     price_tiers=None,
+    stock_locations=None,
 ):
     """Create or update one of the vendor's own products.
 
@@ -102,6 +103,8 @@ def upsert_product(
         doc.video_url = (video_url or "").strip() or None
     if price_tiers is not None:
         _apply_price_tiers(doc, price_tiers)
+    if stock_locations is not None:
+        _apply_stock_locations(doc, stock_locations)
 
     # Gallery: an ordered list of image URLs (first = primary) rebuilds the media
     # rows; a single `image` stays supported for the older one-image form.
@@ -125,6 +128,17 @@ def upsert_product(
     if doc.has_variants and doc.get("variants"):
         total = sum(flt(v.stock_qty) for v in doc.variants)
         doc.db_set("stock_qty", total)
+    elif doc.get("stock_locations"):
+        # Multi-warehouse: headline stock is the sum across branches.
+        total = sum(flt(r.stock_qty) for r in doc.stock_locations)
+        doc.db_set("stock_qty", total)
+        if old_stock <= 0 < total:
+            try:
+                from ovira_marketplace.api.stock_alerts import notify_back_in_stock
+
+                notify_back_in_stock(doc.name)
+            except Exception:
+                frappe.log_error("back-in-stock notify failed")
     elif stock_qty not in (None, ""):
         new_stock = flt(stock_qty)
         doc.db_set("stock_qty", new_stock)
@@ -178,6 +192,16 @@ def get_my_product(name):
         "price_tiers": [
             {"min_qty": cint(tr.min_qty), "price": flt(tr.price)}
             for tr in (doc.get("price_tiers") or [])
+        ],
+        "stock_locations": [
+            {
+                "company": r.company,
+                "warehouse": r.warehouse,
+                "governorate": r.governorate,
+                "stock_qty": flt(r.stock_qty),
+                "priority": cint(r.priority),
+            }
+            for r in (doc.get("stock_locations") or [])
         ],
         "has_variants": cint(doc.has_variants),
         "variant_option_name": doc.variant_option_name,
@@ -249,6 +273,53 @@ def _apply_price_tiers(doc, tiers):
         price = flt(r.get("price"))
         if min_qty >= 2 and price > 0:
             doc.append("price_tiers", {"min_qty": min_qty, "price": price})
+
+
+def _apply_stock_locations(doc, locations):
+    """Rebuild the multi-warehouse branch-stock rows from
+    [{company, warehouse, governorate, stock_qty, priority}, ...]. Rows missing a
+    company or warehouse are dropped."""
+    try:
+        rows = json.loads(locations) if isinstance(locations, str) else locations
+    except (ValueError, TypeError):
+        rows = []
+    doc.set("stock_locations", [])
+    for r in rows or []:
+        company = (r.get("company") or "").strip()
+        warehouse = (r.get("warehouse") or "").strip()
+        if not company or not warehouse:
+            continue
+        doc.append(
+            "stock_locations",
+            {
+                "company": company,
+                "warehouse": warehouse,
+                "governorate": (r.get("governorate") or "").strip() or None,
+                "stock_qty": flt(r.get("stock_qty")),
+                "priority": cint(r.get("priority")),
+            },
+        )
+
+
+@frappe.whitelist()
+def list_companies():
+    """ERPNext companies for the branch-stock picker (vendor/operator)."""
+    if not vendor_for_user():
+        frappe.throw(_("Only registered vendors can manage products."), frappe.PermissionError)
+    return frappe.get_all("Company", fields=["name"], order_by="name asc", ignore_permissions=True)
+
+
+@frappe.whitelist()
+def list_warehouses(company=None):
+    """Non-group warehouses (optionally for one company) for the branch picker."""
+    if not vendor_for_user():
+        frappe.throw(_("Only registered vendors can manage products."), frappe.PermissionError)
+    filters = {"is_group": 0}
+    if company:
+        filters["company"] = company
+    return frappe.get_all(
+        "Warehouse", filters=filters, fields=["name", "company"], order_by="name asc", ignore_permissions=True
+    )
 
 
 def _apply_variants(doc, has_variants, option_name, variants):

@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { ArrowRight, ImagePlus, Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import { getCategories, type Category } from "@/lib/api";
-import { getMyProduct, upsertProduct } from "@/lib/vendor";
+import { getMyProduct, listCompanies, listWarehouses, upsertProduct } from "@/lib/vendor";
+import { GOVERNORATES } from "@/lib/addresses-api";
 import { uploadImage } from "@/lib/uploads";
 import { useI18n } from "@/components/i18n-provider";
 
@@ -34,7 +35,10 @@ function ProductForm() {
     variant_option_name: "",
     variants: [] as { option_value: string; price: string; stock: string; image: string }[],
     price_tiers: [] as { min_qty: string; price: string }[],
+    stock_locations: [] as { company: string; warehouse: string; governorate: string; stock_qty: string; priority: string }[],
   });
+  const [companies, setCompanies] = useState<string[]>([]);
+  const [warehouses, setWarehouses] = useState<{ name: string; company: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -112,6 +116,8 @@ function ProductForm() {
       setCategories(cats);
       setForm((f) => (f.category ? f : { ...f, category: cats[0]?.name ?? "" }));
     });
+    listCompanies().then((c) => setCompanies(c.map((x) => x.name))).catch(() => {});
+    listWarehouses().then(setWarehouses).catch(() => {});
   }, []);
 
   // Prefill when editing an existing product.
@@ -145,6 +151,13 @@ function ProductForm() {
           price_tiers: (p.price_tiers ?? []).map((tr) => ({
             min_qty: tr.min_qty != null ? String(tr.min_qty) : "",
             price: tr.price != null ? String(tr.price) : "",
+          })),
+          stock_locations: (p.stock_locations ?? []).map((s) => ({
+            company: s.company ?? "",
+            warehouse: s.warehouse ?? "",
+            governorate: s.governorate ?? "",
+            stock_qty: s.stock_qty != null ? String(s.stock_qty) : "",
+            priority: s.priority != null ? String(s.priority) : "0",
           })),
         });
       })
@@ -204,6 +217,17 @@ function ProductForm() {
           : form.price_tiers
               .filter((tr) => Number(tr.min_qty) >= 2 && Number(tr.price) > 0)
               .map((tr) => ({ min_qty: Number(tr.min_qty), price: Number(tr.price) })),
+        stock_locations: form.has_variants
+          ? []
+          : form.stock_locations
+              .filter((s) => s.company && s.warehouse)
+              .map((s) => ({
+                company: s.company,
+                warehouse: s.warehouse,
+                governorate: s.governorate || undefined,
+                stock_qty: Number(s.stock_qty) || 0,
+                priority: Number(s.priority) || 0,
+              })),
       });
       router.push("/vendor/products");
     } catch (err) {
@@ -510,6 +534,47 @@ function ProductForm() {
                   className="btn btn-ghost h-9 px-3 text-sm"
                 >
                   <Plus className="h-4 w-4" /> {t.pfTierAdd}
+                </button>
+              </div>
+            )}
+
+            {!form.has_variants && companies.length > 0 && (
+              <div className="space-y-2 rounded-xl border border-line p-4">
+                <div className="text-sm font-medium text-ink">{t.pfBranchTitle}</div>
+                <p className="-mt-1 text-xs text-ink-400">{t.pfBranchHint}</p>
+                {form.stock_locations.map((s, i) => {
+                  const patch = (p: Partial<typeof s>) =>
+                    setForm((f) => ({ ...f, stock_locations: f.stock_locations.map((r, j) => (j === i ? { ...r, ...p } : r)) }));
+                  return (
+                    <div key={i} className="grid gap-2 rounded-lg border border-line p-2 sm:grid-cols-2">
+                      <select value={s.company} onChange={(e) => patch({ company: e.target.value, warehouse: "" })} className={field}>
+                        <option value="">{t.pfBranchCompany}</option>
+                        {companies.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <select value={s.warehouse} onChange={(e) => patch({ warehouse: e.target.value })} className={field} disabled={!s.company}>
+                        <option value="">{t.pfBranchWarehouse}</option>
+                        {warehouses.filter((w) => !s.company || w.company === s.company).map((w) => <option key={w.name} value={w.name}>{w.name}</option>)}
+                      </select>
+                      <select value={s.governorate} onChange={(e) => patch({ governorate: e.target.value })} className={field}>
+                        <option value="">{t.pfBranchGov}</option>
+                        {GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                      <div className="flex gap-2">
+                        <input type="number" min="0" value={s.stock_qty} onChange={(e) => patch({ stock_qty: e.target.value })} className={field} placeholder={t.pfBranchStock} />
+                        <input type="number" min="0" value={s.priority} onChange={(e) => patch({ priority: e.target.value })} className={`${field} w-20`} placeholder={t.pfBranchPriority} title={t.pfBranchPriority} />
+                        <button type="button" onClick={() => setForm((f) => ({ ...f, stock_locations: f.stock_locations.filter((_, j) => j !== i) }))} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-ink-400 hover:bg-coral-50 hover:text-coral" aria-label={t.pfTierRemove}>
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, stock_locations: [...f.stock_locations, { company: companies[0] ?? "", warehouse: "", governorate: "", stock_qty: "", priority: "0" }] }))}
+                  className="btn btn-ghost h-9 px-3 text-sm"
+                >
+                  <Plus className="h-4 w-4" /> {t.pfBranchAdd}
                 </button>
               </div>
             )}

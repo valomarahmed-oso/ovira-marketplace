@@ -155,14 +155,21 @@ class MarketplaceOrder(Document):
           recorded on the vendor's first line so settlement pays it to them."""
         settings = frappe.get_cached_doc("Marketplace Settings")
         per_vendor_mode = (settings.get("shipping_mode") or "Operator") == "Per Vendor"
-        by_vendor: dict[str, list] = {}
+        default_company = settings.operator_company
+        # Group by (vendor, company): a Sales Order carries ONE company, so a
+        # multi-company order splits into one SO per company (per vendor). With no
+        # per-line company (no multi-warehouse routing) this collapses to the old
+        # one-SO-per-vendor behaviour under the operator company.
+        groups: dict[tuple, list] = {}
         for row in self.items:
             if row.sales_order:
                 continue
-            by_vendor.setdefault(row.vendor, []).append(row)
+            company = row.get("fulfil_company") or default_company
+            groups.setdefault((row.vendor, company), []).append(row)
 
         include_shipping = not any(row.sales_order for row in self.items)
-        for vendor, rows in by_vendor.items():
+        discounted_vendors: set = set()
+        for (vendor, company), rows in groups.items():
             if per_vendor_mode:
                 from ovira_marketplace.api.shipping import get_rate_for_vendor
 
@@ -172,15 +179,19 @@ class MarketplaceOrder(Document):
                 ship = flt(self.shipping_amount) if include_shipping else 0.0
 
             # A vendor coupon is funded by the vendor: apply it as a Net-Total
-            # discount on THEIR Sales Order, so both the customer invoice (made
-            # from the SO) and the settlement (from SO net_total) shrink by it.
-            vendor_discount = (
-                flt(self.get("vendor_discount_amount"))
-                if self.get("coupon_vendor") and vendor == self.coupon_vendor
-                else 0.0
-            )
+            # discount on THEIR Sales Order. Apply it once per vendor even if the
+            # vendor's lines span several companies.
+            vendor_discount = 0.0
+            if (
+                self.get("coupon_vendor")
+                and vendor == self.coupon_vendor
+                and vendor not in discounted_vendors
+            ):
+                vendor_discount = flt(self.get("vendor_discount_amount"))
+                discounted_vendors.add(vendor)
+
             sales_order = self._make_sales_order(
-                vendor, rows, settings, shipping=ship, discount=vendor_discount
+                vendor, rows, settings, shipping=ship, discount=vendor_discount, company=company
             )
             if not sales_order:
                 continue
@@ -194,10 +205,10 @@ class MarketplaceOrder(Document):
                 row.db_set("sales_order", sales_order)
                 row.db_set("commission_amount", flt(row.amount) * rate / 100.0)
 
-    def _make_sales_order(self, vendor, rows, settings, shipping=0.0, discount=0.0):
+    def _make_sales_order(self, vendor, rows, settings, shipping=0.0, discount=0.0, company=None):
         so = frappe.new_doc("Sales Order")
         so.customer = self.customer
-        so.company = settings.operator_company
+        so.company = company or settings.operator_company
         so.transaction_date = nowdate()
         so.delivery_date = add_days(nowdate(), 5)
         if self.currency:
@@ -207,15 +218,16 @@ class MarketplaceOrder(Document):
             item_code = frappe.db.get_value("Marketplace Product", row.marketplace_product, "item")
             if not item_code:
                 continue
-            so.append(
-                "items",
-                {
-                    "item_code": item_code,
-                    "qty": row.qty,
-                    "rate": row.rate,
-                    "delivery_date": so.delivery_date,
-                },
-            )
+            line = {
+                "item_code": item_code,
+                "qty": row.qty,
+                "rate": row.rate,
+                "delivery_date": so.delivery_date,
+            }
+            # Multi-warehouse: ship this line from its routed branch.
+            if row.get("fulfil_warehouse"):
+                line["warehouse"] = row.fulfil_warehouse
+            so.append("items", line)
 
         if not so.get("items"):
             return None

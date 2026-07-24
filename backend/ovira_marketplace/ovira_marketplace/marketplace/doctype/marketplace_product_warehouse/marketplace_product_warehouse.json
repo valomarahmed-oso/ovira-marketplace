@@ -1,0 +1,64 @@
+{
+ "actions": [],
+ "creation": "2026-07-24 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "istable": 1,
+ "field_order": [
+  "company",
+  "warehouse",
+  "governorate",
+  "stock_qty",
+  "priority"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Warehouse / branch",
+   "options": "Warehouse",
+   "reqd": 1
+  },
+  {
+   "description": "Governorate this branch serves — used to route an order to the nearest branch.",
+   "fieldname": "governorate",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Governorate"
+  },
+  {
+   "fieldname": "stock_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Stock"
+  },
+  {
+   "default": "0",
+   "description": "Lower = preferred when several branches can fulfil.",
+   "fieldname": "priority",
+   "fieldtype": "Int",
+   "label": "Priority"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Product Warehouse",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

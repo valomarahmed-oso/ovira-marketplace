@@ -113,6 +113,24 @@ def place_order(
                 rate = flt(deal["deal_price"])
                 deal_name = deal["name"]
 
+        # Multi-warehouse routing: when the product carries per-branch stock,
+        # route this line to a single branch (nearest → priority → most stock)
+        # and book it under that branch's company + warehouse. Routing itself
+        # guarantees availability, so the flat stock gate is skipped.
+        fulfil_company = None
+        fulfil_warehouse = None
+        if not product.has_variants:
+            from ovira_marketplace.api.fulfillment import has_stock_locations, route_line
+
+            if has_stock_locations(product.name):
+                route = route_line(product.name, qty, customer.get("gov"))
+                if not route:
+                    shortages.append(_("{0} is out of stock.").format(title))
+                    continue
+                fulfil_company = route.company
+                fulfil_warehouse = route.warehouse
+                gate_stock = False
+
         # Block overselling. Any shortage rejects the whole order (below) rather
         # than silently trimming quantities the buyer didn't agree to.
         if gate_stock:
@@ -135,6 +153,8 @@ def place_order(
                 "qty": qty,
                 "rate": rate,
                 "amount": amount,
+                "fulfil_company": fulfil_company,
+                "fulfil_warehouse": fulfil_warehouse,
             },
         )
         if deal_name:
@@ -243,16 +263,16 @@ def place_order(
 def reserve_order_stock(order):
     """Decrement marketplace stock for each line when an order is placed."""
     for it in order.items:
-        _adjust_stock(it.marketplace_product, it.get("variant_sku"), -(it.qty or 0))
+        _adjust_stock(it.marketplace_product, it.get("variant_sku"), -(it.qty or 0), it.get("fulfil_warehouse"))
 
 
 def restock_order(order):
     """Return each line's quantity to stock (used when an order is cancelled)."""
     for it in order.items:
-        _adjust_stock(it.marketplace_product, it.get("variant_sku"), it.qty or 0)
+        _adjust_stock(it.marketplace_product, it.get("variant_sku"), it.qty or 0, it.get("fulfil_warehouse"))
 
 
-def _adjust_stock(product_name, variant_sku, delta):
+def _adjust_stock(product_name, variant_sku, delta, fulfil_warehouse=None):
     """Shift a product's marketplace stock by ``delta`` (negative = sold,
     positive = restocked), floored at zero. For a variant line the specific
     variant row moves and the product's base stock is re-summed from its
@@ -261,6 +281,13 @@ def _adjust_stock(product_name, variant_sku, delta):
     if not product_name or not delta:
         return
     try:
+        # Multi-warehouse line: move the specific branch's stock (which re-sums
+        # the product's headline stock_qty from all branches).
+        if fulfil_warehouse:
+            from ovira_marketplace.api.fulfillment import adjust_location_stock
+
+            adjust_location_stock(product_name, fulfil_warehouse, delta)
+            return
         doc = frappe.get_doc("Marketplace Product", product_name)
         if variant_sku and doc.has_variants and doc.get("variants"):
             for v in doc.variants:

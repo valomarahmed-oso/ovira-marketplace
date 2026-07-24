@@ -104,6 +104,15 @@ export type ProductInput = {
   track_inventory?: number;
   video_url?: string;
   price_tiers?: { min_qty: number; price: number }[];
+  stock_locations?: StockLocation[];
+};
+
+export type StockLocation = {
+  company: string;
+  warehouse: string;
+  governorate?: string;
+  stock_qty: number;
+  priority?: number;
 };
 
 export type VendorOrder = {
@@ -134,6 +143,14 @@ export function getMyProducts() {
   return getList<VendorProduct>("ovira_marketplace.api.products.my_products");
 }
 
+export function listCompanies() {
+  return getList<{ name: string }>("ovira_marketplace.api.products.list_companies");
+}
+
+export function listWarehouses() {
+  return getList<{ name: string; company: string }>("ovira_marketplace.api.products.list_warehouses");
+}
+
 export function upsertProduct(input: ProductInput) {
   return postMethod<{ name: string; approval_status: VendorApprovalStatus }>(
     "ovira_marketplace.api.products.upsert_product",
@@ -161,6 +178,7 @@ export type ProductDetail = {
   track_inventory?: number;
   video_url?: string | null;
   price_tiers?: { min_qty: number; price: number }[];
+  stock_locations?: StockLocation[];
   approval_status: VendorApprovalStatus;
   published?: number;
 };
