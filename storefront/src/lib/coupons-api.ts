@@ -6,6 +6,7 @@ const M = "ovira_marketplace.api.coupons";
 export type Coupon = {
   code: string;
   description?: string;
+  vendor?: string | null;
   active: number;
   discount_type: "Percentage" | "Fixed";
   discount_value: number;
@@ -60,3 +61,26 @@ export const upsertCoupon = (body: Record<string, unknown>) =>
 
 export const deleteCoupon = (code: string) =>
   post<{ deleted: string }>("delete_coupon", { code });
+
+// -- vendor self-service (each vendor funds their own coupons) ---------------
+
+export async function myCoupons(): Promise<Coupon[]> {
+  if (!BASE) return [];
+  try {
+    const res = await fetch(`${BASE}/api/method/${M}.my_coupons`, {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return ((await res.json()).message ?? []) as Coupon[];
+  } catch {
+    return [];
+  }
+}
+
+export const upsertMyCoupon = (body: Record<string, unknown>) =>
+  post<Coupon>("upsert_my_coupon", body);
+
+export const deleteMyCoupon = (code: string) =>
+  post<{ deleted: string }>("delete_my_coupon", { code });

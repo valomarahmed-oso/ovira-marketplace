@@ -205,7 +205,11 @@ export default function CheckoutPage() {
     if (!code || couponBusy) return;
     setCouponBusy(true);
     setCouponError(null);
-    const res = await validateCoupon(code, subtotal);
+    const res = await validateCoupon(
+      code,
+      subtotal,
+      items.map((i) => ({ slug: i.product.slug, qty: i.qty, variant: i.variant?.sku })),
+    );
     if ("discount" in res && res.discount > 0) {
       setCoupon({ code: code.toUpperCase(), discount: res.discount });
     } else {

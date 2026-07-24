@@ -7,6 +7,7 @@
  "field_order": [
   "code",
   "description",
+  "vendor",
   "active",
   "column_break_meta",
   "discount_type",
@@ -32,6 +33,14 @@
    "fieldname": "description",
    "fieldtype": "Data",
    "label": "Description"
+  },
+  {
+   "description": "When set, the coupon only discounts this vendor's items and is funded by the vendor (deducted from their settlement). Empty = a platform-wide, operator-funded coupon.",
+   "fieldname": "vendor",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Vendor",
+   "options": "Marketplace Vendor"
   },
   {
    "default": "1",

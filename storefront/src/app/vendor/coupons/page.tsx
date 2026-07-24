@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Loader2, Plus, Tag, Trash2 } from "lucide-react";
-import { useAuth } from "@/lib/auth-store";
+import { useEffect, useState } from "react";
+import { AlertCircle, Info, Loader2, Plus, Tag, Trash2 } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
-import { deleteCoupon, listCoupons, upsertCoupon, type Coupon } from "@/lib/coupons-api";
+import { deleteMyCoupon, myCoupons, upsertMyCoupon, type Coupon } from "@/lib/coupons-api";
 
 const BLANK = {
   code: "",
@@ -17,35 +16,28 @@ const BLANK = {
   expires_on: "",
 };
 
-export default function AdminCouponsPage() {
+export default function VendorCouponsPage() {
   const { t } = useI18n();
-  const user = useAuth((s) => s.user);
-  const ready = useAuth((s) => s.ready);
-  const isOperator = !!user?.isOperator;
-
   const [rows, setRows] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ ...BLANK });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setRows(await listCoupons());
+  async function load() {
+    setRows(await myCoupons());
     setLoading(false);
-  }, []);
-
+  }
   useEffect(() => {
-    if (!ready || !isOperator) return;
-    void load();
-  }, [ready, isOperator, load]);
+    load();
+  }, []);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      await upsertCoupon({
+      await upsertMyCoupon({
         code: form.code,
         description: form.description || undefined,
         discount_type: form.discount_type,
@@ -68,7 +60,7 @@ export default function AdminCouponsPage() {
   async function toggleActive(c: Coupon) {
     setError(null);
     try {
-      await upsertCoupon({
+      await upsertMyCoupon({
         code: c.code,
         discount_type: c.discount_type,
         discount_value: c.discount_value,
@@ -89,7 +81,7 @@ export default function AdminCouponsPage() {
     if (!window.confirm(t.cpnDeleteConfirm.replace("{code}", code))) return;
     setError(null);
     try {
-      await deleteCoupon(code);
+      await deleteMyCoupon(code);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : t.cpnDeleteErr);
@@ -101,8 +93,13 @@ export default function AdminCouponsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-medium text-ink">{t.cpnTitle}</h2>
-        <p className="text-sm text-ink-400">{t.cpnSubtitle}</p>
+        <h1 className="text-2xl font-medium text-ink">{t.vcpnTitle}</h1>
+        <p className="mt-1 text-sm text-ink-400">{t.vcpnSubtitle}</p>
+      </div>
+
+      <div className="flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>{t.vcpnFundedNote}</span>
       </div>
 
       {error && (
@@ -196,7 +193,6 @@ export default function AdminCouponsPage() {
                   <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-600">
                     {c.discount_type === "Percentage" ? `${c.discount_value}%` : `${c.discount_value}`}
                   </span>
-                  {c.vendor && <span className="rounded-full bg-[#fdf2dd] px-2 py-0.5 text-xs text-[#854f0b]">{t.cpnVendorTag}</span>}
                   {!c.active && <span className="rounded-full bg-[#f1efe8] px-2 py-0.5 text-xs text-ink-400">{t.cpnInactive}</span>}
                 </div>
                 <div className="mt-0.5 text-xs text-ink-400">

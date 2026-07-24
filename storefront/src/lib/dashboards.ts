@@ -103,6 +103,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/vendor/products", key: "vendorNavProducts", icon: Package },
       { href: "/vendor/orders", key: "vendorNavOrders", icon: ShoppingBag },
       { href: "/vendor/shipments", key: "vendorNavShipments", icon: Truck },
+      { href: "/vendor/coupons", key: "vendorNavCoupons", icon: Tag },
       { href: "/vendor/messages", key: "vendorNavMessages", icon: MessagesSquare, badge: "messages" },
       { href: "/vendor/settings", key: "vendorNavSettings", icon: Settings },
     ],

@@ -146,15 +146,22 @@ def place_order(
     # Coupon discount is always recomputed here — the client's number is never
     # trusted. An invalid/expired code surfaces its reason and stops checkout.
     coupon_doc = None
-    discount = 0.0
+    discount = 0.0  # operator-funded (platform coupon)
+    vendor_discount = 0.0  # vendor-funded (vendor coupon → applied on the vendor's SO)
     if coupon:
         from ovira_marketplace.api.coupons import resolve
 
-        coupon_doc, discount = resolve(coupon, subtotal)
+        coupon_doc, coupon_discount = resolve(coupon, subtotal, items)
         order.coupon_code = coupon_doc.code
-        order.discount_amount = discount
+        if coupon_doc.vendor:
+            order.coupon_vendor = coupon_doc.vendor
+            order.vendor_discount_amount = coupon_discount
+            vendor_discount = coupon_discount
+        else:
+            order.discount_amount = coupon_discount
+            discount = coupon_discount
 
-    # Store credit is applied after the coupon, capped at what's still payable.
+    # Store credit is applied after the coupon(s), capped at what's still payable.
     # It's booked as an operator-funded discount (see payment._invoice_and_pay),
     # so vendor settlement stays whole. Debited from the ledger once the order
     # exists (needs the order name as the reference).
@@ -163,10 +170,10 @@ def place_order(
     if _truthy(use_wallet) and user and user != "Guest":
         from ovira_marketplace.api.wallet import balance as wallet_balance
 
-        payable = subtotal + order.shipping_amount - discount
+        payable = subtotal + order.shipping_amount - discount - vendor_discount
         wallet_applied = max(0.0, min(flt(wallet_balance(user)), flt(payable)))
     order.wallet_applied = wallet_applied
-    order.total = subtotal + order.shipping_amount - discount - wallet_applied
+    order.total = subtotal + order.shipping_amount - discount - vendor_discount - wallet_applied
 
     order.insert(ignore_permissions=True)
     # Draw the ordered quantities down from the marketplace stock so the numbers

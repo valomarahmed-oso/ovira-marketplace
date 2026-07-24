@@ -171,7 +171,17 @@ class MarketplaceOrder(Document):
             else:
                 ship = flt(self.shipping_amount) if include_shipping else 0.0
 
-            sales_order = self._make_sales_order(vendor, rows, settings, shipping=ship)
+            # A vendor coupon is funded by the vendor: apply it as a Net-Total
+            # discount on THEIR Sales Order, so both the customer invoice (made
+            # from the SO) and the settlement (from SO net_total) shrink by it.
+            vendor_discount = (
+                flt(self.get("vendor_discount_amount"))
+                if self.get("coupon_vendor") and vendor == self.coupon_vendor
+                else 0.0
+            )
+            sales_order = self._make_sales_order(
+                vendor, rows, settings, shipping=ship, discount=vendor_discount
+            )
             if not sales_order:
                 continue
             include_shipping = False
@@ -184,7 +194,7 @@ class MarketplaceOrder(Document):
                 row.db_set("sales_order", sales_order)
                 row.db_set("commission_amount", flt(row.amount) * rate / 100.0)
 
-    def _make_sales_order(self, vendor, rows, settings, shipping=0.0):
+    def _make_sales_order(self, vendor, rows, settings, shipping=0.0, discount=0.0):
         so = frappe.new_doc("Sales Order")
         so.customer = self.customer
         so.company = settings.operator_company
@@ -224,6 +234,12 @@ class MarketplaceOrder(Document):
                     "tax_amount": flt(shipping),
                 },
             )
+        # Vendor-funded coupon: a Net-Total discount so it lowers the goods total
+        # (not shipping), the customer invoice made from this SO, and the vendor's
+        # settlement payout (which reads so.net_total) — all in one place.
+        if flt(discount) > 0:
+            so.apply_discount_on = "Net Total"
+            so.discount_amount = flt(discount)
         so.flags.ignore_permissions = True
         so.insert()
         so.submit()

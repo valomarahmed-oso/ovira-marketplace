@@ -32,6 +32,8 @@
   "shipping_amount",
   "discount_amount",
   "coupon_code",
+  "coupon_vendor",
+  "vendor_discount_amount",
   "wallet_applied",
   "column_break_totals",
   "total",
@@ -208,6 +210,20 @@
    "fieldname": "coupon_code",
    "fieldtype": "Data",
    "label": "Coupon code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "coupon_vendor",
+   "fieldtype": "Link",
+   "label": "Coupon vendor",
+   "options": "Marketplace Vendor",
+   "read_only": 1
+  },
+  {
+   "description": "Vendor-funded coupon discount (applied to the vendor's Sales Order, deducted from their settlement).",
+   "fieldname": "vendor_discount_amount",
+   "fieldtype": "Currency",
+   "label": "Vendor discount",
    "read_only": 1
   },
   {

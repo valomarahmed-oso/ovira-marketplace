@@ -444,13 +444,14 @@ export async function previewShipping(
 export async function validateCoupon(
   code: string,
   subtotal: number,
-): Promise<{ discount: number } | { error: string }> {
+  items?: { slug: string; qty: number; variant?: string }[],
+): Promise<{ discount: number; vendor_name?: string | null } | { error: string }> {
   if (!BASE) return { error: "الخدمة غير متاحة حاليًا." };
   try {
     const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.coupons.validate_coupon`, {
       method: "POST",
       headers: writeHeaders(),
-      body: JSON.stringify({ code, subtotal }),
+      body: JSON.stringify(items ? { code, subtotal, items } : { code, subtotal }),
       credentials: "include",
     });
     if (!res.ok) {
@@ -465,7 +466,7 @@ export async function validateCoupon(
       return { error };
     }
     const msg = (await res.json()).message;
-    return { discount: Number(msg?.discount) || 0 };
+    return { discount: Number(msg?.discount) || 0, vendor_name: msg?.vendor_name ?? null };
   } catch {
     return { error: "تعذّر التحقق من الكوبون." };
   }
