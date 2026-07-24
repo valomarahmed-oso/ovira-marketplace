@@ -25,6 +25,8 @@ STOREFRONT_FIELDS = [
     "shipping_policy",
     "rating",
     "ratings_count",
+    "store_rating",
+    "store_reviews_count",
     "trust_score",
     "trust_tier",
     "orders_count",

@@ -20,6 +20,8 @@
   "commission_rate",
   "rating",
   "ratings_count",
+  "store_rating",
+  "store_reviews_count",
   "trust_score",
   "trust_tier",
   "orders_count",
@@ -129,6 +131,20 @@
    "fieldname": "ratings_count",
    "fieldtype": "Int",
    "label": "Ratings count",
+   "read_only": 1
+  },
+  {
+   "description": "Average of direct seller/store reviews (distinct from product ratings).",
+   "fieldname": "store_rating",
+   "fieldtype": "Float",
+   "label": "Store rating",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "store_reviews_count",
+   "fieldtype": "Int",
+   "label": "Store reviews count",
    "read_only": 1
   },
   {

@@ -1,6 +1,7 @@
 import { Package, ShoppingBag, Store } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { StoreProducts } from "@/components/store-products";
+import { VendorReviews } from "@/components/vendor-reviews";
 import { Rating } from "@/components/rating";
 import { TrustBadge } from "@/components/trust-badge";
 import { getProducts, getVendorStore } from "@/lib/api";
@@ -99,6 +100,8 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
       )}
 
       <StoreProducts initialProducts={products} vendor={store.name} locale={locale} />
+
+      <VendorReviews vendor={store.name} />
     </div>
   );
 }

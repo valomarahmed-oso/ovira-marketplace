@@ -1074,6 +1074,10 @@ const ar = {
   vcpnSubtitle: "اعمل خصومات على منتجاتك تجذب المشترين.",
   vcpnFundedNote: "الكوبون ده بيتخصم من حساب متجرك (ممول من عندك) وبيطبّق على منتجاتك بس.",
   cpnVendorTag: "كوبون بائع",
+  vrevTitle: "تقييمات المتجر",
+  vrevEmpty: "لسه مفيش تقييمات للمتجر. كن أول من يقيّمه.",
+  vrevAddYours: "قيّم هذا المتجر",
+  vrevBodyPlaceholder: "احكِ تجربتك مع المتجر: الخدمة، التغليف، سرعة التوصيل…",
 
   anTitle: "تحليلات المتجر",
   anSubtitle: "أداء متجرك: المبيعات، الطلبات، والأكثر مبيعًا.",
@@ -2214,6 +2218,10 @@ const en: Dict = {
   vcpnSubtitle: "Create discounts on your products to attract buyers.",
   vcpnFundedNote: "This coupon is funded by your store (deducted from your settlement) and applies only to your products.",
   cpnVendorTag: "Vendor coupon",
+  vrevTitle: "Store reviews",
+  vrevEmpty: "No store reviews yet. Be the first to review it.",
+  vrevAddYours: "Review this store",
+  vrevBodyPlaceholder: "Share your experience with the store: service, packaging, delivery speed…",
 
   anTitle: "Store analytics",
   anSubtitle: "Your store performance: sales, orders and best sellers.",
