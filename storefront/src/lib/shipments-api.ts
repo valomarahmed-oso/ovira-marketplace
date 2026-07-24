@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import type { Dict } from "@/lib/i18n";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.shipping";
@@ -16,6 +17,7 @@ export type Shipment = {
   vendor_name?: string | null;
   status: string;
   provider?: string;
+  carrier?: string | null;
   tracking_number?: string | null;
   tracking_url?: string | null;
   shipping_cost?: number;
@@ -41,6 +43,21 @@ export const SHIPMENT_STATUS_LABEL: Record<string, string> = {
   Returned: "مُرتجَع",
   Cancelled: "ملغى",
 };
+
+/** Locale-aware shipment status label — bilingual, driven by the active dict.
+ * Prefer this over the Arabic-only SHIPMENT_STATUS_LABEL in UI components. */
+export function shipmentStatusLabel(t: Dict, status: string): string {
+  const map: Record<string, string> = {
+    Draft: t.sstDraft,
+    Created: t.sstCreated,
+    "Picked Up": t.sstPickedUp,
+    "In Transit": t.sstInTransit,
+    Delivered: t.sstDelivered,
+    Returned: t.sstReturned,
+    Cancelled: t.sstCancelled,
+  };
+  return map[status] ?? status;
+}
 
 async function errorMessage(res: Response, fallback: string): Promise<string> {
   try {
@@ -95,13 +112,23 @@ export const createOrderShipments = (order: string) =>
 /** Vendor: their own shipments for their sub-order of an order. */
 export const getMyOrderShipments = (order: string) => getShipments("my_order_shipments", order);
 
-/** Vendor: create the shipment for their sub-order (per-vendor fulfilment). */
-export const createMyShipment = (order: string) =>
-  post<{ shipments: string[] }>("create_my_shipment", { order });
+/** Vendor: create the shipment for their sub-order (per-vendor fulfilment).
+ * Optionally records the courier company + tracking the vendor chose. */
+export const createMyShipment = (
+  order: string,
+  details?: { carrier?: string; tracking_number?: string; tracking_url?: string },
+) => post<{ shipments: string[] }>("create_my_shipment", { order, ...details });
 
 /** Operator or owning vendor: advance a shipment + log an event. */
 export const updateShipmentStatus = (shipment: string, status: string, note?: string) =>
   post<Shipment>("update_shipment_status", { shipment, status, note });
+
+/** Vendor (or operator): edit their shipment's courier + tracking, and/or
+ * advance its status — the marketplace-neutral fulfilment update. */
+export const updateMyShipment = (
+  shipment: string,
+  patch: { carrier?: string; tracking_number?: string; tracking_url?: string; status?: string },
+) => post<Shipment>("update_my_shipment", { shipment, ...patch });
 
 /** Operator: verify delivery with the buyer's one-time code → completes the order. */
 export const confirmDelivery = (order: string, otp: string) =>

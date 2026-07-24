@@ -239,10 +239,14 @@ def my_order_shipments(order):
 
 
 @frappe.whitelist()
-def create_my_shipment(order, provider=None):
+def create_my_shipment(order, provider=None, carrier=None, tracking_number=None, tracking_url=None):
     """A vendor creates the shipment for THEIR sub-order of an order (per-vendor
     fulfilment). Idempotent per Sales Order. Falls back to the in-house Manual
-    provider so a vendor without a carrier account can still ship + advance."""
+    provider so a vendor without a carrier account can still ship + advance.
+
+    The marketplace does not run the shipping: the vendor records the courier
+    company (`carrier`) they chose plus its tracking number/URL, and those
+    vendor-entered values win over any placeholder the provider produced."""
     from ovira_marketplace.api.vendor import _my_vendor
 
     vendor = _my_vendor()
@@ -250,6 +254,9 @@ def create_my_shipment(order, provider=None):
         frappe.throw(_("You don't have a vendor store."), frappe.PermissionError)
     order_doc = frappe.get_doc("Marketplace Order", order)
     provider = provider or default_provider() or "Manual"
+    carrier = (carrier or "").strip()
+    tracking_number = (tracking_number or "").strip()
+    tracking_url = (tracking_url or "").strip()
     created = []
     seen = set()
     for row in order_doc.items:
@@ -270,8 +277,55 @@ def create_my_shipment(order, provider=None):
         shipment.shipping_cost = order_doc.shipping_amount
         shipment.insert(ignore_permissions=True)
         shipment.book()
+        # Vendor-entered courier details override the provider placeholder.
+        if carrier:
+            shipment.carrier = carrier
+        if tracking_number:
+            shipment.tracking_number = tracking_number
+        if tracking_url:
+            shipment.tracking_url = tracking_url
+        if carrier or tracking_number or tracking_url:
+            shipment.save(ignore_permissions=True)
         created.append(shipment.name)
     return {"shipments": created}
+
+
+@frappe.whitelist()
+def update_my_shipment(shipment, carrier=None, tracking_number=None, tracking_url=None, status=None, note=None):
+    """A vendor (or operator) edits their own shipment: the courier company plus
+    its tracking number/URL, and optionally advances the status — all in one
+    call. Marketplace-neutral: the vendor ships with whatever carrier suits them
+    and records it here so the buyer can track it."""
+    doc = frappe.get_doc("Marketplace Shipment", shipment)
+    if not _is_operator():
+        from ovira_marketplace.api.vendor import _my_vendor
+
+        if doc.vendor != _my_vendor():
+            frappe.throw(_("This shipment isn't yours."), frappe.PermissionError)
+
+    if carrier is not None:
+        doc.carrier = (carrier or "").strip()
+    if tracking_number is not None:
+        doc.tracking_number = (tracking_number or "").strip()
+    if tracking_url is not None:
+        doc.tracking_url = (tracking_url or "").strip()
+    if status is not None:
+        if status not in SHIPMENT_STATUSES:
+            frappe.throw(_("Unknown shipment status."))
+        doc.status = status
+        doc.append(
+            "events",
+            {
+                "posted_at": frappe.utils.now_datetime(),
+                "status": status,
+                "description": note or _("Status updated to {0}").format(status),
+            },
+        )
+    doc.save(ignore_permissions=True)
+    if status is not None:
+        _sync_order_status_from_shipment(doc)
+    frappe.db.commit()
+    return _shipment_flat(doc)
 
 
 @frappe.whitelist()
@@ -305,6 +359,7 @@ def _shipment_flat(doc, with_events=True):
         else None,
         "status": doc.status,
         "provider": doc.provider,
+        "carrier": doc.get("carrier"),
         "tracking_number": doc.tracking_number,
         "tracking_url": doc.tracking_url,
         "shipping_cost": doc.shipping_cost,

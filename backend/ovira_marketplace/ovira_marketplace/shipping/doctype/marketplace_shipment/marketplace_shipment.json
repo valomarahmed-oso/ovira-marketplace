@@ -14,6 +14,7 @@
   "status",
   "shipping_cost",
   "tracking_section",
+  "carrier",
   "tracking_number",
   "tracking_url",
   "column_break_tracking",
@@ -83,6 +84,13 @@
    "fieldname": "tracking_section",
    "fieldtype": "Section Break",
    "label": "Tracking"
+  },
+  {
+   "description": "Courier company the vendor shipped with (marketplace-neutral).",
+   "fieldname": "carrier",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Carrier"
   },
   {
    "fieldname": "tracking_number",

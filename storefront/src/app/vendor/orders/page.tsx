@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { FileDown, Loader2, MessageCircle, ShoppingBag, Truck } from "lucide-react";
 import { exportMyOrdersCsv, getMyOrders, getMyStore, type VendorOrder } from "@/lib/vendor";
-import { getVendorShipmentStatuses } from "@/lib/shipments-api";
+import { getVendorShipmentStatuses, shipmentStatusLabel } from "@/lib/shipments-api";
 import { getVendorThreads } from "@/lib/messaging-api";
 import { OrderChat } from "@/components/order-chat";
 import { VendorShipments } from "@/components/vendor-shipments";
@@ -32,14 +32,6 @@ export default function VendorOrdersPage() {
     Shipped: t.ostShipped,
     Completed: t.ostCompleted,
     Cancelled: t.ostCancelled,
-  };
-  const shipmentLabel: Record<string, string> = {
-    Draft: t.sstDraft,
-    Created: t.sstCreated,
-    "Picked Up": t.sstPickedUp,
-    "In Transit": t.sstInTransit,
-    Delivered: t.sstDelivered,
-    Returned: t.sstReturned,
   };
   const [orders, setOrders] = useState<VendorOrder[]>([]);
   const [shipStatus, setShipStatus] = useState<Record<string, string>>({});
@@ -136,7 +128,7 @@ export default function VendorOrdersPage() {
                       {shipStatus[o.name] && (
                         <span className="mt-1 flex items-center gap-1 text-xs text-ink-400">
                           <Truck className="h-3 w-3" />
-                          {shipmentLabel[shipStatus[o.name]] ?? shipStatus[o.name]}
+                          {shipmentStatusLabel(t, shipStatus[o.name])}
                         </span>
                       )}
                     </span>
@@ -161,7 +153,10 @@ export default function VendorOrdersPage() {
                   </div>
                   {open && vendorCode && (
                     <div className="space-y-4 border-t border-line bg-[#faf9f5] p-4">
-                      <VendorShipments order={o.name} />
+                      <VendorShipments
+                        order={o.name}
+                        onChange={() => getVendorShipmentStatuses().then(setShipStatus)}
+                      />
                       <OrderChat order={o.name} vendor={vendorCode} />
                     </div>
                   )}
