@@ -37,6 +37,9 @@ after_migrate = "ovira_marketplace.setup.install.after_migrate"
 # Scheduled jobs: settlements, payout runs, search reindex
 # ---------------------------------------------------------------------------
 scheduler_events = {
+    "hourly": [
+        "ovira_marketplace.api.abandoned_cart.sweep_abandoned_carts",
+    ],
     "daily": [
         "ovira_marketplace.api.trust.recompute_all_vendor_trust",
         "ovira_marketplace.api.stock_alerts.sweep_back_in_stock",

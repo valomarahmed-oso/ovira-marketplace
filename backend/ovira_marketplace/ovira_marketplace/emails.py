@@ -108,6 +108,34 @@ def send_delivery_otp(order, otp):
     )
 
 
+def send_abandoned_cart(cart):
+    """Gentle reminder for a cart left behind. `cart` is a dict/row with email,
+    customer_name, subtotal, currency."""
+    import json as _json
+
+    try:
+        count = len(_json.loads(cart.get("cart_json") or "[]"))
+    except (ValueError, TypeError):
+        count = 0
+    name = cart.get("customer_name") or ""
+    ccy = cart.get("currency") or ""
+    hello = f"أهلاً {name}،" if name else "أهلاً،"
+    lines = [
+        hello,
+        "سيبت منتجات في سلة التسوق ولسه ما أكملتش الطلب.",
+    ]
+    if count:
+        lines.append(f"عندك <b>{count}</b> منتج مستنيك في السلة.")
+    if flt(cart.get("subtotal")):
+        lines.append(f"إجمالي السلة: <b>{flt(cart.get('subtotal')):g} {ccy}</b>")
+    lines.append(
+        "<a href='/shop/cart' style='display:inline-block;margin-top:8px;"
+        "background:#1a56db;color:#fff;padding:10px 18px;border-radius:8px;"
+        "text-decoration:none'>أكمل طلبك الآن</a>"
+    )
+    _send(cart.get("email"), "سلة التسوق مستنياك 🛒", _shell("منتجاتك في انتظارك", lines))
+
+
 def send_return_update(order_email, order_name, status, note=None):
     subject = RETURN_STATUS_SUBJECT.get(status)
     if not subject:

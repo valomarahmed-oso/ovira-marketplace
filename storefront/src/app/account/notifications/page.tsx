@@ -11,6 +11,7 @@ import {
   type NotificationKind,
 } from "@/lib/notifications-api";
 import { useI18n } from "@/components/i18n-provider";
+import { PushToggle } from "@/components/push-toggle";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<NotificationKind, typeof Bell> = {
@@ -61,6 +62,8 @@ export default function NotificationsPage() {
           <CheckCheck className="h-4 w-4" /> {t.ntfMarkAllRead}
         </button>
       </div>
+
+      <PushToggle />
 
       {notifications.length === 0 ? (
         <div className="card space-y-4 p-10 text-center">

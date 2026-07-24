@@ -56,7 +56,7 @@ export default async function ProductPage({ params }: Props) {
       />
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <ProductGallery images={images} title={p.title} />
+        <ProductGallery images={images} title={p.title} video={p.video_url} />
 
         <div className="space-y-5">
           <div className="flex flex-wrap items-center gap-2">

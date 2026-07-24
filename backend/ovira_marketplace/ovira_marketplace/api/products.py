@@ -57,6 +57,8 @@ def upsert_product(
     variant_option_name=None,
     variants=None,
     track_inventory=None,
+    video_url=None,
+    price_tiers=None,
 ):
     """Create or update one of the vendor's own products.
 
@@ -96,6 +98,10 @@ def upsert_product(
         doc.short_description = short_description
     if description is not None:
         doc.description = description
+    if video_url is not None:
+        doc.video_url = (video_url or "").strip() or None
+    if price_tiers is not None:
+        _apply_price_tiers(doc, price_tiers)
 
     # Gallery: an ordered list of image URLs (first = primary) rebuilds the media
     # rows; a single `image` stays supported for the older one-image form.
@@ -168,6 +174,11 @@ def get_my_product(name):
         "description": doc.description,
         "image": image,
         "images": images,
+        "video_url": doc.get("video_url"),
+        "price_tiers": [
+            {"min_qty": cint(tr.min_qty), "price": flt(tr.price)}
+            for tr in (doc.get("price_tiers") or [])
+        ],
         "has_variants": cint(doc.has_variants),
         "variant_option_name": doc.variant_option_name,
         "variants": [
@@ -223,6 +234,21 @@ def _apply_gallery(doc, images):
     doc.set("media", [])
     for i, url in enumerate(urls):
         doc.append("media", {"image": url, "is_primary": 1 if i == 0 else 0})
+
+
+def _apply_price_tiers(doc, tiers):
+    """Rebuild the bulk price-tier rows from [{min_qty, price}, ...]. Ignores
+    blank/invalid rows and anything at qty < 2."""
+    try:
+        rows = json.loads(tiers) if isinstance(tiers, str) else tiers
+    except (ValueError, TypeError):
+        rows = []
+    doc.set("price_tiers", [])
+    for r in rows or []:
+        min_qty = cint(r.get("min_qty"))
+        price = flt(r.get("price"))
+        if min_qty >= 2 and price > 0:
+            doc.append("price_tiers", {"min_qty": min_qty, "price": price})
 
 
 def _apply_variants(doc, has_variants, option_name, variants):

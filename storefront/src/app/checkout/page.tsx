@@ -8,6 +8,7 @@ import { getAppConfig, previewShipping, initiatePayment, placeOrder as apiPlaceO
 import { getMyAddresses, upsertAddress, type BuyerAddress } from "@/lib/addresses-api";
 import { getShippingRates } from "@/lib/shipping-rates-api";
 import { listPaymentMethods, type PaymentMethod } from "@/lib/payment-methods";
+import { saveAbandonedCart } from "@/lib/abandoned-cart";
 import { getWallet } from "@/lib/wallet-api";
 import { cartSubtotal, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
@@ -161,6 +162,24 @@ export default function CheckoutPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartKey, form.gov]);
+
+  // Capture the cart for abandoned-cart recovery (signed-in shoppers we can
+  // email). Debounced; the server only emails carts left untouched for a while.
+  useEffect(() => {
+    if (!user?.email || subtotal <= 0) return;
+    const timer = setTimeout(() => {
+      saveAbandonedCart({
+        items: items.map((i) => ({ slug: i.product.slug, qty: i.qty, variant: i.variant?.sku })),
+        email: user.email,
+        customer_name: form.name || undefined,
+        phone: form.phone || undefined,
+        subtotal,
+        currency: items[0]?.product.currency,
+      });
+    }, 1200);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKey, user?.email, form.name, form.phone]);
 
   // Estimated delivery time per governorate (from the operator's rate table).
   const [etaByGov, setEtaByGov] = useState<Record<string, number>>({});

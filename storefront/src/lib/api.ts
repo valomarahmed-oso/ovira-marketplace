@@ -28,6 +28,8 @@ export type Product = {
   short_description?: string;
   description?: string;
   media?: { image: string; alt_text?: string }[];
+  video_url?: string | null;
+  price_tiers?: { min_qty: number; price: number }[];
   attributes?: { attribute: string; value: string }[];
   has_variants?: number | boolean;
   variant_option_name?: string;

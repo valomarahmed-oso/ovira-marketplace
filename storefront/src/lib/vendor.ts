@@ -102,6 +102,8 @@ export type ProductInput = {
   variant_option_name?: string;
   variants?: VariantInput[];
   track_inventory?: number;
+  video_url?: string;
+  price_tiers?: { min_qty: number; price: number }[];
 };
 
 export type VendorOrder = {
@@ -157,6 +159,8 @@ export type ProductDetail = {
   variant_option_name?: string | null;
   variants?: VariantInput[];
   track_inventory?: number;
+  video_url?: string | null;
+  price_tiers?: { min_qty: number; price: number }[];
   approval_status: VendorApprovalStatus;
   published?: number;
 };

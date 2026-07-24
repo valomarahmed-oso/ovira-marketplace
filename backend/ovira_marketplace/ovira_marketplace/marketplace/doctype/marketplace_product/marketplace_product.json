@@ -28,6 +28,7 @@
   "compare_at_price",
   "column_break_pricing",
   "currency",
+  "price_tiers",
   "inventory_section",
   "track_inventory",
   "stock_qty",
@@ -44,6 +45,7 @@
   "short_description",
   "description",
   "media_section",
+  "video_url",
   "media",
   "attributes_section",
   "attributes",
@@ -199,6 +201,13 @@
    "options": "Currency"
   },
   {
+   "description": "Optional bulk/quantity price breaks (non-variant products). Higher quantities get a lower unit price.",
+   "fieldname": "price_tiers",
+   "fieldtype": "Table",
+   "label": "Bulk price tiers",
+   "options": "Marketplace Price Tier"
+  },
+  {
    "fieldname": "inventory_section",
    "fieldtype": "Section Break",
    "label": "Inventory"
@@ -291,6 +300,12 @@
    "fieldname": "media_section",
    "fieldtype": "Section Break",
    "label": "Media"
+  },
+  {
+   "description": "Optional product video: a direct .mp4 URL or a YouTube/Vimeo link. Shown first in the gallery.",
+   "fieldname": "video_url",
+   "fieldtype": "Data",
+   "label": "Video URL"
   },
   {
    "fieldname": "media",

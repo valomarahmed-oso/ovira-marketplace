@@ -41,7 +41,19 @@ export function ProductPurchase({ p }: { p: Product }) {
 
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
-  const off = discountPercent(price, p.compare_at_price);
+
+  // Bulk/quantity price tiers (single-price products): the unit price drops once
+  // the quantity reaches a tier. Server recomputes at checkout — this mirrors it.
+  const tiers = !hasVariants && p.price_tiers?.length
+    ? [...p.price_tiers].sort((a, b) => a.min_qty - b.min_qty)
+    : [];
+  function tierRate(q: number) {
+    let r = p.price;
+    for (const tr of tiers) if (tr.price > 0 && q >= tr.min_qty && tr.price < r) r = tr.price;
+    return r;
+  }
+  const unitPrice = tiers.length ? tierRate(qty) : price;
+  const off = discountPercent(unitPrice, p.compare_at_price);
 
   function cartVariant() {
     return sel ? { sku: sel.sku, value: sel.option_value, price: sel.price } : undefined;
@@ -75,16 +87,39 @@ export function ProductPurchase({ p }: { p: Product }) {
       )}
 
       <div className="flex flex-wrap items-end gap-3">
-        <span className="font-tech text-3xl font-medium text-ink">{formatPrice(price, p.currency)}</span>
-        {p.compare_at_price && (
-          <span className="font-tech text-base text-ink-400 line-through">
-            {formatPrice(p.compare_at_price, p.currency)}
-          </span>
+        <span className="font-tech text-3xl font-medium text-ink">{formatPrice(unitPrice, p.currency)}</span>
+        {tiers.length > 0 && unitPrice < price ? (
+          <span className="font-tech text-base text-ink-400 line-through">{formatPrice(price, p.currency)}</span>
+        ) : (
+          p.compare_at_price && (
+            <span className="font-tech text-base text-ink-400 line-through">
+              {formatPrice(p.compare_at_price, p.currency)}
+            </span>
+          )
         )}
         {off > 0 && (
           <span className="rounded-full bg-coral-50 px-2 py-0.5 font-tech text-sm text-coral">-{off}%</span>
         )}
       </div>
+
+      {tiers.length > 0 && (
+        <div className="rounded-xl border border-line p-3">
+          <div className="mb-2 text-xs font-medium text-ink-600">{t.tierTitle}</div>
+          <div className="flex flex-wrap gap-2">
+            {tiers.map((tr) => (
+              <span
+                key={tr.min_qty}
+                className={cn(
+                  "rounded-lg border px-2.5 py-1 text-xs",
+                  qty >= tr.min_qty ? "border-blue bg-blue-50 text-blue-600" : "border-line text-ink-600",
+                )}
+              >
+                {t.tierRow.replace("{n}", String(tr.min_qty))} · {formatPrice(tr.price, p.currency)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {hasVariants && (
         <div className="space-y-2">

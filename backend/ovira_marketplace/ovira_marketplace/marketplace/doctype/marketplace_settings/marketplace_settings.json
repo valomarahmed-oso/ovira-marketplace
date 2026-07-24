@@ -27,7 +27,11 @@
   "loyalty_redeem_value",
   "loyalty_min_redeem",
   "homepage_section",
-  "deal_product"
+  "deal_product",
+  "push_section",
+  "vapid_public_key",
+  "vapid_private_key",
+  "vapid_subject"
  ],
  "fields": [
   {
@@ -182,6 +186,29 @@
    "fieldtype": "Link",
    "label": "Deal of the day product",
    "options": "Marketplace Product"
+  },
+  {
+   "fieldname": "push_section",
+   "fieldtype": "Section Break",
+   "label": "Web push (VAPID)"
+  },
+  {
+   "description": "VAPID public key. Web push stays off until this + the private key are set (and the pywebpush library is installed).",
+   "fieldname": "vapid_public_key",
+   "fieldtype": "Data",
+   "label": "VAPID public key"
+  },
+  {
+   "fieldname": "vapid_private_key",
+   "fieldtype": "Password",
+   "label": "VAPID private key"
+  },
+  {
+   "default": "mailto:admin@ovira.cloud",
+   "description": "VAPID subject (a mailto: or https: contact).",
+   "fieldname": "vapid_subject",
+   "fieldtype": "Data",
+   "label": "VAPID subject"
   }
  ],
  "index_web_pages_for_search": 1,

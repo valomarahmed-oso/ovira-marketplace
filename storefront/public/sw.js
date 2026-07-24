@@ -57,3 +57,40 @@ self.addEventListener("fetch", (event) => {
     ),
   );
 });
+
+// ---------------------------------------------------------------------------
+// Web push: show incoming notifications and focus/open the app on click.
+// ---------------------------------------------------------------------------
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: "أوفيرا", body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "أوفيرا";
+  const options = {
+    body: data.body || "",
+    icon: "/shop/icon-192.png",
+    badge: "/shop/icon-192.png",
+    tag: data.tag || "ovira",
+    data: { url: data.url || "/shop" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/shop";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client) {
+          client.navigate(target);
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
+    }),
+  );
+});

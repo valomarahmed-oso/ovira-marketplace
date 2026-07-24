@@ -27,11 +27,13 @@ function ProductForm() {
     track_inventory: true,
     condition: "New" as "New" | "Used" | "Refurbished",
     images: [] as string[],
+    video_url: "",
     short_description: "",
     description: "",
     has_variants: false,
     variant_option_name: "",
     variants: [] as { option_value: string; price: string; stock: string; image: string }[],
+    price_tiers: [] as { min_qty: string; price: string }[],
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +131,7 @@ function ProductForm() {
           track_inventory: p.track_inventory == null ? true : !!p.track_inventory,
           condition: (p.condition as "New" | "Used" | "Refurbished") ?? "New",
           images: p.images?.length ? p.images : p.image ? [p.image] : [],
+          video_url: p.video_url ?? "",
           short_description: p.short_description ?? "",
           description: p.description ?? "",
           has_variants: !!p.has_variants,
@@ -138,6 +141,10 @@ function ProductForm() {
             price: v.price != null ? String(v.price) : "",
             stock: v.stock_qty != null ? String(v.stock_qty) : "",
             image: v.image ?? "",
+          })),
+          price_tiers: (p.price_tiers ?? []).map((tr) => ({
+            min_qty: tr.min_qty != null ? String(tr.min_qty) : "",
+            price: tr.price != null ? String(tr.price) : "",
           })),
         });
       })
@@ -187,10 +194,16 @@ function ProductForm() {
         track_inventory: form.track_inventory ? 1 : 0,
         condition: form.condition,
         images: form.images,
+        video_url: form.video_url.trim(),
         description: form.description || undefined,
         has_variants: form.has_variants ? 1 : 0,
         variant_option_name: form.has_variants ? form.variant_option_name || undefined : undefined,
         variants: form.has_variants ? variantRows : undefined,
+        price_tiers: form.has_variants
+          ? []
+          : form.price_tiers
+              .filter((tr) => Number(tr.min_qty) >= 2 && Number(tr.price) > 0)
+              .map((tr) => ({ min_qty: Number(tr.min_qty), price: Number(tr.price) })),
       });
       router.push("/vendor/products");
     } catch (err) {
@@ -309,6 +322,17 @@ function ProductForm() {
               </div>
               {uploadErr && <p className="mt-1 text-xs text-coral">{uploadErr}</p>}
               <p className="mt-1 text-xs text-ink-400">{t.pfImageHint}</p>
+            </div>
+            <div>
+              <label className={label}>{t.pfVideo}</label>
+              <input
+                value={form.video_url}
+                onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+                className={field}
+                dir="ltr"
+                placeholder="https://youtu.be/… أو https://…/clip.mp4"
+              />
+              <p className="mt-1 text-xs text-ink-400">{t.pfVideoHint}</p>
             </div>
           </section>
 
@@ -435,6 +459,58 @@ function ProductForm() {
                 <label className={label}>{t.pfStock}</label>
                 <input required type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className={field} placeholder="0" />
                 <p className="mt-1 text-xs text-ink-400">{t.pfStockHint}</p>
+              </div>
+            )}
+
+            {!form.has_variants && (
+              <div className="space-y-2 rounded-xl border border-line p-4">
+                <div className="text-sm font-medium text-ink">{t.pfTiersTitle}</div>
+                <p className="-mt-1 text-xs text-ink-400">{t.pfTiersHint}</p>
+                {form.price_tiers.map((tr, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="2"
+                      value={tr.min_qty}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          price_tiers: f.price_tiers.map((r, j) => (j === i ? { ...r, min_qty: e.target.value } : r)),
+                        }))
+                      }
+                      className={field}
+                      placeholder={t.pfTierMinQty}
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      value={tr.price}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          price_tiers: f.price_tiers.map((r, j) => (j === i ? { ...r, price: e.target.value } : r)),
+                        }))
+                      }
+                      className={field}
+                      placeholder={t.pfTierPrice}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, price_tiers: f.price_tiers.filter((_, j) => j !== i) }))}
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-ink-400 hover:bg-coral-50 hover:text-coral"
+                      aria-label={t.pfTierRemove}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, price_tiers: [...f.price_tiers, { min_qty: "", price: "" }] }))}
+                  className="btn btn-ghost h-9 px-3 text-sm"
+                >
+                  <Plus className="h-4 w-4" /> {t.pfTierAdd}
+                </button>
               </div>
             )}
 

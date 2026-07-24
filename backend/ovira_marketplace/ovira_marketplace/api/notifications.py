@@ -101,4 +101,16 @@ def create_notification(
     doc.reference_doctype = reference_doctype
     doc.reference_name = reference_name
     doc.insert(ignore_permissions=True)
+
+    # Mirror to a web push notification (best-effort; no-op until push is set up).
+    try:
+        from ovira_marketplace.api.push import send_to_user
+
+        url = "/shop/account/notifications"
+        if reference_doctype == "Marketplace Order" and reference_name:
+            url = f"/shop/track?order={reference_name}"
+        send_to_user(user, title, message or title, url=url, tag=kind)
+    except Exception:
+        frappe.log_error(title="Ovira: push mirror failed")
+
     return doc.name

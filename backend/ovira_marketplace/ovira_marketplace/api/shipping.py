@@ -101,6 +101,10 @@ def per_vendor_subtotals(items):
             )
             if vprice:
                 rate = flt(vprice)
+        elif not product.has_variants:
+            from ovira_marketplace.api.pricing import tier_unit_rate
+
+            rate = tier_unit_rate(product.name, qty, rate)
         per_vendor[product.vendor] = per_vendor.get(product.vendor, 0.0) + rate * qty
     return per_vendor
 

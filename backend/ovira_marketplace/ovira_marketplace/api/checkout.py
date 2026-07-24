@@ -97,11 +97,17 @@ def place_order(
             variant_sku = variant.sku
             gate_stock = True  # variant stock is explicit — always enforce it
 
-        # A live flash deal replaces the rate server-side (single-price products
-        # only). Vendor-funded: the lower rate flows into the SO and settlement,
-        # so the vendor is paid on the deal price — no operator absorption.
+        # Bulk/quantity price tiers (single-price products): a lower unit price
+        # once the quantity reaches a tier. Applied server-side; the deal below
+        # can still win if it's cheaper.
         deal_name = None
         if not product.has_variants:
+            from ovira_marketplace.api.pricing import tier_unit_rate
+
+            rate = tier_unit_rate(product.name, qty, rate)
+            # A live flash deal replaces the rate server-side. Vendor-funded: the
+            # lower rate flows into the SO and settlement, so the vendor is paid
+            # on the deal price — no operator absorption.
             deal = active_deal(product.name)
             if deal and flt(deal["deal_price"]) < rate:
                 rate = flt(deal["deal_price"])
@@ -199,6 +205,15 @@ def place_order(
 
         for deal_name, deal_qty in deal_redemptions:
             redeem_deal(deal_name, deal_qty)
+
+    # The shopper converted → close any abandoned-cart snapshot (best-effort).
+    try:
+        from ovira_marketplace.api.abandoned_cart import mark_recovered
+
+        mark_recovered(email=order.email, user=frappe.session.user if frappe.session.user != "Guest" else None)
+    except Exception:
+        frappe.log_error(title="Ovira: abandoned-cart recover failed")
+
     frappe.db.commit()
 
     try:
