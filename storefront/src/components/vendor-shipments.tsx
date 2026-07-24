@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Check, ExternalLink, Loader2, PackagePlus, Save, Truck } from "lucide-react";
+import { AlertCircle, Check, ExternalLink, Loader2, PackagePlus, Printer, Save, Truck } from "lucide-react";
 import {
   createMyShipment,
   getMyOrderShipments,
+  listCarriers,
   SHIPMENT_STATUSES,
   shipmentStatusLabel,
   updateMyShipment,
+  type Carrier,
   type Shipment,
 } from "@/lib/shipments-api";
 import { useI18n } from "@/components/i18n-provider";
@@ -26,8 +28,9 @@ export function VendorShipments({
   order: string;
   onChange?: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [shipments, setShipments] = useState<Shipment[] | null>(null);
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [busy, setBusy] = useState(false);
   const [savedName, setSavedName] = useState<string | null>(null);
@@ -49,10 +52,13 @@ export function VendorShipments({
   useEffect(() => {
     let cancelled = false;
     getMyOrderShipments(order).then((s) => !cancelled && hydrate(s));
+    listCarriers().then((c) => !cancelled && setCarriers(c));
     return () => {
       cancelled = true;
     };
   }, [order]);
+
+  const listId = `carriers-${order}`;
 
   function msg(e: unknown) {
     return e instanceof Error ? e.message : t.vshError;
@@ -151,10 +157,21 @@ export function VendorShipments({
                 <input
                   value={d.carrier}
                   onChange={(e) => setDrafts({ ...drafts, [s.name]: { ...d, carrier: e.target.value } })}
-                  placeholder={t.vshCarrierPlaceholder}
+                  placeholder={carriers.length ? t.vshCarrierChoose : t.vshCarrierPlaceholder}
                   className={field}
+                  list={carriers.length ? listId : undefined}
                   disabled={busy}
                 />
+                {carriers.length > 0 && (
+                  <datalist id={listId}>
+                    {carriers.map((c) => (
+                      <option
+                        key={c.carrier_name}
+                        value={locale === "en" && c.carrier_name_en ? c.carrier_name_en : c.carrier_name}
+                      />
+                    ))}
+                  </datalist>
+                )}
               </div>
               <div>
                 <label className={lbl}>{t.vshTrackingNo}</label>
@@ -215,6 +232,14 @@ export function VendorShipments({
                     {t.vshTrack} <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 )}
+                <a
+                  href={`/shop/vendor/shipments/label/${encodeURIComponent(s.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-blue-600"
+                >
+                  <Printer className="h-4 w-4" /> {t.vshPrintLabel}
+                </a>
                 <button
                   type="button"
                   onClick={() => saveDetails(s.name)}

@@ -188,6 +188,105 @@ def delete_shipping_rate(name):
     return {"deleted": name}
 
 
+# -- dynamic shipping carriers (portal-managed directory) --------------------
+# A marketplace-neutral courier list the operator maintains from the portal (no
+# code / no ERPNext Desk). Vendors pick a carrier when they ship; the tracking
+# link is auto-built from the carrier's URL template. Distinct from "Shipping
+# Provider" (the rate engine + optional API connectors).
+
+CARRIER_FIELDS = [
+    "name",
+    "carrier_name",
+    "carrier_name_en",
+    "logo",
+    "phone",
+    "tracking_url_template",
+    "display_order",
+    "enabled",
+]
+
+
+@frappe.whitelist()
+def list_carriers():
+    """Enabled carriers for the vendor's shipment picker (any signed-in user)."""
+    return frappe.get_all(
+        "Marketplace Shipping Carrier",
+        filters={"enabled": 1},
+        fields=["carrier_name", "carrier_name_en", "logo", "tracking_url_template"],
+        order_by="display_order asc, carrier_name asc",
+        ignore_permissions=True,
+    )
+
+
+@frappe.whitelist()
+def list_carriers_admin():
+    """Operator: every carrier row (enabled or not) for management."""
+    _require_operator()
+    return frappe.get_all(
+        "Marketplace Shipping Carrier",
+        fields=CARRIER_FIELDS,
+        order_by="display_order asc, carrier_name asc",
+        ignore_permissions=True,
+    )
+
+
+@frappe.whitelist()
+def upsert_carrier(
+    carrier_name, carrier_name_en=None, logo=None, phone=None,
+    tracking_url_template=None, display_order=0, enabled=1, name=None,
+):
+    """Operator: create or update a shipping carrier (keyed by name/carrier_name)."""
+    _require_operator()
+    carrier_name = (carrier_name or "").strip()
+    if not carrier_name:
+        frappe.throw(_("Enter a carrier name."))
+
+    existing = name or frappe.db.get_value("Marketplace Shipping Carrier", {"carrier_name": carrier_name})
+    doc = (
+        frappe.get_doc("Marketplace Shipping Carrier", existing)
+        if existing and frappe.db.exists("Marketplace Shipping Carrier", existing)
+        else frappe.new_doc("Marketplace Shipping Carrier")
+    )
+    doc.carrier_name = carrier_name
+    doc.carrier_name_en = (carrier_name_en or "").strip() or None
+    doc.logo = (logo or "").strip() or None
+    doc.phone = (phone or "").strip() or None
+    doc.tracking_url_template = (tracking_url_template or "").strip() or None
+    doc.display_order = cint(display_order)
+    doc.enabled = 1 if cint(enabled) else 0
+    doc.flags.ignore_permissions = True
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {f: doc.get(f) for f in CARRIER_FIELDS}
+
+
+@frappe.whitelist()
+def delete_carrier(name):
+    _require_operator()
+    if frappe.db.exists("Marketplace Shipping Carrier", name):
+        frappe.delete_doc("Marketplace Shipping Carrier", name, ignore_permissions=True)
+        frappe.db.commit()
+    return {"deleted": name}
+
+
+def _carrier_tracking_url(carrier, tracking_number):
+    """Build a tracking link from the named carrier's URL template, or None."""
+    if not carrier or not tracking_number:
+        return None
+    row = frappe.db.get_value(
+        "Marketplace Shipping Carrier",
+        {"carrier_name": carrier},
+        "tracking_url_template",
+    )
+    template = (row or "").strip()
+    number = str(tracking_number).strip()
+    if not template:
+        return None
+    if "{tracking}" in template:
+        return template.replace("{tracking}", number)
+    return template.rstrip("/") + "/" + number
+
+
 @frappe.whitelist()
 def create_shipments_for_order(order, provider=None):
     """Create and book one Shipment per vendor sub-order of a Marketplace Order."""
@@ -284,6 +383,10 @@ def create_my_shipment(order, provider=None, carrier=None, tracking_number=None,
             shipment.tracking_number = tracking_number
         if tracking_url:
             shipment.tracking_url = tracking_url
+        elif carrier and tracking_number:
+            auto = _carrier_tracking_url(carrier, tracking_number)
+            if auto:
+                shipment.tracking_url = auto
         if carrier or tracking_number or tracking_url:
             shipment.save(ignore_permissions=True)
         created.append(shipment.name)
@@ -309,6 +412,12 @@ def update_my_shipment(shipment, carrier=None, tracking_number=None, tracking_ur
         doc.tracking_number = (tracking_number or "").strip()
     if tracking_url is not None:
         doc.tracking_url = (tracking_url or "").strip()
+    # Auto-fill the tracking link from the carrier's template when the vendor
+    # gave a carrier + number but no explicit URL.
+    if not (doc.tracking_url or "").strip() and doc.get("carrier") and (doc.tracking_number or "").strip():
+        auto = _carrier_tracking_url(doc.carrier, doc.tracking_number)
+        if auto:
+            doc.tracking_url = auto
     if status is not None:
         if status not in SHIPMENT_STATUSES:
             frappe.throw(_("Unknown shipment status."))
@@ -326,6 +435,55 @@ def update_my_shipment(shipment, carrier=None, tracking_number=None, tracking_ur
         _sync_order_status_from_shipment(doc)
     frappe.db.commit()
     return _shipment_flat(doc)
+
+
+@frappe.whitelist()
+def shipment_label(shipment):
+    """Printable waybill data for one shipment — the owning vendor or operator.
+    The marketplace runs no shipping, so this is a generic hand-off label (sender
+    = vendor, recipient + address + items + COD amount) the vendor prints and
+    sticks on the parcel for whatever courier they chose."""
+    doc = frappe.get_doc("Marketplace Shipment", shipment)
+    if not _is_operator():
+        from ovira_marketplace.api.vendor import _my_vendor
+
+        if doc.vendor != _my_vendor():
+            frappe.throw(_("This shipment isn't yours."), frappe.PermissionError)
+
+    order = frappe.get_doc("Marketplace Order", doc.marketplace_order) if doc.marketplace_order else None
+    vendor = (
+        frappe.db.get_value(
+            "Marketplace Vendor", doc.vendor, ["vendor_name", "phone"], as_dict=True
+        )
+        if doc.vendor
+        else None
+    )
+    items = []
+    if order:
+        for row in order.items:
+            if row.vendor == doc.vendor:
+                items.append({"title": row.title or row.marketplace_product, "qty": row.qty})
+
+    is_cod = order and (order.payment_method or "").strip().lower() in ("cod", "cash on delivery")
+    return {
+        "shipment": doc.name,
+        "carrier": doc.get("carrier"),
+        "provider": doc.provider,
+        "tracking_number": doc.tracking_number,
+        "tracking_url": doc.tracking_url,
+        "status": doc.status,
+        "order": doc.marketplace_order,
+        "vendor_name": vendor.vendor_name if vendor else None,
+        "vendor_phone": vendor.phone if vendor else None,
+        "recipient_name": doc.recipient_name,
+        "recipient_phone": doc.recipient_phone,
+        "governorate": doc.governorate,
+        "address": doc.address,
+        "items": items,
+        "cod": bool(is_cod),
+        "cod_amount": flt(order.total) if (order and is_cod) else 0,
+        "currency": (order.currency if order else None) or "EGP",
+    }
 
 
 @frappe.whitelist()

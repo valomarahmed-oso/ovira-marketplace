@@ -95,7 +95,11 @@ def list_deals(limit=24):
     """Public feed for the /deals page: products with a live flash deal, soonest
     to end first. Cards already carry the deal price + `deal_ends_on` (attached by
     the catalog card builder)."""
-    from ovira_marketplace.api.catalog import PRODUCT_LIST_FIELDS, _attach_card_fields
+    from ovira_marketplace.api.catalog import (
+        PRODUCT_LIST_FIELDS,
+        _attach_card_fields,
+        _suspended_vendors,
+    )
 
     now = now_datetime()
     rows = frappe.get_all(
@@ -109,13 +113,19 @@ def list_deals(limit=24):
     if not names:
         return []
 
+    product_filters = [
+        ["name", "in", names],
+        ["approval_status", "=", "Approved"],
+        ["published", "=", 1],
+    ]
+    suspended = _suspended_vendors()
+    if suspended:
+        # A suspended vendor's storefront goes dark — hide their deals too.
+        product_filters.append(["vendor", "not in", suspended])
+
     products = frappe.get_all(
         "Marketplace Product",
-        filters=[
-            ["name", "in", names],
-            ["approval_status", "=", "Approved"],
-            ["published", "=", 1],
-        ],
+        filters=product_filters,
         fields=PRODUCT_LIST_FIELDS,
         ignore_permissions=True,
     )

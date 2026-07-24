@@ -423,13 +423,17 @@ def related_products(slug, limit=8):
     limit = cint(limit) or 8
     picked: list = []
     seen = {base.name}
+    suspended = _suspended_vendors()
 
     def _take(extra_filters):
         if len(picked) >= limit:
             return
+        gate = [["approval_status", "=", "Approved"], ["published", "=", 1]]
+        if suspended:
+            gate.append(["vendor", "not in", suspended])
         rows = frappe.get_all(
             "Marketplace Product",
-            filters=[["approval_status", "=", "Approved"], ["published", "=", 1]] + extra_filters,
+            filters=gate + extra_filters,
             fields=PRODUCT_LIST_FIELDS,
             order_by="creation desc",
             limit_page_length=limit * 2,

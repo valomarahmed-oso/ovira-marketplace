@@ -138,6 +138,97 @@ export const confirmDelivery = (order: string, otp: string) =>
 export const resendDeliveryOtp = (order: string) =>
   post<{ sent: boolean }>("resend_delivery_otp", { order });
 
+export type Carrier = {
+  carrier_name: string;
+  carrier_name_en?: string | null;
+  logo?: string | null;
+  tracking_url_template?: string | null;
+};
+
+/** Enabled carriers for the vendor's shipment picker. */
+export async function listCarriers(): Promise<Carrier[]> {
+  if (!BASE) return [];
+  try {
+    const res = await fetch(`${BASE}/api/method/${M}.list_carriers`, {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return ((await res.json()).message ?? []) as Carrier[];
+  } catch {
+    return [];
+  }
+}
+
+export type ShipmentLabel = {
+  shipment: string;
+  carrier?: string | null;
+  provider?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  status: string;
+  order?: string | null;
+  vendor_name?: string | null;
+  vendor_phone?: string | null;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+  governorate?: string | null;
+  address?: string | null;
+  items: { title: string; qty: number }[];
+  cod: boolean;
+  cod_amount: number;
+  currency: string;
+};
+
+/** Printable waybill data for a shipment (owning vendor or operator). */
+export async function getShipmentLabel(shipment: string): Promise<ShipmentLabel | null> {
+  if (!BASE) return null;
+  try {
+    const res = await fetch(
+      `${BASE}/api/method/${M}.shipment_label?shipment=${encodeURIComponent(shipment)}`,
+      { headers: { Accept: "application/json" }, credentials: "include", cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return ((await res.json()).message ?? null) as ShipmentLabel | null;
+  } catch {
+    return null;
+  }
+}
+
+// -- operator: carrier directory CRUD ---------------------------------------
+
+export type CarrierAdmin = Carrier & {
+  name: string;
+  phone?: string | null;
+  display_order?: number;
+  enabled?: number;
+};
+
+export const listCarriersAdmin = () =>
+  getJson<CarrierAdmin[]>("list_carriers_admin", []);
+
+export const upsertCarrier = (c: Partial<CarrierAdmin>) =>
+  post<CarrierAdmin>("upsert_carrier", c as Record<string, unknown>);
+
+export const deleteCarrier = (name: string) =>
+  post<{ deleted: string }>("delete_carrier", { name });
+
+async function getJson<T>(method: string, fallback: T): Promise<T> {
+  if (!BASE) return fallback;
+  try {
+    const res = await fetch(`${BASE}/api/method/${M}.${method}`, {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) return fallback;
+    return ((await res.json()).message ?? fallback) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 /** Vendor: map of { order: latest shipment status } for their shipments. */
 export async function getVendorShipmentStatuses(): Promise<Record<string, string>> {
   if (!BASE) return {};

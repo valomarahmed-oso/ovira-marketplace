@@ -9,7 +9,11 @@ change it from the Desk with no redeploy.
 import frappe
 from frappe.utils import cint, flt, now_datetime
 
-from ovira_marketplace.api.catalog import PRODUCT_LIST_FIELDS, _attach_card_fields
+from ovira_marketplace.api.catalog import (
+    PRODUCT_LIST_FIELDS,
+    _attach_card_fields,
+    _suspended_vendors,
+)
 from ovira_marketplace.marketplace.doctype.marketplace_settings.marketplace_settings import (
     get_settings,
 )
@@ -109,6 +113,12 @@ def _section_products(source, category, limit):
 
 
 def _list(filters, limit, order_by):
+    # A suspended vendor's storefront goes dark — keep their products out of
+    # every homepage rail (Latest / Discounted / Best Selling / Category).
+    filters = dict(filters)
+    suspended = _suspended_vendors()
+    if suspended:
+        filters["vendor"] = ["not in", suspended]
     return frappe.get_all(
         "Marketplace Product",
         filters=filters,
@@ -175,6 +185,9 @@ def _deal_product():
         as_dict=True,
     )
     if not row:
+        return None
+    # Don't feature a suspended vendor's product as the deal of the day.
+    if row.get("vendor") and row["vendor"] in _suspended_vendors():
         return None
     rows = [row]
     _attach_card_fields(rows)

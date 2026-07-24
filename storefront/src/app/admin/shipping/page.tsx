@@ -11,6 +11,7 @@ import {
   type ShippingProviderConfig,
 } from "@/lib/operator";
 import { ShippingRatesCard } from "@/components/shipping-rates-card";
+import { ShippingCarriersCard } from "@/components/shipping-carriers-card";
 
 type Provider = ShippingProviderConfig["provider"];
 
@@ -245,6 +246,7 @@ export default function AdminShippingPage() {
           </div>
 
           <ShippingRatesCard />
+          <ShippingCarriersCard />
         </div>
       )}
     </div>
