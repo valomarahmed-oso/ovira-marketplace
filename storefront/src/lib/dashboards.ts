@@ -1,6 +1,7 @@
 import {
   Award,
   BarChart3,
+  FileBarChart,
   Bell,
   BellRing,
   ClipboardList,
@@ -70,6 +71,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
     nav: [
       { href: "/admin", key: "adminNavSettings", icon: Settings, exact: true },
       { href: "/admin/analytics", key: "adminNavAnalytics", icon: BarChart3 },
+      { href: "/admin/reports", key: "adminNavReports", icon: FileBarChart },
       { href: "/admin/vendors", key: "adminNavVendors", icon: Store, badge: "pending-vendors" },
       { href: "/admin/products", key: "adminNavProducts", icon: Package, badge: "pending-products" },
       { href: "/admin/inventory", key: "adminNavInventory", icon: Boxes },

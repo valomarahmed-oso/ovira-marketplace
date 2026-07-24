@@ -1,0 +1,40 @@
+const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
+
+export type FullReport = {
+  from_date: string;
+  to_date: string;
+  generated_on: string;
+  currency: string;
+  summary: {
+    orders: number;
+    paid_orders: number;
+    revenue: number;
+    aov: number;
+    discounts: number;
+    shipping: number;
+  };
+  by_status: { status: string; cnt: number }[];
+  top_products: { title: string; qty: number; revenue: number }[];
+  vendor_sales: { vendor: string | null; orders: number; gross: number; commission: number; net: number }[];
+  inventory: {
+    total: number;
+    out_of_stock: number;
+    low_stock: { title: string; stock_qty: number; low_stock_threshold: number }[];
+  };
+  coupons: { code: string; discount_type: string; discount_value: number; used_count: number; vendor: string | null }[];
+};
+
+export async function getFullReport(fromDate: string, toDate: string): Promise<FullReport | null> {
+  if (!BASE) return null;
+  try {
+    const qs = new URLSearchParams({ from_date: fromDate, to_date: toDate }).toString();
+    const res = await fetch(
+      `${BASE}/api/method/ovira_marketplace.api.reports.full_report?${qs}`,
+      { headers: { Accept: "application/json" }, credentials: "include", cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return ((await res.json()).message ?? null) as FullReport | null;
+  } catch {
+    return null;
+  }
+}
