@@ -109,6 +109,7 @@ TRACK_FIELDS = [
     "status",
     "payment_status",
     "payment_method",
+    "payment_method_ref",
     "currency",
     "subtotal",
     "shipping_amount",

@@ -21,7 +21,8 @@ FLAT_SHIPPING = 50
 @frappe.whitelist(allow_guest=True)
 @rate_limit(limit=30, seconds=60 * 60, methods="POST")
 def place_order(
-    items, customer, payment_method="cod", coupon=None, attribution=None, use_wallet=False
+    items, customer, payment_method="cod", coupon=None, attribution=None, use_wallet=False,
+    payment_method_ref=None,
 ):
     """Create a Marketplace Order from the storefront cart and split it into
     per-vendor ERPNext Sales Orders.
@@ -48,6 +49,8 @@ def place_order(
     order.governorate = customer.get("gov")
     order.shipping_address = customer.get("address")
     order.payment_method = payment_method
+    if payment_method_ref:
+        order.payment_method_ref = payment_method_ref
     order.status = "Pending Payment"
     order.payment_status = "Unpaid"
     order.currency = settings.default_currency

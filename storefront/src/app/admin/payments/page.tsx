@@ -9,6 +9,7 @@ import {
   updatePaymentConnector,
   type PaymentConnector,
 } from "@/lib/operator";
+import { PaymentMethodsCard } from "@/components/payment-methods-card";
 
 type Provider = PaymentConnector["provider"];
 
@@ -204,6 +205,7 @@ export default function AdminPaymentsPage() {
               </div>
             );
           })}
+          <PaymentMethodsCard />
         </div>
       )}
     </div>

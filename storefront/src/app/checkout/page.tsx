@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CreditCard, Loader2, MapPin, Plus, Tag, Truck, Wallet, X } from "lucide-react";
+import { Banknote, CreditCard, Info, Loader2, MapPin, Plus, Tag, Truck, Wallet, X } from "lucide-react";
 import { getAppConfig, previewShipping, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
 import { getMyAddresses, upsertAddress, type BuyerAddress } from "@/lib/addresses-api";
 import { getShippingRates } from "@/lib/shipping-rates-api";
+import { listPaymentMethods, type PaymentMethod } from "@/lib/payment-methods";
 import { getWallet } from "@/lib/wallet-api";
 import { cartSubtotal, useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/auth-store";
@@ -17,34 +18,71 @@ import { formatPrice, cn } from "@/lib/utils";
 
 const GOVERNORATES = ["القاهرة", "الجيزة", "الإسكندرية", "الدقهلية", "الشرقية", "القليوبية", "أخرى"];
 
-const PAYMENTS = [
-  { id: "cod", icon: Truck },
-  { id: "card", icon: CreditCard },
-] as const;
+type PayOption = {
+  id: string;
+  kind: "cod" | "manual" | "card";
+  ref?: string;
+  label: string;
+  note: string;
+  account?: string | null;
+  icon: typeof Truck;
+};
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const items = useCart((s) => s.items);
   const clear = useCart((s) => s.clear);
   const user = useAuth((s) => s.user);
   const hydrated = useHydrated();
 
   const [form, setForm] = useState({ name: "", phone: "", gov: GOVERNORATES[0], address: "" });
-  const [pay, setPay] = useState<"cod" | "card">("cod");
+  const [pay, setPay] = useState<string>("cod");
   const [submitting, setSubmitting] = useState(false);
 
   // Card payment only shows once an online gateway is actually enabled — no more
   // permanent "coming soon". Falls back to COD-only until then.
   const [onlinePayment, setOnlinePayment] = useState(false);
+  const [methods, setMethods] = useState<PaymentMethod[]>([]);
   useEffect(() => {
     getAppConfig().then((c) => setOnlinePayment(c.onlinePayment));
+    listPaymentMethods().then(setMethods);
   }, []);
-  const payOptions = PAYMENTS.filter((o) => o.id !== "card" || onlinePayment);
-  const payMeta: Record<string, { label: string; note: string }> = {
-    cod: { label: t.odtCod, note: t.coCodNote },
-    card: { label: t.invPayCard, note: t.coCardNote },
-  };
+
+  // Build the checkout payment list: operator-defined manual methods (dynamic),
+  // plus a built-in COD when none is configured, plus the online card gateway
+  // when it's enabled. The `kind` decides how the backend collects payment.
+  const payOptions: PayOption[] = (() => {
+    const opts: PayOption[] = [];
+    const hasDynamicCod = methods.some((m) => m.kind === "Cash on Delivery");
+    if (!hasDynamicCod) {
+      opts.push({ id: "cod", kind: "cod", label: t.odtCod, note: t.coCodNote, icon: Truck });
+    }
+    for (const m of methods) {
+      const isCod = m.kind === "Cash on Delivery";
+      opts.push({
+        id: m.name,
+        kind: isCod ? "cod" : "manual",
+        ref: m.name,
+        label: (locale === "en" && m.method_name_en) || m.method_name,
+        note: (locale === "en" && m.instructions_en) || m.instructions || (isCod ? t.coCodNote : ""),
+        account: m.account_details,
+        icon: isCod ? Truck : Banknote,
+      });
+    }
+    if (onlinePayment) {
+      opts.push({ id: "card", kind: "card", label: t.invPayCard, note: t.coCardNote, icon: CreditCard });
+    }
+    return opts;
+  })();
+
+  // Keep the selected option valid as the async method list arrives.
+  useEffect(() => {
+    if (payOptions.length && !payOptions.some((o) => o.id === pay)) setPay(payOptions[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [methods, onlinePayment]);
+
+  const selectedOption = payOptions.find((o) => o.id === pay);
 
   // Saved address book (signed-in shoppers). Selecting a card prefills the form,
   // which stays the single source of truth for the order.
@@ -215,7 +253,8 @@ export default function CheckoutPage() {
         gov: form.gov,
         address: form.address,
       },
-      payment_method: pay,
+      payment_method: selectedOption?.kind ?? "cod",
+      payment_method_ref: selectedOption?.ref,
       coupon: coupon?.code,
       use_wallet: useWallet && walletBalance > 0,
     });
@@ -325,11 +364,24 @@ export default function CheckoutPage() {
                 <input type="radio" name="pay" checked={pay === opt.id} onChange={() => setPay(opt.id)} className="accent-blue" />
                 <opt.icon className="h-5 w-5 text-blue-600" />
                 <span>
-                  <span className="block text-sm font-medium text-ink">{payMeta[opt.id].label}</span>
-                  <span className="block text-xs text-ink-400">{payMeta[opt.id].note}</span>
+                  <span className="block text-sm font-medium text-ink">{opt.label}</span>
+                  {opt.note && <span className="block text-xs text-ink-400">{opt.note}</span>}
                 </span>
               </label>
             ))}
+            {/* Manual-transfer instructions: the buyer pays to this account and
+                the order stays pending until the operator confirms. */}
+            {selectedOption?.kind === "manual" && selectedOption.account && (
+              <div className="flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <div className="font-medium">{t.coManualPayTitle}</div>
+                  <div className="mt-0.5 whitespace-pre-line font-tech text-ink" dir="ltr">
+                    {selectedOption.account}
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         </div>
 

@@ -3,12 +3,113 @@ import hmac
 import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
-from frappe.utils import flt, nowdate
+from frappe.utils import cint, flt, nowdate
 
 from ovira_marketplace.customers import customer_for_user
 from ovira_marketplace.marketplace_payments.connectors import get_connector
 
 OPERATOR_ROLES = {"System Manager", "Marketplace Operator", "Administrator"}
+
+
+def _require_operator():
+    if not (OPERATOR_ROLES & set(frappe.get_roles(frappe.session.user))):
+        frappe.throw(_("You are not allowed to do this."), frappe.PermissionError)
+
+
+# -- dynamic payment methods (portal-managed manual/offline options) ---------
+# The operator maintains extra manual methods (bank transfer, InstaPay, Vodafone
+# Cash, extra COD variants…) from the portal — no code. Real online gateways
+# (Paymob/Fawry) stay as coded Payment Connectors. A Manual Transfer order is
+# created Pending Payment and the operator confirms it once the money lands.
+
+PAYMENT_METHOD_FIELDS = [
+    "name",
+    "method_name",
+    "method_name_en",
+    "kind",
+    "instructions",
+    "instructions_en",
+    "account_details",
+    "icon",
+    "display_order",
+    "enabled",
+]
+
+
+@frappe.whitelist(allow_guest=True)
+def list_payment_methods():
+    """Enabled manual payment methods for the checkout (public)."""
+    return frappe.get_all(
+        "Marketplace Payment Method",
+        filters={"enabled": 1},
+        fields=[
+            "name",
+            "method_name",
+            "method_name_en",
+            "kind",
+            "instructions",
+            "instructions_en",
+            "account_details",
+            "icon",
+        ],
+        order_by="display_order asc, method_name asc",
+        ignore_permissions=True,
+    )
+
+
+@frappe.whitelist()
+def list_payment_methods_admin():
+    """Operator: every manual payment method (enabled or not)."""
+    _require_operator()
+    return frappe.get_all(
+        "Marketplace Payment Method",
+        fields=PAYMENT_METHOD_FIELDS,
+        order_by="display_order asc, method_name asc",
+        ignore_permissions=True,
+    )
+
+
+@frappe.whitelist()
+def upsert_payment_method(
+    method_name, method_name_en=None, kind="Manual Transfer", instructions=None,
+    instructions_en=None, account_details=None, icon=None, display_order=0, enabled=1, name=None,
+):
+    """Operator: create or update a manual payment method (keyed by method_name)."""
+    _require_operator()
+    method_name = (method_name or "").strip()
+    if not method_name:
+        frappe.throw(_("Enter a payment method name."))
+    if kind not in ("Cash on Delivery", "Manual Transfer"):
+        kind = "Manual Transfer"
+
+    existing = name or frappe.db.get_value("Marketplace Payment Method", {"method_name": method_name})
+    doc = (
+        frappe.get_doc("Marketplace Payment Method", existing)
+        if existing and frappe.db.exists("Marketplace Payment Method", existing)
+        else frappe.new_doc("Marketplace Payment Method")
+    )
+    doc.method_name = method_name
+    doc.method_name_en = (method_name_en or "").strip() or None
+    doc.kind = kind
+    doc.instructions = (instructions or "").strip() or None
+    doc.instructions_en = (instructions_en or "").strip() or None
+    doc.account_details = (account_details or "").strip() or None
+    doc.icon = (icon or "").strip() or None
+    doc.display_order = cint(display_order)
+    doc.enabled = 1 if cint(enabled) else 0
+    doc.flags.ignore_permissions = True
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {f: doc.get(f) for f in PAYMENT_METHOD_FIELDS}
+
+
+@frappe.whitelist()
+def delete_payment_method(name):
+    _require_operator()
+    if frappe.db.exists("Marketplace Payment Method", name):
+        frappe.delete_doc("Marketplace Payment Method", name, ignore_permissions=True)
+        frappe.db.commit()
+    return {"deleted": name}
 
 
 @frappe.whitelist(allow_guest=True)
@@ -27,6 +128,11 @@ def create_payment(order, token=None, return_url=None):
     if order_doc.payment_status == "Paid":
         # Nothing to collect; don't re-initiate or flip the method on a paid order.
         return {"method": "paid", "redirect_url": return_url}
+
+    # A manual/offline method (bank transfer, wallet, etc.) collects nothing
+    # online — the order stays Pending Payment until the operator confirms it.
+    if (order_doc.payment_method or "").strip().lower() == "manual":
+        return {"method": "manual", "redirect_url": return_url}
 
     provider = _provider_for(order_doc)
     order_doc.db_set("payment_method", provider)

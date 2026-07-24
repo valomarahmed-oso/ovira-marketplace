@@ -15,6 +15,7 @@
   "status",
   "payment_status",
   "payment_method",
+  "payment_method_ref",
   "payment_reference",
   "accounting_status",
   "accounting_error",
@@ -104,6 +105,12 @@
    "fieldname": "payment_method",
    "fieldtype": "Data",
    "label": "Payment method"
+  },
+  {
+   "description": "The specific Marketplace Payment Method the buyer chose (for manual/offline methods).",
+   "fieldname": "payment_method_ref",
+   "fieldtype": "Data",
+   "label": "Payment method ref"
   },
   {
    "fieldname": "payment_reference",

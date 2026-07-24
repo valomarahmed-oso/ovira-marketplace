@@ -475,6 +475,7 @@ export type CheckoutPayload = {
   items: { slug: string; qty: number; variant?: string }[];
   customer: { name: string; phone: string; email?: string; gov: string; address: string };
   payment_method: string;
+  payment_method_ref?: string;
   coupon?: string;
   use_wallet?: boolean;
 };
@@ -514,6 +515,7 @@ export type TrackedOrder = {
   status: string;
   payment_status: string;
   payment_method?: string | null;
+  payment_method_ref?: string | null;
   currency?: string;
   subtotal: number;
   shipping_amount: number;
