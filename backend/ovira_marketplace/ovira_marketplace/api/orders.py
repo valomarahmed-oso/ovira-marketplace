@@ -50,7 +50,26 @@ def _order_or_filters(email):
     customers = _my_customers(email)
     if customers:
         or_filters.append(["customer", "in", customers])
+    # Also match the creating user. Frappe names users by their email, so for a
+    # normal account `session.user` and `User.email` are the same string — but
+    # NOT for Administrator (name "Administrator", email "admin@example.com").
+    # Orders placed by such an account stored the login name in `email` and were
+    # invisible here. Matching `owner` recovers them without a data migration.
+    user = frappe.session.user
+    if user and user != "Guest":
+        or_filters.append(["owner", "=", user])
     return or_filters
+
+
+def _owns_order(order, email):
+    """True when the signed-in caller owns this order — by email, by a linked
+    Customer, or because they created it (see `_order_or_filters`)."""
+    if order.get("email") == email:
+        return True
+    if order.get("customer") and order.get("customer") in _my_customers(email):
+        return True
+    user = frappe.session.user
+    return bool(user and user != "Guest" and order.get("owner") == user)
 
 
 @frappe.whitelist()
@@ -78,7 +97,7 @@ def get_order(name):
     if not email:
         frappe.throw(_("Please sign in to view your orders."), frappe.PermissionError)
     order = frappe.get_doc("Marketplace Order", name)
-    if order.email != email and order.customer not in _my_customers(email):
+    if not _owns_order(order, email):
         frappe.throw(_("This order isn't yours."), frappe.PermissionError)
     data = order.as_dict()
     _attach_item_images(data.get("items") or [])

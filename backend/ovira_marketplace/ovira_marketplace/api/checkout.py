@@ -462,8 +462,19 @@ def _redeem_coupon(name):
 
 
 def _session_email():
+    """The signed-in user's EMAIL, not their login name.
+
+    Frappe names users by their email, so the two match for every ordinary
+    account — but Administrator is named "Administrator" with the email
+    "admin@example.com". Returning the login name stored "Administrator" in
+    `Marketplace Order.email`, and every buyer-side lookup (orders, returns,
+    chat) searches by email, so those orders became invisible to their own
+    placer. Resolve to the real address.
+    """
     user = frappe.session.user
-    return user if user and user != "Guest" else None
+    if not user or user == "Guest":
+        return None
+    return frappe.db.get_value("User", user, "email") or user
 
 
 def _loads(value):

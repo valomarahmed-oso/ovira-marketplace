@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Bell,
   Grid2x2,
@@ -46,6 +47,9 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
   const pathname = usePathname();
   const user = useAuth((s) => s.user);
   const signOut = useAuth((s) => s.signOut);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   // Close when the route changes (a link was tapped).
   useEffect(() => {
@@ -67,7 +71,16 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
 
   const section = "px-3 pb-1 pt-4 text-xs font-medium uppercase tracking-wide text-ink-400";
 
-  return (
+  // The drawer is PORTALLED to <body> on purpose. It is rendered from inside
+  // <header>, which carries `backdrop-blur` — and backdrop-filter creates a
+  // containing block for position:fixed descendants. Left in place, `fixed
+  // inset-0` sizes itself to the header (~158px) instead of the viewport, so the
+  // drawer showed up as a small box at the top of the screen. Portalling to body
+  // puts it outside any such ancestor, and keeps it immune to future header
+  // styling. `mounted` guards SSR, where document doesn't exist.
+  if (!mounted) return null;
+
+  return createPortal(
     <div className={`fixed inset-0 z-[60] lg:hidden ${open ? "" : "pointer-events-none"}`}>
       {/* Overlay */}
       <div
@@ -147,6 +160,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
           )}
         </div>
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 }
