@@ -33,7 +33,35 @@ def after_migrate():
     _create_roles()
     _seed_settings_if_ready()
     _seed_cms_if_empty()
+    _backfill_singleton_defaults()
     frappe.db.commit()
+
+
+# Fields added to an EXISTING single doctype whose declared default never fires.
+# Frappe applies a field default when a document is created; Marketplace Settings
+# already exists, so a newly-migrated column lands as NULL instead. Only NULL is
+# backfilled — a deliberate 0 chosen by the operator must survive.
+SINGLETON_DEFAULTS = {
+    "Marketplace Settings": {
+        "refund_charge_vendor": 1,
+        "refund_admin_fee_percent": 20,
+    },
+}
+
+
+def _backfill_singleton_defaults():
+    for doctype, defaults in SINGLETON_DEFAULTS.items():
+        if not frappe.db.exists("DocType", doctype):
+            continue
+        for field, value in defaults.items():
+            try:
+                if not frappe.get_meta(doctype).has_field(field):
+                    continue
+                current = frappe.db.get_single_value(doctype, field)
+                if current is None:
+                    frappe.db.set_single_value(doctype, field, value)
+            except Exception:
+                frappe.log_error(title=f"Ovira: backfill {doctype}.{field} failed")
 
 
 def _seed_cms_if_empty():
