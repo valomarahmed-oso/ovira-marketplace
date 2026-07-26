@@ -69,7 +69,16 @@ def _backfill_singleton_defaults():
             if field not in present:
                 continue
             try:
-                if frappe.db.get_single_value(doctype, field) is None:
+                # NOT get_single_value: it falls back to the field's declared
+                # default when no row exists, so "unset" and "set to the default"
+                # are indistinguishable through it. The raw Singles row is the
+                # only honest test of whether a value was ever written — and a
+                # value the operator actually chose is therefore never clobbered.
+                stored = frappe.db.sql(
+                    "select value from tabSingles where doctype=%s and field=%s",
+                    (doctype, field),
+                )
+                if not stored:
                     frappe.db.set_single_value(doctype, field, value)
                     frappe.db.commit()
             except Exception:
