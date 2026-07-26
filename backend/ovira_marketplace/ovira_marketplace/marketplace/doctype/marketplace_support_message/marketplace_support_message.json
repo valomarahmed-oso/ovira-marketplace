@@ -1,0 +1,105 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-07-26 16:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ticket",
+  "sender_role",
+  "sender",
+  "sender_name",
+  "col1",
+  "read_by_customer",
+  "read_by_support",
+  "sec_body",
+  "body"
+ ],
+ "fields": [
+  {
+   "fieldname": "ticket",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Ticket",
+   "options": "Marketplace Support Ticket",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "sender_role",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Sender role",
+   "options": "Customer\nSupport"
+  },
+  {
+   "fieldname": "sender",
+   "fieldtype": "Link",
+   "label": "Sender",
+   "options": "User"
+  },
+  {
+   "fieldname": "sender_name",
+   "fieldtype": "Data",
+   "label": "Sender name"
+  },
+  {
+   "fieldname": "col1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Cleared for the side that hasn't opened the thread yet.",
+   "fieldname": "read_by_customer",
+   "fieldtype": "Check",
+   "label": "Read by customer"
+  },
+  {
+   "fieldname": "read_by_support",
+   "fieldtype": "Check",
+   "label": "Read by support"
+  },
+  {
+   "fieldname": "sec_body",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "body",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Body",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-26 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Support Message",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "ASC",
+ "states": []
+}

@@ -1,0 +1,143 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-07-26 16:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "subject",
+  "category",
+  "status",
+  "priority",
+  "col1",
+  "customer_email",
+  "user",
+  "order",
+  "last_activity",
+  "closed_on",
+  "sec_meta",
+  "assigned_to"
+ ],
+ "fields": [
+  {
+   "default": "TKT-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Series",
+   "options": "TKT-.YYYY.-"
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Subject",
+   "reqd": 1
+  },
+  {
+   "default": "Other",
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "Order issue\nPayment\nDelivery\nProduct\nReturn\nAccount\nOther"
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Open\nAwaiting customer\nAwaiting support\nResolved\nClosed"
+  },
+  {
+   "default": "Normal",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Low\nNormal\nHigh\nUrgent"
+  },
+  {
+   "fieldname": "col1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Who opened it. Guests can't open tickets — this always has a login behind it.",
+   "fieldname": "customer_email",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Customer email",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "description": "Optional — the order this is about.",
+   "fieldname": "order",
+   "fieldtype": "Link",
+   "label": "Order",
+   "options": "Marketplace Order",
+   "search_index": 1
+  },
+  {
+   "fieldname": "last_activity",
+   "fieldtype": "Datetime",
+   "label": "Last activity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "closed_on",
+   "fieldtype": "Datetime",
+   "label": "Closed on",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sec_meta",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "assigned_to",
+   "fieldtype": "Link",
+   "label": "Assigned to",
+   "options": "User"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-26 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Support Ticket",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
