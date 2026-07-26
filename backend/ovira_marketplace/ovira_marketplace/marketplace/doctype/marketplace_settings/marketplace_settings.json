@@ -36,7 +36,14 @@
   "refund_help",
   "refund_charge_vendor",
   "refund_admin_fee_percent",
-  "refund_admin_fee_cap"
+  "refund_admin_fee_cap",
+  "cod_section",
+  "cod_help",
+  "cod_risk_enabled",
+  "cod_max_open_orders",
+  "cod_max_order_value",
+  "cod_new_customer_max_value",
+  "cod_max_refusal_rate"
  ],
  "fields": [
   {
@@ -246,6 +253,51 @@
    "label": "Administration fee cap",
    "default": "0",
    "description": "Maximum fee per return in the base currency. 0 = no cap."
+  },
+  {
+   "fieldname": "cod_section",
+   "fieldtype": "Section Break",
+   "label": "COD risk screening"
+  },
+  {
+   "fieldname": "cod_help",
+   "fieldtype": "HTML",
+   "options": "<div class='text-muted' style='padding:4px 0;font-size:12px;'>Screens cash-on-delivery orders before they are created. A blocked order is refused at checkout (generic message, so a fraudster isn't told which rule caught them); a flagged order is created normally but held in the review queue so someone can call before dispatch. Every threshold at 0 disables that individual check.</div>"
+  },
+  {
+   "fieldname": "cod_risk_enabled",
+   "fieldtype": "Check",
+   "label": "Enable COD risk screening",
+   "default": "0"
+  },
+  {
+   "fieldname": "cod_max_open_orders",
+   "fieldtype": "Int",
+   "label": "Max undelivered COD orders per customer",
+   "default": "3",
+   "description": "Flag for review once the buyer already has this many COD orders in flight. 0 = off."
+  },
+  {
+   "fieldname": "cod_max_order_value",
+   "fieldtype": "Currency",
+   "label": "Hard COD value ceiling",
+   "default": "0",
+   "description": "Refuse COD above this amount and ask for prepayment. 0 = no ceiling."
+  },
+  {
+   "fieldname": "cod_new_customer_max_value",
+   "fieldtype": "Currency",
+   "label": "First-order COD ceiling",
+   "default": "0",
+   "description": "Flag a first-time buyer ordering above this. 0 = off."
+  },
+  {
+   "fieldname": "cod_max_refusal_rate",
+   "fieldtype": "Float",
+   "label": "Max refusal rate (%)",
+   "default": "40",
+   "precision": "2",
+   "description": "Flag once the buyer refuses more than this share of their decided COD orders (needs 3+). 0 = off."
   }
  ],
  "index_web_pages_for_search": 1,

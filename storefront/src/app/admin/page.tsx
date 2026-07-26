@@ -71,6 +71,11 @@ export default function AdminSettingsPage() {
         refund_charge_vendor: settings.refund_charge_vendor ?? 0,
         refund_admin_fee_percent: settings.refund_admin_fee_percent ?? 0,
         refund_admin_fee_cap: settings.refund_admin_fee_cap ?? 0,
+        cod_risk_enabled: settings.cod_risk_enabled ?? 0,
+        cod_max_open_orders: settings.cod_max_open_orders ?? 0,
+        cod_max_order_value: settings.cod_max_order_value ?? 0,
+        cod_new_customer_max_value: settings.cod_new_customer_max_value ?? 0,
+        cod_max_refusal_rate: settings.cod_max_refusal_rate ?? 0,
       });
       setSettings(next);
       setSaved(true);
@@ -334,6 +339,37 @@ export default function AdminSettingsPage() {
               placeholder="0"
             />
           </div>
+        </div>
+      </section>
+
+      {/* COD risk screening thresholds. Each 0 disables that single check. */}
+      <section className="card space-y-3 p-6">
+        <div className="font-medium text-ink">{t.admCodSection}</div>
+        <Toggle
+          label={t.admCodEnabled}
+          on={!!s.cod_risk_enabled}
+          onClick={() => toggle("cod_risk_enabled")}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          {([
+            ["cod_max_open_orders", t.admCodMaxOpen, "3"],
+            ["cod_max_order_value", t.admCodMaxValue, "0"],
+            ["cod_new_customer_max_value", t.admCodNewMax, "0"],
+            ["cod_max_refusal_rate", t.admCodMaxRefusal, "40"],
+          ] as const).map(([key, label, ph]) => (
+            <div key={key} className="space-y-2">
+              <label className="text-sm font-medium text-ink">{label}</label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={(s[key] as number | undefined) ?? 0}
+                onChange={(e) => set(key, Number(e.target.value))}
+                className={fieldCls}
+                placeholder={ph}
+              />
+            </div>
+          ))}
         </div>
       </section>
 

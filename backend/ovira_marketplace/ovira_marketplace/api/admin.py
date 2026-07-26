@@ -34,6 +34,11 @@ ADMIN_FIELDS = [
     "refund_charge_vendor",
     "refund_admin_fee_percent",
     "refund_admin_fee_cap",
+    "cod_risk_enabled",
+    "cod_max_open_orders",
+    "cod_max_order_value",
+    "cod_new_customer_max_value",
+    "cod_max_refusal_rate",
 ]
 
 OPERATOR_ROLES = ("System Manager", "Marketplace Operator")

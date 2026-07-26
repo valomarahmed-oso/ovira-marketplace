@@ -45,7 +45,11 @@
   "column_break_source",
   "utm_campaign",
   "referrer",
-  "landing_page"
+  "landing_page",
+  "cod_section",
+  "cod_risk_score",
+  "cod_risk_review",
+  "cod_risk_flags"
  ],
  "fields": [
   {
@@ -298,6 +302,29 @@
    "fieldname": "landing_page",
    "fieldtype": "Small Text",
    "label": "Landing page",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cod_section",
+   "fieldtype": "Section Break",
+   "label": "COD risk"
+  },
+  {
+   "fieldname": "cod_risk_score",
+   "fieldtype": "Int",
+   "label": "COD risk score",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cod_risk_review",
+   "fieldtype": "Check",
+   "label": "Held for COD review",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cod_risk_flags",
+   "fieldtype": "Small Text",
+   "label": "Risk flags",
    "read_only": 1
   }
  ],

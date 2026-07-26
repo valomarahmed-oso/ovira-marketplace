@@ -201,6 +201,14 @@ def place_order(
     order.wallet_applied = wallet_applied
     order.total = subtotal + order.shipping_amount - discount - vendor_discount - wallet_applied
 
+    # Screen cash-on-delivery before the order exists, so a blocked one is
+    # refused rather than created-then-cancelled (which would have already moved
+    # stock). Inert until the operator enables it in Marketplace Settings.
+    if (payment_method or "").lower() in ("cod", "cash on delivery"):
+        from ovira_marketplace.api.cod_risk import screen_order
+
+        screen_order(order, settings)
+
     order.insert(ignore_permissions=True)
     # Draw the ordered quantities down from the marketplace stock so the numbers
     # shoppers see reflect what's left. Restored if the order is cancelled (see

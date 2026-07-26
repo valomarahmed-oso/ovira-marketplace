@@ -27,6 +27,12 @@ export type AdminSettings = {
   refund_admin_fee_percent?: number;
   /** Cap on that fee per return, in the base currency. 0 = uncapped. */
   refund_admin_fee_cap?: number;
+  /** COD risk screening — inert until enabled. */
+  cod_risk_enabled?: number;
+  cod_max_open_orders?: number;
+  cod_max_order_value?: number;
+  cod_new_customer_max_value?: number;
+  cod_max_refusal_rate?: number;
   /** Read-only: whether outgoing email is configured (drives the email hint). */
   email_configured?: boolean;
 };
