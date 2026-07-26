@@ -21,6 +21,12 @@ export type AdminSettings = {
   loyalty_earn_rate?: number;
   loyalty_redeem_value?: number;
   loyalty_min_redeem?: number;
+  /** Charge a vendor-fault refund back to that vendor (Amazon model). */
+  refund_charge_vendor?: number;
+  /** Share of the original commission the operator keeps on a refund. */
+  refund_admin_fee_percent?: number;
+  /** Cap on that fee per return, in the base currency. 0 = uncapped. */
+  refund_admin_fee_cap?: number;
   /** Read-only: whether outgoing email is configured (drives the email hint). */
   email_configured?: boolean;
 };

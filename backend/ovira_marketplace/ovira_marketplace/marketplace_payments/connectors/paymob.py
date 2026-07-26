@@ -3,6 +3,7 @@ import hmac
 
 import frappe
 import requests
+from frappe.utils import flt
 
 from ovira_marketplace.marketplace_payments.connectors.base import PaymentConnector
 
@@ -62,6 +63,46 @@ class PaymobConnector(PaymentConnector):
             "success": success,
             "reference": str(obj.get("id") or ""),
         }
+
+    supports_refund = True
+
+    def refund(self, transaction_id, amount):
+        """Refund a captured Paymob transaction.
+
+        POST /acceptance/void_refund/refund with the auth token, the original
+        transaction id and the amount **in piastres** (Paymob works in the
+        currency's minor unit throughout, same as `initiate`).
+
+        Never raises — a gateway failure is reported so the operator can fall
+        back to store credit rather than losing the refund decision.
+        """
+        api_key = self.config.get_password("api_key", raise_exception=False)
+        if not api_key:
+            return {"ok": False, "reference": None, "error": "Paymob API key isn't configured."}
+        if not transaction_id:
+            return {"ok": False, "reference": None, "error": "No gateway transaction to refund."}
+
+        try:
+            token = self._auth(api_key)
+            res = requests.post(
+                f"{BASE}/acceptance/void_refund/refund",
+                json={
+                    "auth_token": token,
+                    "transaction_id": transaction_id,
+                    "amount_cents": int(round(flt(amount) * 100)),
+                },
+                timeout=30,
+            )
+            data = res.json() if res.content else {}
+            if res.status_code >= 400:
+                return {
+                    "ok": False,
+                    "reference": None,
+                    "error": str(data.get("message") or data.get("detail") or f"HTTP {res.status_code}")[:300],
+                }
+            return {"ok": True, "reference": str(data.get("id") or ""), "error": None}
+        except Exception as exc:
+            return {"ok": False, "reference": None, "error": f"{type(exc).__name__}: {str(exc)[:200]}"}
 
     # -- internal ----------------------------------------------------------
 

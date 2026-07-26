@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Loader2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
+import { ReturnSettlement } from "@/components/return-settlement";
 import {
   listReturns,
   RETURN_STATUS_STYLE,
@@ -51,6 +52,10 @@ export default function AdminReturnsPage() {
     if (!ready || !isOperator) return;
     void load();
   }, [ready, isOperator, load]);
+
+  function patchRow(name: string, patch: Partial<ReturnRequest>) {
+    setRows((prev) => prev.map((r) => (r.name === name ? { ...r, ...patch } : r)));
+  }
 
   async function decide(row: ReturnRequest, status: ReturnStatus) {
     setActingOn(row.name);
@@ -164,16 +169,23 @@ export default function AdminReturnsPage() {
                     </div>
                   </div>
                 ) : r.status === "Approved" ? (
-                  <div className="border-t border-line pt-3">
-                    <button
-                      type="button"
-                      disabled={acting}
-                      onClick={() => decide(r, "Completed")}
-                      className="btn btn-ghost disabled:opacity-50"
-                    >
-                      {acting && <Loader2 className="h-4 w-4 animate-spin" />} {t.rtnMarkComplete}
-                    </button>
-                  </div>
+                  <>
+                    {/* Fault has to be settled BEFORE completing — that's when the
+                        vendor chargeback books. */}
+                    <ReturnSettlement row={r} onUpdated={(patch) => patchRow(r.name, patch)} />
+                    <div className="border-t border-line pt-3">
+                      <button
+                        type="button"
+                        disabled={acting}
+                        onClick={() => decide(r, "Completed")}
+                        className="btn btn-ghost disabled:opacity-50"
+                      >
+                        {acting && <Loader2 className="h-4 w-4 animate-spin" />} {t.rtnMarkComplete}
+                      </button>
+                    </div>
+                  </>
+                ) : r.status === "Completed" ? (
+                  <ReturnSettlement row={r} onUpdated={(patch) => patchRow(r.name, patch)} />
                 ) : null}
               </div>
             );

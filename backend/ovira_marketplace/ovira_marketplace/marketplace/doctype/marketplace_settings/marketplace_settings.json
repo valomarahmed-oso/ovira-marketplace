@@ -31,7 +31,12 @@
   "push_section",
   "vapid_public_key",
   "vapid_private_key",
-  "vapid_subject"
+  "vapid_subject",
+  "refund_section",
+  "refund_help",
+  "refund_charge_vendor",
+  "refund_admin_fee_percent",
+  "refund_admin_fee_cap"
  ],
  "fields": [
   {
@@ -209,6 +214,38 @@
    "fieldname": "vapid_subject",
    "fieldtype": "Data",
    "label": "VAPID subject"
+  },
+  {
+   "fieldname": "refund_section",
+   "fieldtype": "Section Break",
+   "label": "Returns & refunds"
+  },
+  {
+   "fieldname": "refund_help",
+   "fieldtype": "HTML",
+   "options": "<div class='text-muted' style='padding:4px 0;font-size:12px;'>When a return is the <b>vendor's</b> fault, the refund is charged back to that vendor: their settlement is debited the refunded amount, and the commission originally taken on it is returned to them <b>minus</b> the administration fee below. Store or goodwill fault is absorbed by the operator instead. Leave <i>Charge vendor</i> off to absorb every refund.</div>"
+  },
+  {
+   "fieldname": "refund_charge_vendor",
+   "fieldtype": "Check",
+   "label": "Charge refunds back to the vendor",
+   "default": "1",
+   "description": "Only applies to returns marked as the vendor's fault."
+  },
+  {
+   "fieldname": "refund_admin_fee_percent",
+   "fieldtype": "Float",
+   "label": "Refund administration fee (% of commission)",
+   "default": "20",
+   "precision": "2",
+   "description": "Share of the original commission the operator keeps when returning it. Amazon-style; 20% is their classic figure."
+  },
+  {
+   "fieldname": "refund_admin_fee_cap",
+   "fieldtype": "Currency",
+   "label": "Administration fee cap",
+   "default": "0",
+   "description": "Maximum fee per return in the base currency. 0 = no cap."
   }
  ],
  "index_web_pages_for_search": 1,

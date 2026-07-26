@@ -31,6 +31,9 @@ ADMIN_FIELDS = [
     "loyalty_earn_rate",
     "loyalty_redeem_value",
     "loyalty_min_redeem",
+    "refund_charge_vendor",
+    "refund_admin_fee_percent",
+    "refund_admin_fee_cap",
 ]
 
 OPERATOR_ROLES = ("System Manager", "Marketplace Operator")

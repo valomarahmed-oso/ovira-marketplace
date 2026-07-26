@@ -68,6 +68,9 @@ export default function AdminSettingsPage() {
         loyalty_earn_rate: settings.loyalty_earn_rate ?? 0,
         loyalty_redeem_value: settings.loyalty_redeem_value ?? 0,
         loyalty_min_redeem: settings.loyalty_min_redeem ?? 0,
+        refund_charge_vendor: settings.refund_charge_vendor ?? 0,
+        refund_admin_fee_percent: settings.refund_admin_fee_percent ?? 0,
+        refund_admin_fee_cap: settings.refund_admin_fee_cap ?? 0,
       });
       setSettings(next);
       setSaved(true);
@@ -290,6 +293,43 @@ export default function AdminSettingsPage() {
               step="1"
               value={s.loyalty_min_redeem ?? 0}
               onChange={(e) => set("loyalty_min_redeem", Number(e.target.value))}
+              className={fieldCls}
+              placeholder="0"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Returns & refunds — who funds a return, and the fee the store keeps. */}
+      <section className="card space-y-3 p-6">
+        <div className="font-medium text-ink">{t.admRefundSection}</div>
+        <Toggle
+          label={t.admRefundChargeVendor}
+          on={!!s.refund_charge_vendor}
+          onClick={() => toggle("refund_charge_vendor")}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink">{t.admRefundFeePercent}</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="any"
+              value={s.refund_admin_fee_percent ?? 0}
+              onChange={(e) => set("refund_admin_fee_percent", Number(e.target.value))}
+              className={fieldCls}
+              placeholder="20"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ink">{t.admRefundFeeCap}</label>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              value={s.refund_admin_fee_cap ?? 0}
+              onChange={(e) => set("refund_admin_fee_cap", Number(e.target.value))}
               className={fieldCls}
               placeholder="0"
             />

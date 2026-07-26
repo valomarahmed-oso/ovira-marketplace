@@ -346,3 +346,93 @@ def _settle_vendors(order, errors):
 
 def _last_error_line():
     return (frappe.get_traceback().strip().splitlines() or [""])[-1][:200]
+
+
+# -- refunds to the original payment method ---------------------------------
+
+
+@frappe.whitelist()
+def refund_capability(order_name):
+    """Whether this order's payment can be refunded to its original instrument.
+
+    Drives the operator UI: COD and manual transfers have no gateway to call
+    back, so those refunds can only ever be store credit.
+    """
+    from ovira_marketplace.api.admin import _require_operator
+
+    _require_operator()
+    order = frappe.db.get_value(
+        "Marketplace Order",
+        order_name,
+        ["name", "payment_method", "payment_status", "payment_reference", "total"],
+        as_dict=True,
+    )
+    if not order:
+        frappe.throw(_("الطلب غير موجود."), frappe.DoesNotExistError)
+
+    connector = get_connector(order.payment_method) if order.payment_method else None
+    supported = bool(connector and getattr(connector, "supports_refund", False))
+    return {
+        "supported": supported,
+        "provider": order.payment_method,
+        "paid": order.payment_status == "Paid",
+        "has_reference": bool(order.payment_reference),
+        "amount": flt(order.total),
+    }
+
+
+@frappe.whitelist()
+@rate_limit(limit=20, seconds=60 * 60, methods="POST")
+def refund_to_source(return_name, amount=None):
+    """Send a refund back to the card/wallet the customer actually paid with.
+
+    Operator-only. The gateway call is the ONLY thing here that can fail
+    "loudly": if it succeeds we record the reference on the return, and if it
+    fails we report why and change nothing, so the operator can fall back to
+    store credit. The vendor chargeback is deliberately NOT repeated here — it
+    is booked once when the return completes, whichever way the money went out.
+    """
+    from ovira_marketplace.api.admin import _require_operator
+
+    _require_operator()
+    ret = frappe.get_doc("Marketplace Return", return_name)
+    if ret.get("refund_reference"):
+        return {"ok": True, "already": True, "reference": ret.refund_reference}
+
+    order = frappe.db.get_value(
+        "Marketplace Order",
+        ret.marketplace_order,
+        ["name", "payment_method", "payment_status", "payment_reference"],
+        as_dict=True,
+    )
+    if not order:
+        frappe.throw(_("الطلب غير موجود."), frappe.DoesNotExistError)
+    if order.payment_status != "Paid":
+        frappe.throw(_("الطلب غير مدفوع — مفيش حاجة تترد."))
+
+    connector = get_connector(order.payment_method) if order.payment_method else None
+    if not (connector and getattr(connector, "supports_refund", False)):
+        frappe.throw(
+            _("وسيلة الدفع ({0}) لا تدعم الاسترداد الآلي — استخدم رصيد المتجر.").format(
+                order.payment_method or "—"
+            )
+        )
+
+    value = flt(amount) if amount is not None else flt(ret.refund_amount)
+    if value <= 0:
+        frappe.throw(_("حدّد مبلغ الاسترداد."))
+
+    result = connector.refund(order.payment_reference, value)
+    if not result.get("ok"):
+        frappe.throw(
+            _("فشل الاسترداد من بوابة الدفع: {0}").format(result.get("error") or "—")
+        )
+
+    frappe.db.set_value(
+        "Marketplace Return",
+        return_name,
+        {"refund_reference": result.get("reference") or "", "refund_method": "Original payment method"},
+        update_modified=False,
+    )
+    frappe.db.commit()
+    return {"ok": True, "reference": result.get("reference"), "amount": value}

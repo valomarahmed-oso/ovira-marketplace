@@ -14,7 +14,15 @@
   "reason",
   "details",
   "resolution_section",
-  "operator_note"
+  "operator_note",
+  "fault",
+  "refund_method",
+  "chargeback_section",
+  "vendor_charged",
+  "commission_returned",
+  "admin_fee",
+  "chargeback_entry",
+  "refund_reference"
  ],
  "fields": [
   {
@@ -78,6 +86,57 @@
    "fieldname": "operator_note",
    "fieldtype": "Small Text",
    "label": "Operator note"
+  },
+  {
+   "fieldname": "fault",
+   "fieldtype": "Select",
+   "label": "Fault",
+   "options": "Vendor\nStore\nGoodwill",
+   "default": "Vendor",
+   "in_list_view": 1,
+   "description": "Vendor = charged back to the seller. Store / Goodwill = absorbed by the operator."
+  },
+  {
+   "fieldname": "refund_method",
+   "fieldtype": "Select",
+   "label": "Refund method",
+   "options": "Store credit\nOriginal payment method",
+   "default": "Store credit"
+  },
+  {
+   "fieldname": "chargeback_section",
+   "fieldtype": "Section Break",
+   "label": "Vendor chargeback"
+  },
+  {
+   "fieldname": "vendor_charged",
+   "fieldtype": "Currency",
+   "label": "Charged to vendor",
+   "read_only": 1
+  },
+  {
+   "fieldname": "commission_returned",
+   "fieldtype": "Currency",
+   "label": "Commission returned to vendor",
+   "read_only": 1
+  },
+  {
+   "fieldname": "admin_fee",
+   "fieldtype": "Currency",
+   "label": "Administration fee kept",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chargeback_entry",
+   "fieldtype": "Data",
+   "label": "Chargeback journal entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "refund_reference",
+   "fieldtype": "Data",
+   "label": "Gateway refund reference",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 0,

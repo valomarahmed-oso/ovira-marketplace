@@ -5,6 +5,10 @@ const M = "ovira_marketplace.api.returns";
 
 export type ReturnStatus = "Requested" | "Approved" | "Rejected" | "Completed";
 
+/** Who funds the refund. "Vendor" charges it back to the seller; "Store" and
+ *  "Goodwill" are absorbed by the operator. */
+export type ReturnFault = "Vendor" | "Store" | "Goodwill";
+
 export type ReturnRequest = {
   name: string;
   order: string;
@@ -15,6 +19,33 @@ export type ReturnRequest = {
   refund_amount?: number;
   customer_email?: string;
   date?: string;
+  fault?: ReturnFault;
+  refund_method?: string;
+  /** Filled in once the chargeback books. */
+  vendor_charged?: number;
+  commission_returned?: number;
+  admin_fee?: number;
+  chargeback_entry?: string;
+  refund_reference?: string;
+};
+
+/** What charging a return back to the vendor would cost them — computed, not booked. */
+export type ChargebackPreview = {
+  applies: boolean;
+  reason?: "no_refund" | "disabled" | "not_vendor_fault" | "multi_vendor";
+  vendor?: string;
+  charged?: number;
+  commission_returned?: number;
+  admin_fee?: number;
+  commission?: number;
+};
+
+export type RefundCapability = {
+  supported: boolean;
+  provider?: string;
+  paid: boolean;
+  has_reference: boolean;
+  amount: number;
 };
 
 export const RETURN_REASONS = [
@@ -59,10 +90,12 @@ async function errorMessage(res: Response, fallback: string): Promise<string> {
   return fallback;
 }
 
-async function get<T>(method: string, qs: string, fallback: T): Promise<T> {
+// `ns` overrides the default module — the refund endpoints live in api.payment,
+// but belong to the returns UI, so they're exposed from this client.
+async function get<T>(method: string, qs: string, fallback: T, ns: string = M): Promise<T> {
   if (!BASE) return fallback;
   try {
-    const res = await fetch(`${BASE}/api/method/${M}.${method}${qs}`, {
+    const res = await fetch(`${BASE}/api/method/${ns}.${method}${qs}`, {
       headers: { Accept: "application/json" },
       credentials: "include",
       cache: "no-store",
@@ -75,9 +108,13 @@ async function get<T>(method: string, qs: string, fallback: T): Promise<T> {
   }
 }
 
-async function post<T>(method: string, body: Record<string, unknown>): Promise<T> {
+async function post<T>(
+  method: string,
+  body: Record<string, unknown>,
+  ns: string = M,
+): Promise<T> {
   if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
-  const res = await fetch(`${BASE}/api/method/${M}.${method}`, {
+  const res = await fetch(`${BASE}/api/method/${ns}.${method}`, {
     method: "POST",
     headers: writeHeaders(),
     body: JSON.stringify(body),
@@ -107,4 +144,24 @@ export const setReturnStatus = (
   status: ReturnStatus,
   note?: string,
   refund_amount?: number,
-) => post<ReturnRequest>("set_return_status", { name, status, note, refund_amount });
+  fault?: ReturnFault,
+) => post<ReturnRequest>("set_return_status", { name, status, note, refund_amount, fault });
+
+export const getChargebackPreview = (name: string) =>
+  get<ChargebackPreview | null>("chargeback_preview", `?name=${encodeURIComponent(name)}`, null);
+
+/** Can this order's payment go back to the original instrument? */
+export const getRefundCapability = (order: string) =>
+  get<RefundCapability | null>(
+    "refund_capability",
+    `?order_name=${encodeURIComponent(order)}`,
+    null,
+    "ovira_marketplace.api.payment",
+  );
+
+export const refundToSource = (return_name: string, amount?: number) =>
+  post<{ ok: boolean; reference?: string; amount?: number; already?: boolean }>(
+    "refund_to_source",
+    { return_name, amount },
+    "ovira_marketplace.api.payment",
+  );

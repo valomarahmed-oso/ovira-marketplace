@@ -21,3 +21,20 @@ class PaymentConnector:
         Returns {"order": <name>, "success": bool, "reference": <str>}.
         """
         raise NotImplementedError
+
+    # Whether this gateway can send money back to the original instrument.
+    supports_refund: bool = False
+
+    def refund(self, transaction_id, amount):
+        """Refund `amount` (in the order currency) against a captured payment.
+
+        Returns {"ok": bool, "reference": <str|None>, "error": <str|None>}.
+        Connectors that can't refund leave this alone: the default reports the
+        limitation rather than raising, so the caller can fall back to store
+        credit instead of failing the operator's action.
+        """
+        return {
+            "ok": False,
+            "reference": None,
+            "error": "This gateway doesn't support automated refunds.",
+        }
