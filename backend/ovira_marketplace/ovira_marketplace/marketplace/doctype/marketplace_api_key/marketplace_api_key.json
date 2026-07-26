@@ -1,0 +1,100 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-07-26 14:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "label",
+  "scope",
+  "enabled",
+  "col1",
+  "user",
+  "key_prefix",
+  "revoked_on",
+  "sec_note",
+  "note"
+ ],
+ "fields": [
+  {
+   "description": "What this key is for, e.g. \"Mobile app\" or \"Warehouse sync\".",
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "reqd": 1
+  },
+  {
+   "default": "Read Only",
+   "description": "Which marketplace role the key acts with. System Manager is never assignable here.",
+   "fieldname": "scope",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Scope",
+   "options": "Read Only\nContent Editor\nOperator"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "col1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The dedicated service account this key authenticates as.",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "Service user",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "description": "First characters of the key, so it can be identified without storing it.",
+   "fieldname": "key_prefix",
+   "fieldtype": "Data",
+   "label": "Key prefix",
+   "read_only": 1
+  },
+  {
+   "fieldname": "revoked_on",
+   "fieldtype": "Datetime",
+   "label": "Revoked on",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sec_note",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-26 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace API Key",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
