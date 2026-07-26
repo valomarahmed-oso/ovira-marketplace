@@ -53,13 +53,25 @@ def _backfill_singleton_defaults():
     for doctype, defaults in SINGLETON_DEFAULTS.items():
         if not frappe.db.exists("DocType", doctype):
             continue
+        # `frappe.get_meta` can still be serving a cache built BEFORE this
+        # migrate synced the doctype, in which case has_field() reports False for
+        # a field that now exists and the backfill silently skips. Ask the
+        # DocField table instead — it's authoritative and uncached.
+        frappe.clear_cache(doctype=doctype)
+        present = set(
+            frappe.get_all(
+                "DocField",
+                filters={"parent": doctype, "fieldname": ["in", list(defaults)]},
+                pluck="fieldname",
+            )
+        )
         for field, value in defaults.items():
+            if field not in present:
+                continue
             try:
-                if not frappe.get_meta(doctype).has_field(field):
-                    continue
-                current = frappe.db.get_single_value(doctype, field)
-                if current is None:
+                if frappe.db.get_single_value(doctype, field) is None:
                     frappe.db.set_single_value(doctype, field, value)
+                    frappe.db.commit()
             except Exception:
                 frappe.log_error(title=f"Ovira: backfill {doctype}.{field} failed")
 
