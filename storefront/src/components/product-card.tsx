@@ -13,12 +13,14 @@ import { useWishlist } from "@/lib/wishlist-store";
 import { inCompare, useCompare } from "@/lib/compare-store";
 import { useQuickView } from "@/lib/quick-view-store";
 import { useHydrated } from "@/lib/use-hydrated";
-import { cn, discountPercent, formatPrice } from "@/lib/utils";
+import { cn, discountPercent } from "@/lib/utils";
+import { useMoney } from "@/lib/currency";
 import { useI18n } from "@/components/i18n-provider";
 import { useAppConfig } from "@/components/app-config-provider";
 
 export function ProductCard({ p }: { p: Product }) {
   const { t } = useI18n();
+  const { money } = useMoney();
   const { multiVendor } = useAppConfig();
   const [added, setAdded] = useState(false);
   const add = useCart((s) => s.add);
@@ -151,11 +153,11 @@ export function ProductCard({ p }: { p: Product }) {
         <div className="mt-auto flex items-end justify-between gap-2 pt-1">
           <div>
             <div className="font-tech text-lg font-medium text-ink">
-              {formatPrice(p.price, p.currency)}
+              {money(p.price)}
             </div>
             {p.compare_at_price && (
               <div className="font-tech text-xs text-ink-400 line-through">
-                {formatPrice(p.compare_at_price, p.currency)}
+                {money(p.compare_at_price)}
               </div>
             )}
           </div>

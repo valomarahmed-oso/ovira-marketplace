@@ -17,7 +17,14 @@ export function AppConfigProvider({
 
 export function useAppConfig(): AppConfig {
   return (
-    useContext(ConfigContext) ??
-    { multiVendor: true, currency: "EGP", autoApproveVendors: false, onlinePayment: false }
+    useContext(ConfigContext) ?? {
+      multiVendor: true,
+      currency: "EGP",
+      autoApproveVendors: false,
+      onlinePayment: false,
+      // No currencies outside a provider — the switcher hides and prices render
+      // in the base currency, which is the correct degraded state.
+      currencies: [],
+    }
   );
 }

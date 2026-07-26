@@ -10,10 +10,12 @@ import { useCart } from "@/lib/cart-store";
 import { useVariantImage } from "@/lib/variant-image-store";
 import { StockAlertButton } from "@/components/stock-alert-button";
 import { useI18n } from "@/components/i18n-provider";
-import { cn, discountPercent, formatPrice } from "@/lib/utils";
+import { cn, discountPercent } from "@/lib/utils";
+import { useMoney } from "@/lib/currency";
 
 export function ProductPurchase({ p }: { p: Product }) {
   const { t } = useI18n();
+  const { money } = useMoney();
   const router = useRouter();
   const add = useCart((s) => s.add);
 
@@ -121,13 +123,13 @@ export function ProductPurchase({ p }: { p: Product }) {
       )}
 
       <div className="flex flex-wrap items-end gap-3">
-        <span className="font-tech text-3xl font-medium text-ink">{formatPrice(unitPrice, p.currency)}</span>
+        <span className="font-tech text-3xl font-medium text-ink">{money(unitPrice)}</span>
         {tiers.length > 0 && unitPrice < price ? (
-          <span className="font-tech text-base text-ink-400 line-through">{formatPrice(price, p.currency)}</span>
+          <span className="font-tech text-base text-ink-400 line-through">{money(price)}</span>
         ) : (
           p.compare_at_price && (
             <span className="font-tech text-base text-ink-400 line-through">
-              {formatPrice(p.compare_at_price, p.currency)}
+              {money(p.compare_at_price)}
             </span>
           )
         )}
@@ -148,7 +150,7 @@ export function ProductPurchase({ p }: { p: Product }) {
                   qty >= tr.min_qty ? "border-blue bg-blue-50 text-blue-600" : "border-line text-ink-600",
                 )}
               >
-                {t.tierRow.replace("{n}", String(tr.min_qty))} · {formatPrice(tr.price, p.currency)}
+                {t.tierRow.replace("{n}", String(tr.min_qty))} · {money(tr.price)}
               </span>
             ))}
           </div>

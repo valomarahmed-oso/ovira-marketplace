@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Loader2, SlidersHorizontal, X } from "lucide-react";
 import type { Facets } from "@/lib/api";
-import { formatPrice } from "@/lib/utils";
+import { useMoney } from "@/lib/currency";
 import { useI18n } from "@/components/i18n-provider";
 
 export function ProductFilters({
@@ -17,6 +17,7 @@ export function ProductFilters({
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
+  const { money } = useMoney();
   const sorts = [
     { value: "latest", label: t.sortLatest },
     { value: "rating", label: t.sortRating },
@@ -109,7 +110,7 @@ export function ProductFilters({
             />
           </div>
           <div className="font-tech text-xs text-ink-400">
-            {t.from} {formatPrice(facets.price_min)} {t.to} {formatPrice(facets.price_max)}
+            {t.from} {money(facets.price_min)} {t.to} {money(facets.price_max)}
           </div>
         </div>
 

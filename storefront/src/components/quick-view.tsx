@@ -7,11 +7,12 @@ import { Check, Loader2, ShoppingCart, Star, X } from "lucide-react";
 import { getProduct, type Product } from "@/lib/api";
 import { useQuickView } from "@/lib/quick-view-store";
 import { useCart } from "@/lib/cart-store";
-import { formatPrice } from "@/lib/utils";
+import { useMoney } from "@/lib/currency";
 
 /** Global quick-view modal: a fast product summary + add-to-cart without leaving
  * the listing. Mounted once in the root layout. */
 export function QuickView() {
+  const { money } = useMoney();
   const summary = useQuickView((s) => s.product);
   const close = useQuickView((s) => s.close);
   const add = useCart((s) => s.add);
@@ -122,9 +123,9 @@ export function QuickView() {
             )}
 
             <div className="flex items-end gap-2">
-              <span className="font-tech text-2xl font-medium text-ink">{formatPrice(p.price, p.currency)}</span>
+              <span className="font-tech text-2xl font-medium text-ink">{money(p.price)}</span>
               {p.compare_at_price ? (
-                <span className="font-tech text-sm text-ink-400 line-through">{formatPrice(p.compare_at_price, p.currency)}</span>
+                <span className="font-tech text-sm text-ink-400 line-through">{money(p.compare_at_price)}</span>
               ) : null}
             </div>
 

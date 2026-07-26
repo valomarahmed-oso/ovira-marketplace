@@ -1,0 +1,157 @@
+{
+ "actions": [],
+ "autoname": "field:currency_code",
+ "creation": "2026-07-26 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "currency_code",
+  "currency_name",
+  "currency_name_ar",
+  "symbol",
+  "col1",
+  "enabled",
+  "is_base",
+  "display_order",
+  "sec_rate",
+  "rate_help",
+  "rate_to_base",
+  "decimals",
+  "col2",
+  "rate_source",
+  "rate_updated_on"
+ ],
+ "fields": [
+  {
+   "description": "ISO code, e.g. USD / SAR / AED. Stored uppercase.",
+   "fieldname": "currency_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Currency code",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "currency_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name (English)"
+  },
+  {
+   "fieldname": "currency_name_ar",
+   "fieldtype": "Data",
+   "label": "Name (Arabic)"
+  },
+  {
+   "description": "Shown next to the amount, e.g. $ or ر.س.",
+   "fieldname": "symbol",
+   "fieldtype": "Data",
+   "label": "Symbol"
+  },
+  {
+   "fieldname": "col1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Show in the storefront switcher"
+  },
+  {
+   "description": "The currency every price is stored and settled in. Exactly one, rate fixed at 1.",
+   "fieldname": "is_base",
+   "fieldtype": "Check",
+   "label": "Base currency"
+  },
+  {
+   "default": "10",
+   "description": "Lower sorts first in the switcher.",
+   "fieldname": "display_order",
+   "fieldtype": "Int",
+   "label": "Display order"
+  },
+  {
+   "fieldname": "sec_rate",
+   "fieldtype": "Section Break",
+   "label": "Exchange rate"
+  },
+  {
+   "fieldname": "rate_help",
+   "fieldtype": "HTML",
+   "options": "<div class='text-muted' style='padding:4px 0;font-size:12px;'>Rate = how much ONE unit of this currency is worth in the base currency. If the base is EGP and 1 USD = 48.5 EGP, enter <b>48.5</b>. A base-currency price P is shown as <b>P &divide; rate</b>. Display only &mdash; orders, invoices and vendor settlement stay in the base currency.</div>"
+  },
+  {
+   "default": "1",
+   "description": "Value of 1 unit of this currency in the base currency.",
+   "fieldname": "rate_to_base",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Rate to base",
+   "precision": "9",
+   "reqd": 1
+  },
+  {
+   "default": "2",
+   "description": "Decimal places shown for this currency.",
+   "fieldname": "decimals",
+   "fieldtype": "Int",
+   "label": "Decimals"
+  },
+  {
+   "fieldname": "col2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Manual",
+   "description": "Where the current rate came from. The stored value always wins.",
+   "fieldname": "rate_source",
+   "fieldtype": "Select",
+   "label": "Rate source",
+   "options": "Manual\nERPNext\nAPI"
+  },
+  {
+   "fieldname": "rate_updated_on",
+   "fieldtype": "Datetime",
+   "label": "Rate updated on",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-26 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Currency",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "sort_field": "display_order",
+ "sort_order": "ASC",
+ "states": []
+}

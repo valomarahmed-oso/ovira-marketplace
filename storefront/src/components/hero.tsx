@@ -4,7 +4,8 @@ import { ArrowLeft, ShieldCheck, Store, Timer, Truck } from "lucide-react";
 import type { Banner, Product } from "@/lib/api";
 import type { Dict } from "@/lib/i18n";
 import { OviraBars } from "@/components/ovira-bars";
-import { cn, formatPrice, discountPercent } from "@/lib/utils";
+import { cn, discountPercent } from "@/lib/utils";
+import { useMoney } from "@/lib/currency";
 
 export function Hero({
   hero,
@@ -88,6 +89,7 @@ export function Hero({
 }
 
 function DealCard({ deal, t }: { deal: Product; t: Dict }) {
+  const { money } = useMoney();
   const off = discountPercent(deal.price, deal.compare_at_price);
   return (
     <Link
@@ -118,10 +120,10 @@ function DealCard({ deal, t }: { deal: Product; t: Dict }) {
         <span className="line-clamp-2 text-sm leading-6 text-ink">{deal.title}</span>
         <div className="mt-auto flex items-end justify-between">
           <div>
-            <div className="font-tech text-xl font-medium text-ink">{formatPrice(deal.price, deal.currency)}</div>
+            <div className="font-tech text-xl font-medium text-ink">{money(deal.price)}</div>
             {deal.compare_at_price && (
               <div className="font-tech text-xs text-ink-400 line-through">
-                {formatPrice(deal.compare_at_price, deal.currency)}
+                {money(deal.compare_at_price)}
               </div>
             )}
           </div>

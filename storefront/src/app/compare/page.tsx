@@ -8,10 +8,11 @@ import { useCompare } from "@/lib/compare-store";
 import { useCart } from "@/lib/cart-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { useI18n } from "@/components/i18n-provider";
-import { formatPrice } from "@/lib/utils";
+import { useMoney } from "@/lib/currency";
 
 export default function ComparePage() {
   const { t } = useI18n();
+  const { money } = useMoney();
   const items = useCompare((s) => s.items);
   const remove = useCompare((s) => s.remove);
   const clear = useCompare((s) => s.clear);
@@ -96,9 +97,9 @@ export default function ComparePage() {
               <td className={rowLabel}>{t.cmpPrice}</td>
               {items.map((p) => (
                 <td key={p.slug} className={cell}>
-                  <div className="font-tech text-lg font-medium text-ink">{formatPrice(p.price, p.currency)}</div>
+                  <div className="font-tech text-lg font-medium text-ink">{money(p.price)}</div>
                   {p.compare_at_price ? (
-                    <div className="font-tech text-xs text-ink-400 line-through">{formatPrice(p.compare_at_price, p.currency)}</div>
+                    <div className="font-tech text-xs text-ink-400 line-through">{money(p.compare_at_price)}</div>
                   ) : null}
                 </td>
               ))}

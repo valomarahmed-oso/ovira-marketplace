@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Bell, Heart, MapPin, Menu, ShoppingCart, User, Zap } from "lucide-react";
+import { CurrencySwitcher } from "@/components/currency-switcher";
 import { Logo } from "@/components/logo";
 import { MobileMenu } from "@/components/mobile-menu";
 import { PrefsToggle } from "@/components/prefs-toggle";
@@ -55,6 +56,7 @@ export function Header() {
                 {t.becomeVendor}
               </Link>
             )}
+            <CurrencySwitcher />
             <PrefsToggle />
           </div>
         </div>

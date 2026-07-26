@@ -6,13 +6,14 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { getSearchSuggestions, type SearchSuggestion } from "@/lib/api";
 import { useI18n } from "@/components/i18n-provider";
-import { formatPrice } from "@/lib/utils";
+import { useMoney } from "@/lib/currency";
 
 const EMPTY: SearchSuggestion = { products: [], categories: [] };
 
 /** Search input with a debounced autocomplete dropdown. Used for both the desktop
  * and mobile header search; `className` styles the outer wrapper. */
 export function SearchBox({ className = "" }: { className?: string }) {
+  const { money } = useMoney();
   const router = useRouter();
   const { t } = useI18n();
   const [q, setQ] = useState("");
@@ -132,7 +133,7 @@ export function SearchBox({ className = "" }: { className?: string }) {
                       </span>
                       <span className="line-clamp-1 flex-1 text-sm text-ink">{p.title}</span>
                       <span className="whitespace-nowrap font-tech text-sm text-ink-600">
-                        {formatPrice(p.price, p.currency)}
+                        {money(p.price)}
                       </span>
                     </button>
                   ))}

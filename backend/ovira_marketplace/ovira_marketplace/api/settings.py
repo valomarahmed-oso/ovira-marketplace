@@ -6,6 +6,7 @@ to adapt its UI (e.g. hide vendor sign-up in Single Company mode).
 
 import frappe
 
+from ovira_marketplace.api.currencies import public_currencies
 from ovira_marketplace.marketplace.doctype.marketplace_settings.marketplace_settings import (
     get_settings,
 )
@@ -18,6 +19,10 @@ def get_public_config():
         "mode": settings.mode,
         "multi_vendor": settings.mode == "Multi Vendor",
         "currency": settings.default_currency,
+        # Display currencies for the storefront switcher. Empty until the
+        # operator adds any, in which case the storefront shows base prices with
+        # no switcher — unchanged behaviour.
+        "currencies": _display_currencies(),
         "auto_approve_vendors": bool(settings.auto_approve_vendors),
         # True only when a real online gateway is switched on, so the storefront
         # offers card payment instead of a permanent "coming soon".
@@ -26,6 +31,16 @@ def get_public_config():
         # their own) — lets the storefront label shipping accordingly.
         "shipping_mode": settings.get("shipping_mode") or "Operator",
     }
+
+
+def _display_currencies():
+    """Never let a currency lookup break the storefront's config call — it is on
+    the critical path for every page render."""
+    try:
+        return public_currencies()
+    except Exception:
+        frappe.log_error(title="Ovira: display currencies failed")
+        return []
 
 
 def _online_payment_enabled():

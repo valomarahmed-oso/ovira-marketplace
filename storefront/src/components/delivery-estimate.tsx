@@ -6,12 +6,13 @@ import { getShippingRate } from "@/lib/api";
 import { getShippingRates } from "@/lib/shipping-rates-api";
 import { GOVERNORATES } from "@/lib/addresses-api";
 import { useI18n } from "@/components/i18n-provider";
-import { formatPrice } from "@/lib/utils";
+import { useMoney } from "@/lib/currency";
 
 /** Lets a shopper see the shipping fee + ETA to their governorate before they
  *  commit to checkout. Reuses the same public rate endpoints as checkout. */
 export function DeliveryEstimate({ price, currency }: { price: number; currency?: string }) {
   const { t } = useI18n();
+  const { money } = useMoney();
   const [gov, setGov] = useState(GOVERNORATES[0]);
   const [fee, setFee] = useState<number | null>(null);
   const [eta, setEta] = useState<Record<string, number>>({});
@@ -65,7 +66,7 @@ export function DeliveryEstimate({ price, currency }: { price: number; currency?
           ) : fee === 0 ? (
             <span className="text-mint">{t.deFreeShip}</span>
           ) : fee != null ? (
-            <>{t.deShipFee} {formatPrice(fee, currency)}</>
+            <>{t.deShipFee} {money(fee)}</>
           ) : (
             ""
           )}

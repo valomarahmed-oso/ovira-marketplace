@@ -304,11 +304,26 @@ export type Homepage = {
   sections: HomeSection[];
 };
 
+/** A currency the storefront may DISPLAY prices in. `rate` is the value of one
+ *  unit in the base currency, so a base price converts as `price / rate`. */
+export type DisplayCurrency = {
+  code: string;
+  name: string;
+  name_ar: string;
+  symbol: string;
+  rate: number;
+  decimals: number;
+  is_base: boolean;
+};
+
 export type AppConfig = {
   multiVendor: boolean;
+  /** Base currency — what every price is stored, charged and settled in. */
   currency: string;
   autoApproveVendors: boolean;
   onlinePayment: boolean;
+  /** Empty until the operator adds any; the switcher hides itself then. */
+  currencies: DisplayCurrency[];
 };
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -316,6 +331,7 @@ const DEFAULT_CONFIG: AppConfig = {
   currency: "EGP",
   autoApproveVendors: false,
   onlinePayment: false,
+  currencies: [],
 };
 
 export type SiteContent = {
@@ -379,12 +395,14 @@ export async function getAppConfig(): Promise<AppConfig> {
       currency: string;
       auto_approve_vendors: boolean;
       online_payment: boolean;
+      currencies?: DisplayCurrency[];
     };
     return {
       multiVendor: !!live.multi_vendor,
       currency: live.currency || "EGP",
       autoApproveVendors: !!live.auto_approve_vendors,
       onlinePayment: !!live.online_payment,
+      currencies: Array.isArray(live.currencies) ? live.currencies : [],
     };
   } catch {
     return DEFAULT_CONFIG;

@@ -7,10 +7,11 @@ import { cartSubtotal, lineId, unitPrice, useCart } from "@/lib/cart-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { OrderSummary } from "@/components/order-summary";
 import { useI18n } from "@/components/i18n-provider";
-import { formatPrice } from "@/lib/utils";
+import { useMoney } from "@/lib/currency";
 
 export default function CartPage() {
   const { t } = useI18n();
+  const { money } = useMoney();
   const items = useCart((s) => s.items);
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
@@ -99,7 +100,7 @@ export default function CartPage() {
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
-                  <span className="font-tech font-medium text-ink">{formatPrice(unitPrice(item) * qty, p.currency)}</span>
+                  <span className="font-tech font-medium text-ink">{money(unitPrice(item) * qty)}</span>
                 </div>
               </div>
             </div>
