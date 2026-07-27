@@ -54,6 +54,7 @@ scheduler_events = {
         # passing, and low stock is a condition worth one digest a day.
         "ovira_marketplace.notifications.sweeps.request_reviews",
         "ovira_marketplace.notifications.sweeps.warn_low_stock",
+        "ovira_marketplace.notifications.sweeps.watch_price_drops",
     ],
     "weekly": [
         "ovira_marketplace.api.reports.email_operator_report",

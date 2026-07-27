@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "autoname": "format:{recipient}::{product}",
+ "creation": "2026-07-27 00:00:00.000000",
+ "description": "The last price a wishlisted product was seen at, per shopper. Written by the price-drop sweep so a drop can be detected without keeping full price history.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "recipient",
+  "product",
+  "column_break_meta",
+  "last_price",
+  "last_notified_price",
+  "last_notified_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "recipient",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Recipient",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "product",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Product",
+   "options": "Marketplace Product",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_meta",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The price at the last sweep — the baseline a drop is measured against.",
+   "fieldname": "last_price",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Last Price"
+  },
+  {
+   "description": "The price we last told this shopper about, so a slow slide doesn't become a daily message.",
+   "fieldname": "last_notified_price",
+   "fieldtype": "Currency",
+   "label": "Last Notified Price"
+  },
+  {
+   "fieldname": "last_notified_on",
+   "fieldtype": "Datetime",
+   "label": "Last Notified On"
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-27 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Price Watch",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Operator"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

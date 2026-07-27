@@ -17,6 +17,7 @@ import { useI18n } from "@/components/i18n-provider";
 import {
   listNotificationEvents,
   listOutbox,
+  outboxSummary,
   previewTemplate,
   resetTemplate,
   retryOutbox,
@@ -311,11 +312,13 @@ function LanguageEditor({
 function OutboxTab() {
   const { t } = useI18n();
   const [rows, setRows] = useState<OutboxRow[] | null>(null);
+  const [summary, setSummary] = useState<Record<string, number>>({});
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setRows(await listOutbox({ limit: 80, status: status || undefined }));
+    setSummary(await outboxSummary());
   }, [status]);
 
   useEffect(() => {
@@ -335,6 +338,38 @@ function OutboxTab() {
 
   return (
     <div className="space-y-3">
+      {/* The week at a glance: the number worth checking is `failed`, and it
+          should be visible without filtering for it first. */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {(["sent", "failed", "skipped", "retry", "queued"] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setStatus(status === k ? "" : k)}
+            className={`card p-3 text-start ${status === k ? "ring-2 ring-blue-600" : ""}`}
+          >
+            <div
+              className={`text-lg font-medium ${
+                k === "failed" && (summary[k] ?? 0) > 0 ? "text-coral" : "text-ink"
+              }`}
+            >
+              {summary[k] ?? 0}
+            </div>
+            <div className="text-[11px] text-ink-400">
+              {k === "sent"
+                ? t.nfStatusSent
+                : k === "failed"
+                  ? t.nfStatusFailed
+                  : k === "skipped"
+                    ? t.nfStatusSkipped
+                    : k === "retry"
+                      ? t.nfStatusRetry
+                      : t.nfStatusQueued}
+            </div>
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <select
           className="h-10 rounded-xl border border-line bg-white px-3 text-sm"

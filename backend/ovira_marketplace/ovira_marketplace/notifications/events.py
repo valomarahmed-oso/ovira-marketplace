@@ -149,6 +149,18 @@ EVENTS = {
         ]),
         transactional=False,
     ),
+    "price.drop": _ev(
+        BUYER, (INAPP, PUSH, EMAIL),
+        Content("نزل السعر 📉", [
+            "{product} بقى {total} {currency} بعد ما كان {old_price}.",
+            "المنتج ده في قائمة أمنياتك.",
+        ]),
+        Content("Price drop 📉", [
+            "{product} is now {total} {currency}, down from {old_price}.",
+            "It's on your wishlist.",
+        ]),
+        transactional=False,
+    ),
     "product.back_in_stock": _ev(
         BUYER, (INAPP, PUSH, EMAIL),
         Content("رجع للمخزون 🎉", ["{product} متاح تاني — احجزه قبل ما يخلص."]),

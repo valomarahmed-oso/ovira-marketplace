@@ -106,10 +106,21 @@ in-app and push ones the hub never sees.
    time-triggered rather than action-triggered and live in
    `notifications/sweeps.py`: the review request a few days after delivery, and
    one low-stock digest per vendor per day — a message per product is the fastest
-   way to teach a vendor to ignore the channel. Still open: price drops on
-   wishlisted items (needs price history) and expiring loyalty points.
-5. **Operations** ✅ — the outbox screen (filter by status, read the failure,
-   re-send) ships with phase 2's console. Metrics and digests remain.
+   way to teach a vendor to ignore the channel — and `price.drop`, which compares
+   today's price against `Marketplace Price Watch`: one baseline number per
+   (shopper, product), not a price history, because the only question is "cheaper
+   than when they last looked?". A first sighting is recorded silently, a drop
+   must clear 5%, and it must beat the price we last announced so a slow slide
+   doesn't message someone daily.
+
+   **Not built, and deliberately so:** expiring loyalty points. `Marketplace
+   Loyalty Entry` has no expiry date — points don't expire in this store today.
+   Adding the notification would mean first deciding how long points live and how
+   expiry is booked, which is a policy change to the loyalty programme, not a
+   notification.
+5. **Operations** ✅ — the outbox screen: a week-at-a-glance count per status
+   (failed is coloured, because it's the one worth checking), click a count to
+   filter, read the exact failure or skip reason, re-send in one click.
 
 ## Adding an event
 
