@@ -48,7 +48,12 @@
   "quiet_hours_help",
   "quiet_hours_start",
   "column_break_quiet",
-  "quiet_hours_end"
+  "quiet_hours_end",
+  "loyalty_expiry_section",
+  "loyalty_expiry_help",
+  "loyalty_expiry_days",
+  "column_break_loyalty_expiry",
+  "loyalty_expiry_warn_days"
  ],
  "fields": [
   {
@@ -329,6 +334,32 @@
    "fieldtype": "Int",
    "label": "Quiet Hours End (0-23)",
    "default": "8"
+  },
+  {
+   "fieldname": "loyalty_expiry_section",
+   "fieldtype": "Section Break",
+   "label": "Points Expiry"
+  },
+  {
+   "fieldname": "loyalty_expiry_help",
+   "fieldtype": "HTML",
+   "options": "<p class='text-muted small'>Points earned from now on expire this many days after they are earned, and simply drop out of the balance — no accounting entry, because points were never booked as a liability. Set to 0 to switch expiry off. Points earned BEFORE you set this keep no expiry date: you cannot retroactively expire points somebody already earned.</p>"
+  },
+  {
+   "fieldname": "loyalty_expiry_days",
+   "fieldtype": "Int",
+   "label": "Points Expire After (days, 0 = never)",
+   "default": "365"
+  },
+  {
+   "fieldname": "column_break_loyalty_expiry",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "loyalty_expiry_warn_days",
+   "fieldtype": "Int",
+   "label": "Warn Before Expiry (days)",
+   "default": "30"
   }
  ],
  "index_web_pages_for_search": 1,

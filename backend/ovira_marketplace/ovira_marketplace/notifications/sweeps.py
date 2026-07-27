@@ -185,3 +185,41 @@ def _check_one_price(recipient, product):
         "last_price": price, "last_notified_price": price,
         "last_notified_on": now_datetime(),
     }, update_modified=False)
+
+
+def warn_expiring_points():
+    """Daily: warn shoppers whose points are about to lapse.
+
+    Grouped per shopper per expiry date, so someone with three batches expiring
+    on the same day gets one message, and the reference makes the warning
+    once-per-batch rather than once-per-day for the whole warning window.
+    """
+    from ovira_marketplace.api.loyalty import _config
+
+    cfg = _config()
+    if not cfg["enabled"] or cfg["expiry_days"] <= 0:
+        return
+    horizon = add_to_date(nowdate(), days=cfg["warn_days"])
+    rows = frappe.get_all(
+        "Marketplace Loyalty Entry",
+        filters=[["entry_type", "=", "Earn"], ["expires_on", "is", "set"],
+                 ["expires_on", ">=", nowdate()], ["expires_on", "<=", horizon]],
+        fields=["user", "points", "points_used", "expires_on"],
+        limit_page_length=0, ignore_permissions=True,
+    )
+    grouped = {}
+    for r in rows:
+        left = cint(r["points"]) - cint(r["points_used"])
+        if left <= 0:
+            continue
+        key = (r["user"], str(r["expires_on"]))
+        grouped[key] = grouped.get(key, 0) + left
+
+    for (user, expires_on), points in grouped.items():
+        emit("loyalty.expiring", {
+            "points": points, "expires_on": expires_on,
+            "user": user, "email": user, "kind": "promo",
+        }, recipients=[{"user": user, "email": user, "phone": None,
+                        "lang": None, "kind": "promo"}],
+           reference={"doctype": "Marketplace Loyalty Entry",
+                      "name": "expiring::{0}".format(expires_on)})

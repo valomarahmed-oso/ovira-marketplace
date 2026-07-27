@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, Loader2, Sparkles, Wallet } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, Loader2, Sparkles, Wallet } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
 import { getMyPoints, redeemPoints, type LoyaltyState } from "@/lib/loyalty-api";
 import { formatPrice } from "@/lib/utils";
@@ -90,6 +90,16 @@ export default function LoyaltyPage() {
           <div className="mt-1 text-sm text-ink-400">
             {t.loyaltyWorth} <span className="font-tech text-mint">{formatPrice(redeemable, currency)}</span>
           </div>
+          {/* Points lapse in batches; naming the next one keeps a dropping
+              balance from looking like a bug. */}
+          {state.next_expiry_on && (state.next_expiry_points ?? 0) > 0 && (
+            <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-xs text-amber-700">
+              <Clock className="h-3.5 w-3.5" />
+              {t.loyaltyExpiring
+                .replace("{points}", String(state.next_expiry_points))
+                .replace("{date}", state.next_expiry_on)}
+            </div>
+          )}
         </div>
         <div className="flex flex-col justify-center gap-1 rounded-xl bg-white/70 p-4 text-sm text-ink-600">
           <div className="flex items-center gap-2 font-medium text-ink">

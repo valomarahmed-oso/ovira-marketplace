@@ -55,6 +55,7 @@ scheduler_events = {
         "ovira_marketplace.notifications.sweeps.request_reviews",
         "ovira_marketplace.notifications.sweeps.warn_low_stock",
         "ovira_marketplace.notifications.sweeps.watch_price_drops",
+        "ovira_marketplace.notifications.sweeps.warn_expiring_points",
     ],
     "weekly": [
         "ovira_marketplace.api.reports.email_operator_report",

@@ -113,11 +113,9 @@ in-app and push ones the hub never sees.
    must clear 5%, and it must beat the price we last announced so a slow slide
    doesn't message someone daily.
 
-   **Not built, and deliberately so:** expiring loyalty points. `Marketplace
-   Loyalty Entry` has no expiry date — points don't expire in this store today.
-   Adding the notification would mean first deciding how long points live and how
-   expiry is booked, which is a policy change to the loyalty programme, not a
-   notification.
+   `loyalty.expiring` closes the set: points now expire (default one year,
+   configurable, 0 = never), and a daily sweep warns 30 days out, grouped per
+   shopper per expiry date so three batches lapsing the same day are one message.
 5. **Operations** ✅ — the outbox screen: a week-at-a-glance count per status
    (failed is coloured, because it's the one worth checking), click a count to
    filter, read the exact failure or skip reason, re-send in one click.

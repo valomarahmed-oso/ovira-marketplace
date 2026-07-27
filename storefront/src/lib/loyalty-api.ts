@@ -23,6 +23,10 @@ export type LoyaltyState = {
   min_redeem?: number;
   currency?: string;
   redeemable_value?: number;
+  /** The next batch to lapse — shown so a balance that drops has a reason. */
+  next_expiry_on?: string | null;
+  next_expiry_points?: number;
+  expired_points?: number;
   entries: LoyaltyEntry[];
 };
 

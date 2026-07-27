@@ -1,7 +1,16 @@
 """Loyalty points — earn on completed orders, redeem for store credit.
 
-An append-only ledger of Marketplace Loyalty Entry rows (mirrors the wallet):
-balance is the running sum of Earn minus Redeem, entries are never mutated.
+A ledger of Marketplace Loyalty Entry rows. Each Earn row is a **batch** with its
+own expiry date and its own spent counter, because expiry is per batch: what was
+earned in March lapses in March regardless of what has been spent since. A single
+running total cannot answer that, which is why every serious programme holds
+points this way.
+
+Redemption burns the batch that expires SOONEST first, so a customer never loses
+points they could have spent. Expiry itself posts nothing: points were never
+booked as a liability here, so a lapsed batch simply stops counting — the
+`expired_points()` figure exists only so a balance that drops has a visible
+reason instead of looking like a bug.
 
 The whole feature is gated on `Marketplace Settings.loyalty_enabled` and stays a
 silent no-op until the operator turns it on and sets an earn rate. Earning is
@@ -13,12 +22,13 @@ ledger so redeemed points behave exactly like any other store credit at checkout
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt
+from frappe.utils import add_days, cint, flt, nowdate
 
 ENTRY_FIELDS = [
     "name",
     "entry_type",
     "points",
+    "expires_on",
     "reason",
     "reference_doctype",
     "reference_name",
@@ -41,26 +51,79 @@ def _config():
         "redeem_value": flt(s.get("loyalty_redeem_value")),
         "min_redeem": cint(s.get("loyalty_min_redeem")),
         "currency": s.get("default_currency") or "EGP",
+        # 0 = points never expire. Default matches the common one-year practice.
+        "expiry_days": cint(s.get("loyalty_expiry_days")),
+        "warn_days": cint(s.get("loyalty_expiry_warn_days")) or 30,
     }
 
 
+def _live_buckets(user):
+    """Unspent Earn batches that haven't expired, soonest-to-expire first.
+
+    Points are held as batches rather than one running total because expiry is
+    per batch: what someone earned in March expires in March, whatever they've
+    spent since. Ordering by expiry (undated batches last) means redemption burns
+    what would be lost anyway — the arrangement every major programme uses, and
+    the only one that doesn't quietly cost the customer points.
+    """
+    if not user or user == "Guest":
+        return []
+    today = nowdate()
+    rows = frappe.get_all(
+        "Marketplace Loyalty Entry",
+        filters=[["user", "=", user], ["entry_type", "=", "Earn"]],
+        fields=["name", "points", "points_used", "expires_on"],
+        order_by="ifnull(expires_on, '9999-12-31') asc, creation asc",
+        limit_page_length=0, ignore_permissions=True,
+    )
+    live = []
+    for r in rows:
+        left = cint(r.get("points")) - cint(r.get("points_used"))
+        if left <= 0:
+            continue
+        if r.get("expires_on") and str(r["expires_on"]) < today:
+            continue    # expired: simply not counted — no entry, nothing booked
+        r["left"] = left
+        live.append(r)
+    return live
+
+
 def balance(user):
-    """Current points balance for a login (0 for guests / unknown users)."""
+    """Current points balance for a login (0 for guests / unknown users).
+
+    Expired batches drop out of this sum on their own: expiry is a date, not a
+    transaction, so nothing has to be posted for points to lapse.
+    """
+    return sum(b["left"] for b in _live_buckets(user))
+
+
+def expired_points(user):
+    """Points this shopper lost to expiry — shown so a balance that drops has a
+    visible reason rather than looking like a bug."""
     if not user or user == "Guest":
         return 0
-    rows = frappe.db.sql(
-        """
-        select entry_type, sum(points) as total
-        from `tabMarketplace Loyalty Entry`
-        where user = %s
-        group by entry_type
-        """,
-        (user,),
-        as_dict=True,
+    today = nowdate()
+    rows = frappe.get_all(
+        "Marketplace Loyalty Entry",
+        filters=[["user", "=", user], ["entry_type", "=", "Earn"],
+                 ["expires_on", "is", "set"], ["expires_on", "<", today]],
+        fields=["points", "points_used"], limit_page_length=0, ignore_permissions=True,
     )
-    earn = sum(cint(r.total) for r in rows if r.entry_type == "Earn")
-    redeem = sum(cint(r.total) for r in rows if r.entry_type == "Redeem")
-    return earn - redeem
+    return sum(max(0, cint(r["points"]) - cint(r["points_used"])) for r in rows)
+
+
+def _consume(user, points):
+    """Draw `points` from the live batches, soonest expiry first."""
+    remaining = cint(points)
+    for bucket in _live_buckets(user):
+        if remaining <= 0:
+            break
+        take = min(remaining, bucket["left"])
+        frappe.db.set_value(
+            "Marketplace Loyalty Entry", bucket["name"],
+            "points_used", cint(bucket.get("points_used")) + take, update_modified=False)
+        remaining -= take
+    return cint(points) - remaining
 
 
 def _post(user, entry_type, points, reason, reference_doctype=None, reference_name=None, note=None):
@@ -79,8 +142,16 @@ def _post(user, entry_type, points, reason, reference_doctype=None, reference_na
     doc.reference_name = reference_name
     doc.note = note
     doc.balance_after = new_balance
+    if entry_type == "Earn":
+        days = _config()["expiry_days"]
+        # Stamped at earn time, so changing the setting later can't retroactively
+        # shorten (or lengthen) points somebody already has.
+        doc.expires_on = add_days(nowdate(), days) if days > 0 else None
+        doc.points_used = 0
     doc.flags.ignore_permissions = True
     doc.insert(ignore_permissions=True)
+    if entry_type == "Redeem":
+        _consume(user, points)
     return doc
 
 
@@ -159,9 +230,16 @@ def my_points(limit=20):
         ignore_permissions=True,
     )
     bal = balance(user)
+    buckets = _live_buckets(user)
+    # The next batch to lapse, so the UI can say "120 points expire on …" rather
+    # than leaving the shopper to discover it when the number drops.
+    next_expiry = next((b for b in buckets if b.get("expires_on")), None)
     return {
         "enabled": True,
         "balance": bal,
+        "expired_points": expired_points(user),
+        "next_expiry_on": str(next_expiry["expires_on"]) if next_expiry else None,
+        "next_expiry_points": next_expiry["left"] if next_expiry else 0,
         "earn_rate": cfg["earn_rate"],
         "redeem_value": cfg["redeem_value"],
         "min_redeem": cfg["min_redeem"],

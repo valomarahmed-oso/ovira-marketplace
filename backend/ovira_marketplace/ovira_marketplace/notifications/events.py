@@ -125,6 +125,18 @@ EVENTS = {
         Content("You earned points ⭐", ["+{points} points from order {order}"]),
     ),
 
+    "loyalty.expiring": _ev(
+        BUYER, (INAPP, PUSH, EMAIL),
+        Content("نقاطك هتنتهي قريب ⏳", [
+            "{points} نقطة هتنتهي يوم {expires_on}.",
+            "تقدر تستبدلها برصيد في المتجر قبل التاريخ ده.",
+        ]),
+        Content("Your points expire soon ⏳", [
+            "{points} points expire on {expires_on}.",
+            "You can turn them into store credit before then.",
+        ]),
+        transactional=False,
+    ),
     "review.request": _ev(
         BUYER, (INAPP, PUSH, EMAIL),
         Content("إيه رأيك في اللي اشتريته؟ ⭐", [

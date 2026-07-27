@@ -14,7 +14,9 @@
   "reference_name",
   "detail_section",
   "note",
-  "balance_after"
+  "balance_after",
+  "expires_on",
+  "points_used"
  ],
  "fields": [
   {
@@ -77,6 +79,21 @@
    "fieldtype": "Int",
    "label": "Balance after",
    "read_only": 1
+  },
+  {
+   "fieldname": "expires_on",
+   "fieldtype": "Date",
+   "label": "Expires On",
+   "description": "Earn entries only. Empty means these points never expire (the case for anything earned before expiry was switched on).",
+   "search_index": 1
+  },
+  {
+   "fieldname": "points_used",
+   "fieldtype": "Int",
+   "label": "Points Used",
+   "default": "0",
+   "read_only": 1,
+   "description": "Earn entries only: how much of this batch has been redeemed. Redemption burns the batch that expires soonest first."
   }
  ],
  "index_web_pages_for_search": 0,
