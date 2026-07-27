@@ -199,6 +199,73 @@ export async function getMessageLog(params?: {
   return (await get<HubLogRow[]>("message_log", qs)) ?? [];
 }
 
+/** Can this sender send RIGHT NOW? `ok` means the credentials are accepted;
+ *  `ready` means a message sent this second would actually go out. A self-hosted
+ *  WhatsApp with no number linked is ok-but-not-ready — the state an operator
+ *  most needs to see, and the one a plain "connected" badge hides. */
+export type SenderStatus = {
+  ok: boolean;
+  ready: boolean;
+  state: string;
+  detail?: string;
+  channel?: string;
+  can_link?: boolean;
+};
+
+export function getSenderStatus(name: string): Promise<SenderStatus> {
+  return post<SenderStatus>("sender_status", { name }, "تعذّر فحص حالة المرسِل.");
+}
+
+/** The pairing QR for a self-hosted WhatsApp sender. `qr` comes back null when
+ *  the session repaired itself straight back into a linked state. */
+export function getWahaQr(
+  name: string
+): Promise<{ qr: string | null; status: SenderStatus }> {
+  return post<{ qr: string | null; status: SenderStatus }>(
+    "waha_qr",
+    { name },
+    "تعذّر إحضار كود الربط."
+  );
+}
+
+export function unlinkWaha(name: string): Promise<{ ok: boolean }> {
+  return post<{ ok: boolean }>("waha_unlink", { name }, "تعذّر فصل الرقم.");
+}
+
+export function shareWithAllCompanies(name: string): Promise<{ ok: boolean }> {
+  return post<{ ok: boolean }>(
+    "share_with_all_companies",
+    { name },
+    "تعذّر تعميم المرسِل."
+  );
+}
+
+/** A channel this server already has credentials for somewhere, ready to copy
+ *  into the hub in one click. The secrets never pass through the browser. */
+export type ServerSource = {
+  kind: string;
+  label: string;
+  channel: string;
+  available: boolean;
+  detail: string;
+  warning?: string | null;
+  sender_name?: string | null;
+  imported: boolean;
+};
+
+export async function detectServerSources(): Promise<ServerSource[]> {
+  const res = await get<{ hub_installed: boolean; sources: ServerSource[] }>(
+    "detect_sources"
+  );
+  return res?.sources ?? [];
+}
+
+export function importServerSource(
+  kind: string
+): Promise<{ ok: boolean; name: string; existed: boolean; warning?: string | null }> {
+  return post("import_source", { kind }, "تعذّر الاستيراد من السيرفر.");
+}
+
 /** Config keys each channel expects, so the form can offer the right inputs.
  *  Mirrors the hub's own per-channel help text; the secret is always separate. */
 export const CHANNEL_FIELDS: Record<string, { key: string; placeholder: string }[]> = {

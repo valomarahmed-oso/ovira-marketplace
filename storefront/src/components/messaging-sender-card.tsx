@@ -10,12 +10,14 @@ import {
   XCircle,
 } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
+import { SenderConnection } from "@/components/messaging-connection";
 import {
   CHANNEL_FIELDS,
   SECRET_LABEL,
   SECRET_MASK,
   deleteSender,
   probeSender,
+  shareWithAllCompanies,
   upsertSender,
   type HubSender,
   type ProbeResult,
@@ -63,6 +65,19 @@ export function MessagingSenderCard({
   function set<K extends keyof HubSender>(key: K, value: HubSender[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
     setSaved(false);
+  }
+
+  async function shareEverywhere() {
+    setBusy(true);
+    try {
+      await shareWithAllCompanies(sender.name);
+      const next = { ...draft, company: null };
+      setDraft(next);
+      onChanged(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.mhSaveFailed);
+    }
+    setBusy(false);
   }
 
   async function save() {
@@ -158,6 +173,27 @@ export function MessagingSenderCard({
           </button>
         </div>
       </div>
+
+      <SenderConnection
+        sender={{ name: sender.name, channel: sender.channel }}
+        onChanged={() => onChanged(draft)}
+      />
+
+      {/* A sender scoped to one company silently vanishes for the others. */}
+      {draft.company ? (
+        <p className="flex flex-wrap items-center gap-2 text-xs text-amber-600">
+          <span>
+            {t.mhScopedTo} {draft.company}
+          </span>
+          <button
+            type="button"
+            onClick={() => void shareEverywhere()}
+            className="font-medium text-blue-600 underline underline-offset-2"
+          >
+            {t.mhUseEverywhere}
+          </button>
+        </p>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">

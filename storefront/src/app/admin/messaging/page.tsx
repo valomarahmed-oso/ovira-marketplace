@@ -14,6 +14,8 @@ import {
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import { MessagingSenderCard } from "@/components/messaging-sender-card";
+import { MessagingImport } from "@/components/messaging-import";
+import { MessagingGuide } from "@/components/messaging-guide";
 import {
   getHubStatus,
   getMessageLog,
@@ -89,6 +91,10 @@ export default function AdminMessagingPage() {
         <>
           <StatusCard status={status} onReload={load} />
 
+          {/* Import first: on a fresh store the fastest path to a working channel
+              is copying what the server already has, not typing credentials. */}
+          <MessagingImport onImported={load} />
+
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-ink">{t.mhSenders}</h3>
@@ -133,6 +139,7 @@ export default function AdminMessagingPage() {
 
           <TestSendCard senders={senders} />
           <MessageLogCard channels={status.channels} />
+          <MessagingGuide />
         </>
       )}
     </div>

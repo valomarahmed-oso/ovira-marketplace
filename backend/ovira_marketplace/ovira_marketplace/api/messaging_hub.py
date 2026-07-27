@@ -683,3 +683,271 @@ def _mask_recipient(value):
     if len(val) > 5:
         return "{0}{1}{2}".format(val[:3], "•" * 4, val[-2:])
     return val
+
+
+# ── connection state, linking, and importing what the server already has ─────
+# The portal's Messaging Hub grew three things this console lacked: a one-glance
+# "can this sender actually send right now?" badge, the WhatsApp QR pairing flow,
+# and one-click import of the channels the server is already configured for.
+# All three sit on the hub's own provider layer, so the store console asks the
+# same code the portal does instead of growing a second opinion.
+
+def _hub_provider(name):
+    """(sender row, live provider) for a sender — or (row, None) when the hub's
+    provider layer isn't importable on this bench."""
+    _require_hub()
+    row = frappe.db.get_value(SENDER_DT, name, ["name", "channel", "config_json"], as_dict=True)
+    if not row:
+        frappe.throw(_("لا يوجد مُرسِل بهذا الاسم."))
+    try:
+        from ovira_messaging.messaging import registry
+
+        cred = _cred_for(row["name"], row["channel"], _parse_config(row.get("config_json")))
+        return row, registry.get_provider(row["channel"], cred)
+    except Exception:
+        return row, None
+
+
+@frappe.whitelist()
+@rate_limit(limit=60, seconds=60 * 10, methods="POST")
+def sender_status(name):
+    """Can this sender send right now? Verifies against the live service — a WAHA
+    session, a Telegram bot, an SMTP login, a Twilio account, a Meta number — and
+    sends nothing. `ready` is the honest answer: a sender can be configured
+    correctly (`ok`) and still be unable to send (self-hosted WhatsApp with no
+    number linked), which is exactly the state an operator needs to see."""
+    _require_operator()
+    row, provider = _hub_provider(name)
+    if not provider:
+        return {"ok": False, "ready": False, "state": "unavailable",
+                "detail": _("تعذّر الوصول لمحرّك القنوات على هذا السيرفر."),
+                "channel": row["channel"], "can_link": False}
+    try:
+        res = dict(provider.check() or {})
+    except Exception as exc:
+        res = {"ok": False, "ready": False, "state": "error", "detail": str(exc)[:300]}
+    res["channel"] = row["channel"]
+    # Only self-hosted WhatsApp pairs by QR; the rest are keys, not scanning.
+    res["can_link"] = row["channel"] == "whatsapp_waha"
+    return res
+
+
+@frappe.whitelist()
+@rate_limit(limit=20, seconds=60 * 10, methods="POST")
+def waha_qr(name):
+    """The pairing QR for a self-hosted WhatsApp sender, as a data: URI.
+
+    Whichever number scans this becomes the number every store message is sent
+    from. A session that has fallen over is repaired first — asking a broken one
+    for a QR just returns an error forever."""
+    _require_operator()
+    row, provider = _hub_provider(name)
+    if row["channel"] != "whatsapp_waha":
+        frappe.throw(_("الربط بالـ QR متاح لواتساب الذاتي فقط."))
+    if not provider:
+        frappe.throw(_("تعذّر الوصول لمحرّك القنوات على هذا السيرفر."))
+    try:
+        status = provider.start_session(wait=True, states=("SCAN_QR_CODE",), timeout=45)
+        if status.get("ready"):
+            return {"qr": None, "status": status}   # the restart came back already paired
+        return {"qr": provider.qr_data_uri(), "status": status}
+    except Exception as exc:
+        return {"qr": None,
+                "status": {"ok": False, "ready": False, "state": "error", "detail": str(exc)[:300]}}
+
+
+@frappe.whitelist()
+@rate_limit(limit=10, seconds=60 * 10, methods="POST")
+def waha_unlink(name):
+    """Unlink the WhatsApp number from a self-hosted sender."""
+    _require_operator()
+    row, provider = _hub_provider(name)
+    if row["channel"] != "whatsapp_waha":
+        frappe.throw(_("الفصل متاح لواتساب الذاتي فقط."))
+    if provider:
+        try:
+            provider.stop_session()
+        except Exception:
+            pass
+    return {"ok": True}
+
+
+@frappe.whitelist()
+def share_with_all_companies(name):
+    """Clear a sender's company scope. A sender left scoped to one company simply
+    disappears for the others, with nothing on screen to explain why."""
+    _require_operator()
+    _require_hub()
+    if not frappe.db.exists(SENDER_DT, name):
+        frappe.throw(_("لا يوجد مُرسِل بهذا الاسم."))
+    frappe.db.set_value(SENDER_DT, name, "company", None)
+    frappe.db.commit()
+    return {"ok": True}
+
+
+# ── import from the server ──────────────────────────────────────────────────
+# Several channels are already configured somewhere on this bench: the WAHA
+# container in the site config, the store's own Meta credentials, the outgoing
+# Email Account, ERPNext SMS Settings. Re-typing internal URLs and secrets by
+# hand is error-prone, and an operator can't even read the stored ones back.
+
+def _source_waha():
+    url = (frappe.conf.get("ovira_waha_url") or "").rstrip("/")
+    key = frappe.conf.get("ovira_waha_api_key") or ""
+    if not (url and key):
+        return None
+    session = frappe.conf.get("ovira_waha_session") or "default"
+    return {"sender_name": "واتساب السيرفر (WAHA)", "channel": "whatsapp_waha",
+            "config": {"base_url": url, "session": session}, "secret": key,
+            "detail": "{0} · {1}".format(url, session)}
+
+
+def _source_official():
+    pid = frappe.conf.get("ovira_wa_official_phone_id") or ""
+    token = frappe.conf.get("ovira_wa_official_token") or ""
+    if not (pid and token):
+        return None
+    return {"sender_name": "واتساب الرسمي (Meta)", "channel": "whatsapp_official",
+            "config": {"phone_id": pid,
+                       "version": frappe.conf.get("ovira_wa_official_version") or "v21.0"},
+            "secret": token, "detail": "Phone Number ID {0}".format(pid)}
+
+
+def _source_store_whatsapp():
+    """The store's OWN Meta credentials, from Marketplace WhatsApp Settings."""
+    try:
+        s = frappe.get_single("Marketplace WhatsApp Settings")
+    except Exception:
+        return None
+    pid = (s.get("phone_number_id") or "").strip()
+    if not pid:
+        return None
+    token = get_decrypted_password(
+        "Marketplace WhatsApp Settings", "Marketplace WhatsApp Settings",
+        "access_token", raise_exception=False) or ""
+    if not token:
+        return None
+    base = (s.get("api_base") or "https://graph.facebook.com/v21.0").rstrip("/")
+    tail = base.rsplit("/", 1)[-1]
+    return {"sender_name": "واتساب المتجر (Meta)", "channel": "whatsapp_official",
+            "config": {"phone_id": pid, "version": tail if tail.startswith("v") else "v21.0"},
+            "secret": token, "detail": "Phone Number ID {0}".format(pid)}
+
+
+def _source_email():
+    rows = frappe.get_all(
+        "Email Account", filters={"enable_outgoing": 1},
+        fields=["name", "email_id", "smtp_server", "smtp_port", "use_tls", "use_ssl",
+                "login_id", "login_id_is_different", "default_outgoing"],
+        order_by="default_outgoing desc, modified desc", limit_page_length=1)
+    if not rows or not rows[0].get("smtp_server"):
+        return None
+    acc = rows[0]
+    port = cint(acc.get("smtp_port")) or (465 if acc.get("use_ssl") and not acc.get("use_tls") else 587)
+    password = get_decrypted_password("Email Account", acc["name"], "password", raise_exception=False) or ""
+    username = acc.get("login_id") if acc.get("login_id_is_different") else acc.get("email_id")
+    return {
+        "sender_name": "بريد السيرفر ({0})".format(acc.get("email_id")), "channel": "email",
+        "config": {"host": acc.get("smtp_server"), "port": port, "from_addr": acc.get("email_id"),
+                   "from_name": acc["name"], "username": username,
+                   "use_ssl": 1 if port == 465 else 0, "use_tls": 0 if port == 465 else 1},
+        "secret": password,
+        "detail": "{0}:{1} · {2}".format(acc.get("smtp_server"), port, acc.get("email_id")),
+        "warning": None if password else _(
+            "حساب البريد ده مفيش له كلمة مرور محفوظة — ضيفها في إعدادات البريد الأول."),
+    }
+
+
+def _source_sms():
+    if not frappe.db.exists("DocType", "SMS Settings"):
+        return None
+    try:
+        s = frappe.get_single("SMS Settings")
+    except Exception:
+        return None
+    url = (s.get("sms_gateway_url") or "").strip()
+    if not url:
+        return None
+    config = {"url": url, "method": "POST" if s.get("use_post") else "GET",
+              "to_param": s.get("receiver_parameter") or "to",
+              "text_param": s.get("message_parameter") or "text"}
+    extra = {r.get("parameter"): r.get("value") for r in (s.get("parameters") or []) if r.get("parameter")}
+    if extra:
+        config["extra_params"] = extra
+    return {"sender_name": "بوابة SMS", "channel": "sms_http", "config": config,
+            "secret": "", "detail": url}
+
+
+SERVER_SOURCES = {
+    "waha": {"fn": _source_waha, "label": "واتساب ذاتي (WAHA)", "channel": "whatsapp_waha",
+             "empty": "مفيش حاوية WAHA متظبطة على السيرفر ده."},
+    "store": {"fn": _source_store_whatsapp, "label": "واتساب المتجر (Meta)",
+              "channel": "whatsapp_official",
+              "empty": "مفيش بيانات واتساب للمتجر في إعدادات المتجر."},
+    "official": {"fn": _source_official, "label": "واتساب الرسمي (Meta)",
+                 "channel": "whatsapp_official",
+                 "empty": "مفيش بيانات Meta محفوظة على السيرفر."},
+    "email": {"fn": _source_email, "label": "البريد (SMTP)", "channel": "email",
+              "empty": "مفيش حساب بريد صادر مظبوط."},
+    "sms": {"fn": _source_sms, "label": "بوابة SMS", "channel": "sms_http",
+            "empty": "إعدادات SMS في ERPNext مفيهاش رابط بوابة."},
+}
+
+
+@frappe.whitelist()
+def detect_sources():
+    """What can be imported from this server, and what's already in the hub."""
+    _require_operator()
+    installed = hub_installed()
+    out = []
+    for kind, meta in SERVER_SOURCES.items():
+        try:
+            src = meta["fn"]()
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "Ovira: source detect " + kind)
+            src = None
+        out.append({
+            "kind": kind, "label": meta["label"], "channel": meta["channel"],
+            "available": bool(src), "detail": (src or {}).get("detail") or meta["empty"],
+            "warning": (src or {}).get("warning"),
+            "sender_name": (src or {}).get("sender_name"),
+            "imported": bool(installed and src and frappe.db.exists(SENDER_DT, src["sender_name"])),
+        })
+    return {"hub_installed": installed, "sources": out}
+
+
+@frappe.whitelist()
+@rate_limit(limit=20, seconds=60 * 10, methods="POST")
+def import_source(kind):
+    """Create — or refresh — the hub sender for one server source. Secrets are
+    copied server-side; nothing sensitive passes through the browser."""
+    _require_operator()
+    _require_hub()
+    meta = SERVER_SOURCES.get(kind)
+    if not meta:
+        frappe.throw(_("مصدر غير معروف."))
+    src = meta["fn"]()
+    if not src:
+        frappe.throw(_(meta["empty"]))
+
+    name = src["sender_name"]
+    values = {"channel": src["channel"], "config_json": frappe.as_json(src["config"]), "enabled": 1}
+    if src.get("secret"):
+        values["secret"] = src["secret"]
+
+    if frappe.db.exists(SENDER_DT, name):
+        doc = frappe.get_doc(SENDER_DT, name)
+        doc.update(values)
+        doc.save(ignore_permissions=True)
+        frappe.db.commit()
+        return {"ok": True, "name": name, "existed": True, "warning": src.get("warning")}
+
+    values.update({"doctype": SENDER_DT, "sender_name": name, "priority": 5, "company": None})
+    doc = frappe.get_doc(values)
+    doc.insert(ignore_permissions=True)
+    # Frappe fills an empty Link field from the user's defaults — a server-wide
+    # sender would silently scope itself to one company and vanish for the rest.
+    if doc.get("company"):
+        doc.db_set("company", None)
+    frappe.db.commit()
+    return {"ok": True, "name": doc.name, "existed": False, "warning": src.get("warning")}
