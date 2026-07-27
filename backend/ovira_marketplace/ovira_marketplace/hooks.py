@@ -50,6 +50,10 @@ scheduler_events = {
     "daily": [
         "ovira_marketplace.api.trust.recompute_all_vendor_trust",
         "ovira_marketplace.api.stock_alerts.sweep_back_in_stock",
+        # Time-triggered notifications: a review request is caused by days
+        # passing, and low stock is a condition worth one digest a day.
+        "ovira_marketplace.notifications.sweeps.request_reviews",
+        "ovira_marketplace.notifications.sweeps.warn_low_stock",
     ],
     "weekly": [
         "ovira_marketplace.api.reports.email_operator_report",

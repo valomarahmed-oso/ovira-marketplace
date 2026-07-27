@@ -126,7 +126,24 @@ def pay_supplier(supplier, company, payable=None, paid_from=None):
     pe.flags.ignore_permissions = True
     pe.insert()
     pe.submit()
+    _notify_payout(supplier, outstanding, pe.name, company)
     return pe.name
+
+
+def _notify_payout(supplier, amount, payment_entry, company):
+    """Tell the vendor their money went out. Nothing about a payout should have to
+    be discovered by checking a bank app."""
+    vendor = frappe.db.get_value("Marketplace Vendor", {"supplier": supplier}, "name")
+    if not vendor:
+        return
+    currency = frappe.db.get_value("Company", company, "default_currency") or ""
+    from ovira_marketplace.notifications.dispatch import emit
+
+    emit("vendor.payout_settled", {
+        "total": frappe.utils.fmt_money(flt(amount), currency=currency),
+        "currency": currency, "reference": payment_entry,
+        "vendors": [vendor], "kind": "system",
+    }, reference={"doctype": "Payment Entry", "name": payment_entry})
 
 
 def vendor_balances(company=None):

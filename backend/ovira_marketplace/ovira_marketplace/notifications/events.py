@@ -125,6 +125,19 @@ EVENTS = {
         Content("You earned points ⭐", ["+{points} points from order {order}"]),
     ),
 
+    "review.request": _ev(
+        BUYER, (INAPP, PUSH, EMAIL),
+        Content("إيه رأيك في اللي اشتريته؟ ⭐", [
+            "طلبك {order} وصلك من كام يوم.",
+            "تقييمك بيساعد ناس تانية تختار صح.",
+        ]),
+        Content("How was it? ⭐", [
+            "Your order {order} arrived a few days ago.",
+            "A quick review helps the next shopper choose well.",
+        ]),
+        transactional=False,
+    ),
+
     # ── marketing (opt-out; never over WhatsApp) ─────────────────────────
     "cart.abandoned": _ev(
         BUYER, (EMAIL, PUSH),
@@ -150,6 +163,26 @@ EVENTS = {
         Content("New order 🛍️", ["Order: {order}", "Total: {total} {currency}", "Please prepare it soon."]),
     ),
 
+    "vendor.payout_settled": _ev(
+        VENDOR, (INAPP, EMAIL, WHATSAPP),
+        Content("تم تحويل مستحقاتك 💰", ["المبلغ: {total} {currency}", "المرجع: {reference}"]),
+        Content("Your payout was sent 💰", ["Amount: {total} {currency}", "Reference: {reference}"]),
+    ),
+    "vendor.low_stock": _ev(
+        VENDOR, (INAPP, EMAIL),
+        Content("منتجات قرب تخلص ⚠️", [
+            "عندك {count} منتج كميته وصلت {threshold} أو أقل.", "{products}",
+        ]),
+        Content("Products running low ⚠️", [
+            "{count} of your products are down to {threshold} or fewer.", "{products}",
+        ]),
+    ),
+    "vendor.review_received": _ev(
+        VENDOR, (INAPP, EMAIL),
+        Content("تقييم جديد على منتجك ⭐", ["{product}", "التقييم: {rating}/5"]),
+        Content("New review on your product ⭐", ["{product}", "Rating: {rating}/5"]),
+    ),
+
     "account.welcome": _ev(
         BUYER, (INAPP, EMAIL),
         Content("أهلاً بيك في {store} 👋", [
@@ -161,6 +194,15 @@ EVENTS = {
     ),
 
     # ── operator ─────────────────────────────────────────────────────────
+    "operator.cod_flagged": _ev(
+        OPERATOR, (INAPP, EMAIL),
+        Content("طلب دفع عند الاستلام محتاج مراجعة 🚩", [
+            "الطلب: {order}", "السبب: {reason}", "القيمة: {total} {currency}",
+        ]),
+        Content("A cash-on-delivery order needs review 🚩", [
+            "Order: {order}", "Reason: {reason}", "Value: {total} {currency}",
+        ]),
+    ),
     "operator.support_ticket": _ev(
         OPERATOR, (INAPP, EMAIL),
         Content("تذكرة دعم جديدة", ["{subject}", "التذكرة: {ticket}"]),

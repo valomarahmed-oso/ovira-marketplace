@@ -139,4 +139,21 @@ def add_review(product, rating, body, author=None):
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 
+    # Tell the vendor — but only about a NEW review, not every edit of one.
+    if not existing:
+        _notify_vendor_of_review(name, rating)
+
     return _to_flat(doc)
+
+
+def _notify_vendor_of_review(product, rating):
+    info = frappe.db.get_value(
+        "Marketplace Product", product, ["title", "vendor"], as_dict=True)
+    if not info or not info.get("vendor"):
+        return
+    from ovira_marketplace.notifications.dispatch import emit
+
+    emit("vendor.review_received",
+         {"product": info.get("title") or product, "rating": rating,
+          "vendors": [info["vendor"]], "kind": "message"},
+         reference={"doctype": "Marketplace Product", "name": product})

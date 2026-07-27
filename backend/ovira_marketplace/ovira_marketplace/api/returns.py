@@ -82,6 +82,14 @@ def request_return(order, reason, details=None):
     doc.flags.ignore_permissions = True
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
+
+    # Acknowledge the request itself — the silence between "I asked" and "they
+    # decided" is where support tickets come from.
+    from ovira_marketplace.notifications.dispatch import emit
+
+    emit("return.requested",
+         {"order": order, "email": doc.customer_email, "phone": order_doc.phone, "kind": "order"},
+         reference={"doctype": "Marketplace Return", "name": doc.name})
     return _to_flat(doc)
 
 
@@ -235,6 +243,19 @@ def _refund_to_wallet(doc):
         note=_("Refund for return {0}").format(doc.name),
     )
     frappe.db.commit()
+
+    # Money moving back is its own moment — "approved" and "refunded" are not the
+    # same news, and the customer is waiting on the second one.
+    order = frappe.db.get_value(
+        "Marketplace Order", doc.marketplace_order, ["phone", "currency"], as_dict=True) or {}
+    from ovira_marketplace.notifications.dispatch import emit
+
+    emit("order.refund_completed", {
+        "order": doc.marketplace_order,
+        "total": frappe.utils.fmt_money(flt(doc.refund_amount), currency=order.get("currency")),
+        "currency": order.get("currency") or "",
+        "email": email, "phone": order.get("phone"), "kind": "order",
+    }, reference={"doctype": "Marketplace Return", "name": doc.name})
 
 
 def _post_return_reversal(doc):

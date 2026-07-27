@@ -99,9 +99,15 @@ in-app and push ones the hub never sees.
    without a login, and quiet hours (`Marketplace Settings`) that **hold**
    marketing until morning rather than dropping it. Transactional traffic ignores
    all three by design.
-4. **Coverage** — partly done: welcome, support ticket and vendor new-order are
-   wired. Still to come: review requests, price drops, payout settled, low stock,
-   refund initiated.
+4. **Coverage** ✅ — 24 events wired: the order lifecycle, returns and the
+   completed refund, the delivery code, welcome, loyalty, abandoned carts,
+   back-in-stock, review requests, and the vendor/operator side (new order, payout
+   settled, low-stock digest, new review, flagged cash-on-delivery). Two are
+   time-triggered rather than action-triggered and live in
+   `notifications/sweeps.py`: the review request a few days after delivery, and
+   one low-stock digest per vendor per day — a message per product is the fastest
+   way to teach a vendor to ignore the channel. Still open: price drops on
+   wishlisted items (needs price history) and expiring loyalty points.
 5. **Operations** ✅ — the outbox screen (filter by status, read the failure,
    re-send) ships with phase 2's console. Metrics and digests remain.
 

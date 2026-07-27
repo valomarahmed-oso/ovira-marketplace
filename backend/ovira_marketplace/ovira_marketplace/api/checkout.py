@@ -252,6 +252,14 @@ def place_order(
     emit("order.placed", order.notification_context(), doc=order)
     emit("vendor.new_order", order.notification_context(), doc=order)
 
+    # A cash-on-delivery order the risk screen wants a human to look at. Raised
+    # here rather than inside the screening itself, which runs before the order
+    # has a name to point at.
+    if order.get("cod_risk_review"):
+        ctx = order.notification_context()
+        ctx["reason"] = order.get("cod_risk_flags") or ""
+        emit("operator.cod_flagged", ctx, doc=order)
+
     # `token` lets the storefront start payment for this specific order without
     # exposing every order to any guest who can guess an id.
     return {
