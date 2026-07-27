@@ -130,20 +130,12 @@ def award_for_order(order):
 
 
 def _notify_earned(user, points, order_name):
-    try:
-        from ovira_marketplace.api.notifications import create_notification
+    from ovira_marketplace.notifications.dispatch import emit
 
-        create_notification(
-            user=user,
-            kind="promo",
-            title=_("You earned {0} loyalty points").format(points),
-            message=_("Points from order {0} are ready to redeem for store credit.").format(order_name),
-            reference_doctype="Marketplace Order",
-            reference_name=order_name,
-        )
-        frappe.db.commit()
-    except Exception:
-        frappe.log_error(title="Ovira: loyalty notify failed")
+    emit("loyalty.earned",
+         {"points": points, "order": order_name, "user": user, "email": user, "kind": "promo"},
+         recipients=[{"user": user, "email": user, "phone": None, "lang": None, "kind": "promo"}],
+         reference={"doctype": "Marketplace Order", "name": order_name})
 
 
 @frappe.whitelist()

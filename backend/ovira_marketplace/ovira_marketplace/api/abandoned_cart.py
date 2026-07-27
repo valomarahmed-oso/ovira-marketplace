@@ -87,11 +87,12 @@ def mark_recovered(email=None, user=None):
 
 
 def sweep_abandoned_carts():
-    """Hourly scheduler: email a reminder for carts left open a while, once."""
-    from ovira_marketplace.emails import outgoing_configured, send_abandoned_cart
+    """Hourly scheduler: remind about carts left open a while, once. This is
+    MARKETING, so the engine keeps it off WhatsApp and honours opt-outs."""
+    import json as _json
 
-    if not outgoing_configured():
-        return
+    from ovira_marketplace.notifications.dispatch import emit
+
     cutoff = add_to_date(now_datetime(), hours=-REMIND_AFTER_HOURS)
     floor = add_to_date(now_datetime(), days=-REMIND_WITHIN_DAYS)
     rows = frappe.get_all(
@@ -109,7 +110,15 @@ def sweep_abandoned_carts():
         if not row.email:
             continue
         try:
-            send_abandoned_cart(row)
+            try:
+                count = len(_json.loads(row.get("cart_json") or "[]"))
+            except (ValueError, TypeError):
+                count = 0
+            emit("cart.abandoned", {
+                "email": row.email, "customer_name": row.customer_name or "",
+                "count": count, "total": row.subtotal, "currency": row.currency or "",
+                "kind": "promo",
+            }, reference={"doctype": "Marketplace Abandoned Cart", "name": row.name})
             frappe.db.set_value(
                 "Marketplace Abandoned Cart",
                 row.name,

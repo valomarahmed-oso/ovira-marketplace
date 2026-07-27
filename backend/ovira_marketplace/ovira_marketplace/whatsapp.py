@@ -1,37 +1,12 @@
-"""Transactional WhatsApp notifications (order + return lifecycle).
+"""The store's own WhatsApp Business (Meta Cloud API) configuration.
 
-Mirrors the email layer: every send is best-effort and gated on the operator
-having configured the WhatsApp Business API (Meta Cloud API) + approved
-templates. Until then these silently no-op — nothing breaks, in-app + email
-notifications still fire. A send failure never blocks the order/return it
-accompanies.
-
-Meta Cloud API template message:
-  POST {api_base}/{phone_number_id}/messages
-  Authorization: Bearer {access_token}
-  { messaging_product: whatsapp, to, type: template,
-    template: { name, language: {code}, components: [{type: body, parameters:[...]}] } }
+Sending moved to the notification engine, which routes WhatsApp through the
+shared messaging hub. What remains here is this store's Meta credentials — read
+by the admin console, and importable into the hub as a sender — plus the number
+normalisation and the plain-text hub send the OTP/back-office paths still use.
 """
 
 import frappe
-from frappe.utils import flt
-
-# Single source of truth for the store name across every channel.
-from ovira_marketplace.emails import STORE_NAME
-
-ORDER_STATUS_LABEL = {
-    "Paid": "تم استلام الدفع",
-    "Processing": "قيد التجهيز",
-    "Shipped": "تم الشحن",
-    "Completed": "تم التسليم",
-    "Cancelled": "أُلغي",
-}
-
-RETURN_STATUS_LABEL = {
-    "Approved": "تمت الموافقة",
-    "Rejected": "مرفوض",
-    "Completed": "تم الإرجاع",
-}
 
 
 def _config():
@@ -109,92 +84,3 @@ def _hub_text(to, text, reference_name=None):
         return False
 
 
-def _send_template(to, template_name, params):
-    """Best-effort template send. No-ops unless fully configured."""
-    cfg = _config()
-    if not (cfg and cfg.enabled and template_name):
-        return
-    token = cfg.get_password("access_token", raise_exception=False)
-    number = _normalize(to, cfg.default_country_code)
-    if not (cfg.phone_number_id and token and number):
-        return
-    try:
-        import requests
-
-        base = (cfg.api_base or "https://graph.facebook.com/v21.0").rstrip("/")
-        url = f"{base}/{cfg.phone_number_id}/messages"
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": number,
-            "type": "template",
-            "template": {
-                "name": template_name,
-                "language": {"code": cfg.template_lang or "ar"},
-                "components": [
-                    {
-                        "type": "body",
-                        "parameters": [{"type": "text", "text": str(p)} for p in params],
-                    }
-                ],
-            },
-        }
-        requests.post(
-            url,
-            json=payload,
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=10,
-        )
-    except Exception:
-        frappe.log_error(title="Ovira: WhatsApp send failed")
-
-
-def notify_order_confirmation(order):
-    amount = f"{flt(order.total):g} {order.currency or ''}".strip()
-    if whatsapp_configured():
-        _send_template(order.get("phone"), _config().template_order_confirmation, [order.name, amount])
-        return
-    _hub_text(
-        order.get("phone"),
-        f"تم استلام طلبك {order.name} بقيمة {amount}. شكرًا لثقتك في {STORE_NAME} 🎉",
-        reference_name=order.name,
-    )
-
-
-def notify_order_status(order):
-    label = ORDER_STATUS_LABEL.get(order.status)
-    if not label:
-        return
-    if whatsapp_configured():
-        _send_template(order.get("phone"), _config().template_order_status, [order.name, label])
-        return
-    _hub_text(
-        order.get("phone"),
-        f"تحديث على طلبك {order.name}: {label}.",
-        reference_name=order.name,
-    )
-
-
-def notify_return_update(phone, order_name, status):
-    label = RETURN_STATUS_LABEL.get(status)
-    if not label:
-        return
-    if whatsapp_configured():
-        _send_template(phone, _config().template_return_update, [order_name, label])
-        return
-    _hub_text(
-        phone,
-        f"تحديث على طلب الإرجاع الخاص بالطلب {order_name}: {label}.",
-        reference_name=order_name,
-    )
-
-
-def notify_delivery_otp(order, otp):
-    """Send the buyer their delivery confirmation code over WhatsApp."""
-    if whatsapp_configured():
-        _send_template(order.get("phone"), _config().get("template_delivery_otp"), [order.name, str(otp)])
-        return
-    _hub_text(
-        order.get("phone"),
-        f"كود تأكيد استلام طلبك {order.name} هو: {otp}\nلا تشاركه إلا مع مندوب التسليم.",
-        reference_name=order.name,
-    )

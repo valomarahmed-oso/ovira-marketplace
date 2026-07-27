@@ -680,36 +680,17 @@ def new_delivery_otp():
     return f"{secrets.randbelow(10000):04d}"
 
 
-def dispatch_delivery_otp(order, otp):
-    """Send the buyer their delivery code over every configured channel plus an
-    in-app notification. Each channel is best-effort — one failing never blocks
-    the others or the order."""
-    try:
-        from ovira_marketplace.emails import send_delivery_otp
+def dispatch_delivery_otp(order, otp, force=False):
+    """Send the buyer their delivery code. This is the one event that falls back
+    to SMS — a code that doesn't arrive costs a delivery attempt."""
+    from ovira_marketplace.notifications.dispatch import emit
 
-        send_delivery_otp(order, otp)
-    except Exception:
-        frappe.log_error(title="Ovira: delivery OTP email failed")
-    try:
-        from ovira_marketplace.whatsapp import notify_delivery_otp
-
-        notify_delivery_otp(order, otp)
-    except Exception:
-        frappe.log_error(title="Ovira: delivery OTP whatsapp failed")
-    if order.get("email") and frappe.db.exists("User", order.email):
-        try:
-            from ovira_marketplace.api.notifications import create_notification
-
-            create_notification(
-                user=order.email,
-                kind="order",
-                title="رمز تأكيد الاستلام",
-                message=f"رمز استلام طلبك {order.name}: {otp}",
-                reference_doctype="Marketplace Order",
-                reference_name=order.name,
-            )
-        except Exception:
-            frappe.log_error(title="Ovira: delivery OTP notification failed")
+    context = order.notification_context() if hasattr(order, "notification_context") else {
+        "order": order.name, "email": order.get("email"), "phone": order.get("phone"),
+    }
+    context["otp"] = otp
+    emit("order.delivery_otp", context,
+         reference={"doctype": "Marketplace Order", "name": order.name}, force=force)
 
 
 @frappe.whitelist()
@@ -758,6 +739,7 @@ def resend_delivery_otp(order):
     if not otp:
         otp = new_delivery_otp()
         doc.db_set("delivery_otp", otp, update_modified=False)
-    dispatch_delivery_otp(doc, otp)
+    # An operator asking again MEANS again — bypass the send-once guard.
+    dispatch_delivery_otp(doc, otp, force=True)
     frappe.db.commit()
     return {"sent": True}

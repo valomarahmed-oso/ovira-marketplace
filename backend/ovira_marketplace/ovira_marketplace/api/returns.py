@@ -185,6 +185,34 @@ def chargeback_preview(name):
     return preview(doc)
 
 
+RETURN_EVENT = {
+    "Approved": "return.approved",
+    "Rejected": "return.rejected",
+    "Completed": "return.completed",
+}
+
+
+def _notify_return_status(doc):
+    """Announce a return decision. The engine owns channels, language, retry and
+    the audit row — this only supplies the facts."""
+    event = RETURN_EVENT.get(doc.status)
+    if not event:
+        return
+    from ovira_marketplace.notifications.dispatch import emit
+
+    order = frappe.db.get_value(
+        "Marketplace Order", doc.marketplace_order,
+        ["name", "phone", "email", "currency"], as_dict=True) or {}
+    emit(event, {
+        "order": doc.marketplace_order,
+        "note": doc.operator_note or "",
+        "email": doc.customer_email or order.get("email"),
+        "phone": order.get("phone"),
+        "currency": order.get("currency") or "",
+        "kind": "order",
+    }, reference={"doctype": "Marketplace Return", "name": doc.name})
+
+
 def _refund_to_wallet(doc):
     """Credit the buyer's store credit with the approved refund — idempotent, so
     re-saving a completed return never double-refunds."""
@@ -310,19 +338,6 @@ def set_return_status(name, status, note=None, refund_amount=None, fault=None):
     if status == "Completed":
         _post_return_reversal(doc)
 
-    try:
-        from ovira_marketplace.emails import send_return_update
-
-        send_return_update(doc.customer_email, doc.marketplace_order, doc.status, doc.operator_note)
-    except Exception:
-        frappe.log_error(title="Ovira: return email failed")
-
-    try:
-        from ovira_marketplace.whatsapp import notify_return_update
-
-        phone = frappe.db.get_value("Marketplace Order", doc.marketplace_order, "phone")
-        notify_return_update(phone, doc.marketplace_order, doc.status)
-    except Exception:
-        frappe.log_error(title="Ovira: return whatsapp failed")
+    _notify_return_status(doc)
 
     return _to_flat(doc)

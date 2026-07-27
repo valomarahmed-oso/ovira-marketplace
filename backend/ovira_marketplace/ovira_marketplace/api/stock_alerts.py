@@ -11,7 +11,6 @@ global ERPNext hooks run for other tenants.
 import frappe
 from frappe import _
 
-from ovira_marketplace.api.notifications import create_notification
 
 
 def _session_user():
@@ -151,18 +150,14 @@ def notify_back_in_stock(product):
     if not info:
         return 0
 
+    from ovira_marketplace.notifications.dispatch import emit
+
     for a in alerts:
-        try:
-            create_notification(
-                a.user,
-                title=f"{info.title} رجع متوفّر",
-                message="المنتج اللي طلبت تنبيه بتوفّره رجع متاح — اطلبه قبل ما يخلص تاني.",
-                kind="promo",
-                reference_doctype="Marketplace Product",
-                reference_name=product,
-            )
-        except Exception:
-            frappe.log_error("back-in-stock notify failed")
+        emit("product.back_in_stock",
+             {"product": info.title, "user": a.user, "email": a.user, "kind": "promo"},
+             recipients=[{"user": a.user, "email": a.user, "phone": None,
+                          "lang": None, "kind": "promo"}],
+             reference={"doctype": "Marketplace Product", "name": product})
         frappe.db.set_value("Marketplace Stock Alert", a.name, "notified", 1, update_modified=False)
     frappe.db.commit()
     return len(alerts)

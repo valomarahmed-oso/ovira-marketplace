@@ -244,19 +244,13 @@ def place_order(
 
     frappe.db.commit()
 
-    try:
-        from ovira_marketplace.emails import send_order_confirmation
+    # One announcement; the engine fans it out to the buyer (every channel they
+    # have) and to each vendor with lines on this order, with retries + an audit
+    # row per message. It never raises back into checkout.
+    from ovira_marketplace.notifications.dispatch import emit
 
-        send_order_confirmation(order)
-    except Exception:
-        frappe.log_error(title="Ovira: order confirmation email failed")
-
-    try:
-        from ovira_marketplace.whatsapp import notify_order_confirmation
-
-        notify_order_confirmation(order)
-    except Exception:
-        frappe.log_error(title="Ovira: order confirmation whatsapp failed")
+    emit("order.placed", order.notification_context(), doc=order)
+    emit("vendor.new_order", order.notification_context(), doc=order)
 
     # `token` lets the storefront start payment for this specific order without
     # exposing every order to any guest who can guess an id.

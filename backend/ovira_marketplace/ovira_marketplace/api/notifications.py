@@ -88,9 +88,14 @@ def create_notification(
     kind="system",
     reference_doctype=None,
     reference_name=None,
+    push=True,
 ):
     """Server-side helper to raise a notification for a user. Safe no-op if the
-    user is missing/guest. Not whitelisted — callers are trusted backend code."""
+    user is missing/guest. Not whitelisted — callers are trusted backend code.
+
+    `push=False` is used by the notification engine, which dispatches the web-push
+    copy as its own channel (with its own retry + audit row) instead of piggy-
+    backing on this one."""
     if not user or user == "Guest":
         return None
     doc = frappe.new_doc("Marketplace Notification")
@@ -103,6 +108,8 @@ def create_notification(
     doc.insert(ignore_permissions=True)
 
     # Mirror to a web push notification (best-effort; no-op until push is set up).
+    if not push:
+        return doc.name
     try:
         from ovira_marketplace.api.push import send_to_user
 

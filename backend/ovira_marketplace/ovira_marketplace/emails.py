@@ -1,29 +1,16 @@
-"""Transactional emails for the storefront (order + return lifecycle).
+"""Email plumbing the notification engine builds on, plus the operator digest.
 
-Every send is best-effort and gated on the site actually having outgoing email
-configured — until an operator adds a default outgoing Email Account in ERPNext
-Desk, these silently no-op (in-app notifications still fire). A send failure
-must never break the order/return it accompanies.
+The per-event customer emails that used to live here now come from
+`notifications/events.py` (one bilingual definition per event, rendered by
+`notifications/channels.py`) — keeping a second copy of that wording here is how
+the two drift apart. What stays is the shared shell, the "can this site send at
+all?" check, and the weekly operator report, which is a document, not an event.
 """
 
 import frappe
 from frappe.utils import flt
 
 STORE_NAME = "أوفيرا"
-
-ORDER_STATUS_SUBJECT = {
-    "Paid": "تم استلام دفع طلبك",
-    "Processing": "طلبك قيد التجهيز",
-    "Shipped": "تم شحن طلبك",
-    "Completed": "تم تسليم طلبك",
-    "Cancelled": "تم إلغاء طلبك",
-}
-
-RETURN_STATUS_SUBJECT = {
-    "Approved": "تمت الموافقة على طلب الإرجاع",
-    "Rejected": "تم رفض طلب الإرجاع",
-    "Completed": "تم إتمام الإرجاع",
-}
 
 
 def outgoing_configured():
@@ -68,46 +55,6 @@ def _shell(heading, lines):
     )
 
 
-def _order_lines(order):
-    ccy = order.currency or ""
-    lines = [f"رقم الطلب: <b>{order.name}</b>"]
-    if flt(order.discount_amount):
-        lines.append(f"الخصم: {flt(order.discount_amount):g} {ccy}")
-    lines.append(f"الإجمالي: <b>{flt(order.total):g} {ccy}</b>")
-    return lines
-
-
-def send_order_confirmation(order):
-    _send(
-        order.email,
-        f"تأكيد طلبك {order.name}",
-        _shell("تم استلام طلبك 🎉", _order_lines(order) + ["هنبلّغك بأي تحديث على حالة الطلب."]),
-    )
-
-
-def send_order_status(order):
-    subject = ORDER_STATUS_SUBJECT.get(order.status)
-    if not subject:
-        return
-    _send(order.email, f"{subject} — {order.name}", _shell(subject, _order_lines(order)))
-
-
-def send_delivery_otp(order, otp):
-    """Email the buyer their delivery confirmation code."""
-    _send(
-        order.email,
-        f"رمز تأكيد استلام طلبك {order.name}",
-        _shell(
-            "رمز تأكيد الاستلام",
-            [
-                f"طلبك <b>{order.name}</b> في الطريق إليك.",
-                f"رمز الاستلام: <b style='font-size:20px;letter-spacing:3px'>{otp}</b>",
-                "أعطِ هذا الرمز لمندوب التوصيل عند استلام طلبك فقط.",
-            ],
-        ),
-    )
-
-
 def send_operator_report(recipient, report):
     """Weekly performance digest for an operator. `report` is the dict from
     reports.full_report."""
@@ -128,39 +75,3 @@ def send_operator_report(recipient, report):
     _send(recipient, "تقرير أداء المتجر الأسبوعي", _shell("تقرير الأداء الأسبوعي", lines))
 
 
-def send_abandoned_cart(cart):
-    """Gentle reminder for a cart left behind. `cart` is a dict/row with email,
-    customer_name, subtotal, currency."""
-    import json as _json
-
-    try:
-        count = len(_json.loads(cart.get("cart_json") or "[]"))
-    except (ValueError, TypeError):
-        count = 0
-    name = cart.get("customer_name") or ""
-    ccy = cart.get("currency") or ""
-    hello = f"أهلاً {name}،" if name else "أهلاً،"
-    lines = [
-        hello,
-        "سيبت منتجات في سلة التسوق ولسه ما أكملتش الطلب.",
-    ]
-    if count:
-        lines.append(f"عندك <b>{count}</b> منتج مستنيك في السلة.")
-    if flt(cart.get("subtotal")):
-        lines.append(f"إجمالي السلة: <b>{flt(cart.get('subtotal')):g} {ccy}</b>")
-    lines.append(
-        "<a href='/shop/cart' style='display:inline-block;margin-top:8px;"
-        "background:#1a56db;color:#fff;padding:10px 18px;border-radius:8px;"
-        "text-decoration:none'>أكمل طلبك الآن</a>"
-    )
-    _send(cart.get("email"), "سلة التسوق مستنياك 🛒", _shell("منتجاتك في انتظارك", lines))
-
-
-def send_return_update(order_email, order_name, status, note=None):
-    subject = RETURN_STATUS_SUBJECT.get(status)
-    if not subject:
-        return
-    lines = [f"طلب الإرجاع الخاص بالطلب <b>{order_name}</b>."]
-    if note:
-        lines.append(f"ملاحظة المتجر: {note}")
-    _send(order_email, subject, _shell(subject, lines))

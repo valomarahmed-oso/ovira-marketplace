@@ -3,6 +3,9 @@ from frappe.model.document import Document
 from frappe.utils import add_days, flt, nowdate
 
 
+# Buyer-facing status labels. The wording customers RECEIVE now lives in
+# notifications/events.py (one place, both languages); this stays for anything
+# that just needs to label a status in Arabic.
 STATUS_TITLE = {
     "Pending Payment": "بانتظار الدفع",
     "Paid": "تم استلام الدفع",
@@ -102,47 +105,43 @@ class MarketplaceOrder(Document):
         except Exception:
             frappe.log_error(title="Ovira: delivery OTP issue failed")
 
-    def _notify_status_change(self):
-        """On every status advance: raise an in-app notification for a registered
-        buyer, and email whoever the order is addressed to (guest or registered).
+    # Order status → the event the notification engine announces. A status with no
+    # event here simply doesn't notify (nothing else has to know that).
+    STATUS_EVENT = {
+        "Paid": "order.paid",
+        "Processing": "order.processing",
+        "Shipped": "order.shipped",
+        "Completed": "order.delivered",
+        "Cancelled": "order.cancelled",
+    }
 
-        Best-effort: a notification/email failure must never block the status
-        change.
-        """
+    def _notify_status_change(self):
+        """Announce a status advance once; the notification engine decides who
+        hears it, in which language and over which channels, and owns the retry
+        and the audit row (see notifications/dispatch.py)."""
         before = self.get_doc_before_save()
         if not before or before.status == self.status:
             return
+        event = self.STATUS_EVENT.get(self.status)
+        if not event:
+            return
 
-        recipient = self.email if self.email and frappe.db.exists("User", self.email) else None
-        if recipient:
-            try:
-                from ovira_marketplace.api.notifications import create_notification
+        from ovira_marketplace.notifications.dispatch import emit
 
-                title = STATUS_TITLE.get(self.status, self.status)
-                create_notification(
-                    user=recipient,
-                    kind="order",
-                    title=title,
-                    message=f"{title} — {self.name}",
-                    reference_doctype="Marketplace Order",
-                    reference_name=self.name,
-                )
-            except Exception:
-                frappe.log_error(title="Ovira order notification failed")
+        emit(event, self.notification_context(), doc=self)
 
-        try:
-            from ovira_marketplace.emails import send_order_status
-
-            send_order_status(self)
-        except Exception:
-            frappe.log_error(title="Ovira order status email failed")
-
-        try:
-            from ovira_marketplace.whatsapp import notify_order_status
-
-            notify_order_status(self)
-        except Exception:
-            frappe.log_error(title="Ovira order status whatsapp failed")
+    def notification_context(self):
+        """The facts every order-related message interpolates."""
+        return {
+            "order": self.name,
+            "total": frappe.utils.fmt_money(flt(self.total), currency=self.currency),
+            "currency": self.currency or "",
+            "customer_name": self.customer_name or "",
+            "status": self.status,
+            "email": self.email,
+            "phone": self.phone,
+            "kind": "order",
+        }
 
     def create_vendor_orders(self):
         """Split the order into one ERPNext Sales Order per vendor and book

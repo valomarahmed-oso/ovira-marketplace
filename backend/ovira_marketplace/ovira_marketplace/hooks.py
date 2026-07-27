@@ -37,6 +37,13 @@ after_migrate = "ovira_marketplace.setup.install.after_migrate"
 # Scheduled jobs: settlements, payout runs, search reindex
 # ---------------------------------------------------------------------------
 scheduler_events = {
+    # Every 15 minutes: retry notifications whose backoff has elapsed, and pick up
+    # any queued row whose worker was lost to a restart (see notifications/).
+    "cron": {
+        "*/15 * * * *": [
+            "ovira_marketplace.notifications.dispatch.retry_pending",
+        ],
+    },
     "hourly": [
         "ovira_marketplace.api.abandoned_cart.sweep_abandoned_carts",
     ],
