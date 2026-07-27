@@ -1,0 +1,36 @@
+{
+ "actions": [],
+ "autoname": "format:{product}::{day}",
+ "creation": "2026-07-27 00:00:00.000000",
+ "description": "One row per product per day: how many people looked, and how many put it in a basket. The two numbers a sales figure alone can't explain.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["product", "day", "column_break_counts", "views", "cart_adds"],
+ "fields": [
+  {"fieldname": "product", "fieldtype": "Link", "options": "Marketplace Product",
+   "label": "Product", "in_list_view": 1, "reqd": 1, "search_index": 1},
+  {"fieldname": "day", "fieldtype": "Date", "label": "Day", "in_list_view": 1, "reqd": 1,
+   "search_index": 1},
+  {"fieldname": "column_break_counts", "fieldtype": "Column Break"},
+  {"fieldname": "views", "fieldtype": "Int", "label": "Views", "in_list_view": 1, "default": "0"},
+  {"fieldname": "cart_adds", "fieldtype": "Int", "label": "Cart Adds", "in_list_view": 1, "default": "0"}
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-27 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Product Stat",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1,
+   "role": "System Manager", "share": 1, "write": 1},
+  {"read": 1, "report": 1, "role": "Marketplace Operator"}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

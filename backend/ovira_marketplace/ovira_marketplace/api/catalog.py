@@ -357,6 +357,12 @@ def get_product(slug):
     doc = frappe.get_doc("Marketplace Product", name).as_dict()
     if doc.get("vendor") and frappe.db.get_value("Marketplace Vendor", doc["vendor"], "status") == "Suspended":
         frappe.throw(_("Product not found."), frappe.DoesNotExistError)
+
+    # Counted here rather than on the listing: opening the page is interest,
+    # scrolling past a grid tile isn't.
+    from ovira_marketplace.api.product_stats import record_view
+
+    record_view(name)
     v = frappe.db.get_value(
         "Marketplace Vendor",
         doc.get("vendor"),

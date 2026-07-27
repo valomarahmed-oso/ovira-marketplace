@@ -58,10 +58,12 @@ def save_cart(data):
 
     if frappe.db.exists("Marketplace Cart", user):
         doc = frappe.get_doc("Marketplace Cart", user)
+        _count_new_items(doc.data, items)
         doc.data = blob
         doc.item_count = len(items)
         doc.save(ignore_permissions=True)
     else:
+        _count_new_items(None, items)
         frappe.get_doc(
             {
                 "doctype": "Marketplace Cart",
@@ -72,3 +74,29 @@ def save_cart(data):
         ).insert(ignore_permissions=True)
     frappe.db.commit()
     return {"ok": True, "item_count": len(items)}
+
+
+def _count_new_items(previous_blob, items):
+    """Record the products that just entered this cart.
+
+    The storefront saves the whole cart, so an "add" is whatever is in the new
+    blob and wasn't in the old one — a re-save of an unchanged cart counts
+    nothing, which is the only way this number stays meaningful.
+    """
+    try:
+        before = set()
+        if previous_blob:
+            for row in json.loads(previous_blob) or []:
+                if isinstance(row, dict) and row.get("slug"):
+                    before.add(row["slug"])
+        added = [r.get("slug") for r in items
+                 if isinstance(r, dict) and r.get("slug") and r["slug"] not in before]
+        if not added:
+            return
+        names = frappe.get_all("Marketplace Product", filters={"slug": ["in", added]},
+                               pluck="name", ignore_permissions=True)
+        from ovira_marketplace.api.product_stats import record_cart_adds
+
+        record_cart_adds(names)
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Ovira: cart add tracking")

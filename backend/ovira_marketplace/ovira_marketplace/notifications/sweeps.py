@@ -223,3 +223,68 @@ def warn_expiring_points():
                         "lang": None, "kind": "promo"}],
            reference={"doctype": "Marketplace Loyalty Entry",
                       "name": "expiring::{0}".format(expires_on)})
+
+
+# A reorder reminder is only honest when the customer's OWN history says the
+# product runs out on a rhythm. Two purchases is the minimum that establishes one.
+REORDER_MIN_PURCHASES = 2
+REORDER_MIN_DAYS = 14      # below this it's a browsing habit, not a refill cycle
+REORDER_MAX_DAYS = 200     # above this the "cycle" is really two unrelated purchases
+REORDER_NUDGE_AT = 0.9     # remind slightly before it runs out, not after
+
+
+def remind_reorders():
+    """Daily: nudge people to re-buy the things they buy on a rhythm.
+
+    The rhythm is measured from the customer's own repeat purchases — never
+    assumed from a category — so a product nobody rebuys never generates a
+    reminder, and someone who bought once is left alone.
+    """
+    rows = frappe.get_all(
+        "Marketplace Order Item",
+        filters=[["docstatus", "<", 2]],
+        fields=["parent", "marketplace_product", "title"],
+        limit_page_length=0, ignore_permissions=True,
+    )
+    if not rows:
+        return
+    orders = {
+        o["name"]: o for o in frappe.get_all(
+            "Marketplace Order", filters=[["status", "=", "Completed"]],
+            fields=["name", "email", "phone", "modified"],
+            limit_page_length=0, ignore_permissions=True)
+    }
+
+    history = {}
+    for r in rows:
+        order = orders.get(r["parent"])
+        if not order or not order.get("email") or not r.get("marketplace_product"):
+            continue
+        key = (order["email"], r["marketplace_product"])
+        history.setdefault(key, {"title": r.get("title") or "", "dates": [], "orders": []})
+        history[key]["dates"].append(str(order["modified"])[:10])
+        history[key]["orders"].append(order["name"])
+
+    today = nowdate()
+    for (email, product), info in history.items():
+        dates = sorted(set(info["dates"]))
+        if len(dates) < REORDER_MIN_PURCHASES:
+            continue
+        gaps = [frappe.utils.date_diff(dates[i], dates[i - 1]) for i in range(1, len(dates))]
+        gaps = [g for g in gaps if REORDER_MIN_DAYS <= g <= REORDER_MAX_DAYS]
+        if not gaps:
+            continue
+        cycle = sorted(gaps)[len(gaps) // 2]          # median: one odd gap can't skew it
+        elapsed = frappe.utils.date_diff(today, dates[-1])
+        if elapsed < cycle * REORDER_NUDGE_AT:
+            continue
+
+        emit("product.reorder", {
+            "product": info["title"] or product, "days": elapsed,
+            "email": email, "kind": "promo",
+        }, recipients=[{"user": email, "email": email, "phone": None,
+                        "lang": None, "kind": "promo"}],
+           # Keyed to the LAST purchase, so the next reminder only becomes
+           # possible after they actually buy again.
+           reference={"doctype": "Marketplace Product",
+                      "name": "reorder::{0}::{1}".format(product, dates[-1])})

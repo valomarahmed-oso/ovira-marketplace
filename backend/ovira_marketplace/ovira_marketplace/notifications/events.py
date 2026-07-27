@@ -175,6 +175,18 @@ EVENTS = {
         ]),
         transactional=False,
     ),
+    "product.reorder": _ev(
+        BUYER, (INAPP, PUSH, EMAIL),
+        Content("وقت تجديد {product}؟ 🔁", [
+            "آخر مرة طلبته من {days} يوم — وده تقريباً وقت خلاصه عندك.",
+            "تقدر تطلبه تاني من حسابك في خطوة واحدة.",
+        ]),
+        Content("Time to reorder {product}? 🔁", [
+            "You last ordered it {days} days ago, which is about when it runs out.",
+            "Reordering takes one step from your account.",
+        ]),
+        transactional=False,
+    ),
     "price.drop": _ev(
         BUYER, (INAPP, PUSH, EMAIL),
         Content("نزل السعر 📉", [

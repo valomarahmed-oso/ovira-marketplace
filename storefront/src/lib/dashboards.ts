@@ -1,4 +1,5 @@
 import {
+  TrendingDown,
   Award,
   BarChart3,
   FileBarChart,
@@ -114,6 +115,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/vendor", key: "vendorNavOverview", icon: LayoutDashboard, exact: true },
       { href: "/vendor/analytics", key: "vendorNavAnalytics", icon: BarChart3 },
       { href: "/vendor/reports", key: "vendorNavReports", icon: FileBarChart },
+      { href: "/vendor/insights", key: "vendorNavInsights", icon: TrendingDown },
       { href: "/vendor/products", key: "vendorNavProducts", icon: Package },
       { href: "/vendor/orders", key: "vendorNavOrders", icon: ShoppingBag },
       { href: "/vendor/shipments", key: "vendorNavShipments", icon: Truck },
