@@ -209,12 +209,12 @@ def outbox_summary(days=7):
     """Counts by status for the last `days` — the one number an operator checks."""
     _require_operator()
     since = frappe.utils.add_to_date(frappe.utils.now_datetime(), days=-cint(days or 7))
-    rows = frappe.get_all(
-        OUTBOX_DT, filters=[["creation", ">", since]],
-        fields=["status", "count(name) as count"], group_by="status",
-        ignore_permissions=True,
-    )
-    return {r["status"]: r["count"] for r in rows}
+    # Five cheap counts rather than one grouped query: frappe v16 rejects SQL
+    # functions passed as field strings, and `db.count` is the supported way in.
+    return {
+        status: frappe.db.count(OUTBOX_DT, {"status": status, "creation": [">", since]})
+        for status in ("sent", "failed", "skipped", "retry", "queued")
+    }
 
 
 # ── customer preferences ────────────────────────────────────────────────────
