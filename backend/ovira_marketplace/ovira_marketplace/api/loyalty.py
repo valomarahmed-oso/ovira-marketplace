@@ -72,9 +72,8 @@ def _live_buckets(user):
     rows = frappe.get_all(
         "Marketplace Loyalty Entry",
         filters=[["user", "=", user], ["entry_type", "=", "Earn"]],
-        fields=["name", "points", "points_used", "expires_on"],
-        order_by="ifnull(expires_on, '9999-12-31') asc, creation asc",
-        limit_page_length=0, ignore_permissions=True,
+        fields=["name", "points", "points_used", "expires_on", "creation"],
+        order_by="creation asc", limit_page_length=0, ignore_permissions=True,
     )
     live = []
     for r in rows:
@@ -85,6 +84,11 @@ def _live_buckets(user):
             continue    # expired: simply not counted — no entry, nothing booked
         r["left"] = left
         live.append(r)
+    # Soonest expiry first, undated batches last. Sorted here rather than in the
+    # query because frappe v16 rejects SQL functions in `order_by`, and a
+    # customer's batch count is small enough that it makes no difference.
+    live.sort(key=lambda r: (str(r["expires_on"]) if r.get("expires_on") else "9999-12-31",
+                             str(r.get("creation") or "")))
     return live
 
 
