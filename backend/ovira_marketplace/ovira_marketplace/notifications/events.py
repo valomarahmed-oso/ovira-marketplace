@@ -91,6 +91,20 @@ EVENTS = {
         Content("Order cancelled", ["Order: {order}", "If this wasn't you, contact us right away."]),
     ),
 
+    "order.cod_confirm": _ev(
+        BUYER, (WHATSAPP, SMS),   # a question is only useful where it can be answered
+        Content("تأكيد طلبك {order} 📦", [
+            "الإجمالي: {total} {currency} — الدفع عند الاستلام.",
+            "ردّ بـ 1 للتأكيد، أو 2 لو مش عايز تكمّل.",
+            "الطلب مش هيتشحن غير لما نستلم ردّك.",
+        ]),
+        Content("Please confirm order {order} 📦", [
+            "Total: {total} {currency}, cash on delivery.",
+            "Reply 1 to confirm, or 2 if you'd rather not.",
+            "We won't ship until you answer.",
+        ]),
+    ),
+
     # ── returns & refunds ────────────────────────────────────────────────
     "return.requested": _ev(
         BUYER, _QUIET,

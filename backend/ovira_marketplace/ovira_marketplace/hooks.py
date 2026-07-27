@@ -63,6 +63,12 @@ scheduler_events = {
 }
 
 # ---------------------------------------------------------------------------
+# Inbound messaging: answer customers who reply on WhatsApp (order status,
+# cash-on-delivery confirmation, a shared location pinning the address).
+# ---------------------------------------------------------------------------
+ovira_messaging_inbound = ["ovira_marketplace.api.whatsapp_inbound.handle"]
+
+# ---------------------------------------------------------------------------
 # Multi-vendor isolation: a vendor only sees their own store and products
 # ---------------------------------------------------------------------------
 permission_query_conditions = {

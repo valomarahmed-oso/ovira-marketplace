@@ -296,6 +296,15 @@ def create_shipments_for_order(order, provider=None):
     """Create and book one Shipment per vendor sub-order of a Marketplace Order."""
     _require_operator()
     order_doc = frappe.get_doc("Marketplace Order", order)
+
+    # A flagged cash-on-delivery order waits for its answer. Shipping first and
+    # asking later is exactly the trip that ends in a refusal nobody pays for.
+    state = order_doc.get("cod_confirm_state") or ""
+    if state == "Awaiting":
+        frappe.throw(_("لسه مستنيين تأكيد العميل على الطلب ده قبل الشحن."))
+    if state == "Declined":
+        frappe.throw(_("العميل رفض تأكيد الطلب ده. راجعه قبل الشحن."))
+
     provider = provider or default_provider()
     if not provider:
         frappe.throw(_("No shipping provider is enabled."))

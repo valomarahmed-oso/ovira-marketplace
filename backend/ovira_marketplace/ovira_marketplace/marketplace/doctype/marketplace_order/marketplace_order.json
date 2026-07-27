@@ -49,7 +49,13 @@
   "cod_section",
   "cod_risk_score",
   "cod_risk_review",
-  "cod_risk_flags"
+  "cod_risk_flags",
+  "cod_confirm_section",
+  "cod_confirm_state",
+  "cod_confirmed_on",
+  "column_break_cod_confirm",
+  "delivery_latitude",
+  "delivery_longitude"
  ],
  "fields": [
   {
@@ -325,6 +331,45 @@
    "fieldname": "cod_risk_flags",
    "fieldtype": "Small Text",
    "label": "Risk flags",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cod_confirm_section",
+   "fieldtype": "Section Break",
+   "label": "Delivery Confirmation"
+  },
+  {
+   "fieldname": "cod_confirm_state",
+   "fieldtype": "Select",
+   "label": "COD Confirmation",
+   "options": "\nAwaiting\nConfirmed\nDeclined",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "description": "Set when a flagged cash-on-delivery order is asked to confirm over WhatsApp. Awaiting holds dispatch."
+  },
+  {
+   "fieldname": "cod_confirmed_on",
+   "fieldtype": "Datetime",
+   "label": "Confirmed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_cod_confirm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "delivery_latitude",
+   "fieldtype": "Float",
+   "label": "Delivery Latitude",
+   "precision": "8",
+   "read_only": 1,
+   "description": "Pinned by the customer sharing their location on WhatsApp — a written address is the usual reason a delivery fails."
+  },
+  {
+   "fieldname": "delivery_longitude",
+   "fieldtype": "Float",
+   "label": "Delivery Longitude",
+   "precision": "8",
    "read_only": 1
   }
  ],

@@ -260,6 +260,17 @@ def place_order(
         ctx["reason"] = order.get("cod_risk_flags") or ""
         emit("operator.cod_flagged", ctx, doc=order)
 
+        # And ask the buyer to confirm before anything ships. A refused delivery
+        # sends the goods on two paid journeys and collects nothing; one question
+        # answered with one character is the cheapest insurance there is. Only
+        # flagged orders are asked, so ordinary customers are never interrogated.
+        try:
+            from ovira_marketplace.api.whatsapp_inbound import request_cod_confirmation
+
+            request_cod_confirmation(order)
+        except Exception:
+            frappe.log_error(title="Ovira: COD confirmation request failed")
+
     # `token` lets the storefront start payment for this specific order without
     # exposing every order to any guest who can guess an id.
     return {
