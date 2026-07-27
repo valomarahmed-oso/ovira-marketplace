@@ -95,4 +95,11 @@ def register_customer(full_name, email, password, phone=None):
     # Bind an ERPNext Customer to this login (by portal-user link, not by name).
     get_or_create_customer(full_name, email=email, phone=phone)
     frappe.db.commit()
+
+    from ovira_marketplace.notifications.dispatch import emit
+
+    emit("account.welcome",
+         {"customer_name": full_name, "email": email, "phone": phone, "kind": "system"},
+         recipients=[{"user": email, "email": email, "phone": phone,
+                      "lang": None, "kind": "system"}])
     return {"ok": True, "email": email}

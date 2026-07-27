@@ -1,0 +1,94 @@
+{
+ "actions": [],
+ "autoname": "format:{event}::{language}",
+ "creation": "2026-07-27 00:00:00.000000",
+ "description": "An operator's override for one event's wording, in one language. Absent = the shipped default in notifications/events.py is used.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "event",
+  "language",
+  "enabled",
+  "column_break_meta",
+  "title",
+  "lines"
+ ],
+ "fields": [
+  {
+   "fieldname": "event",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Event",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "default": "ar",
+   "fieldname": "language",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Language",
+   "options": "ar\nen",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "description": "Turn off to stop this event entirely for this language, without deleting the wording.",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "column_break_meta",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "description": "One line per row. Placeholders like {order} and {total} are filled from the event's context.",
+   "fieldname": "lines",
+   "fieldtype": "Small Text",
+   "label": "Lines"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-27 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Notification Template",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Operator",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

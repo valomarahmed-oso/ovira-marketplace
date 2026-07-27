@@ -88,13 +88,22 @@ in-app and push ones the hub never sees.
 
 ## Phases
 
-1. **Foundation** (this change) — registry, outbox, engine, adapters, and every
-   existing call site moved onto `emit()`. No visible change; nothing is lost.
-2. **Content** — template DocType, operator editor, live preview, test send.
-3. **Control** — recipient preferences, signed unsubscribe links, quiet hours.
-4. **Coverage** — the vendor/operator/post-purchase/marketing events above.
-5. **Operations** — outbox screen with filters and re-send, delivery metrics,
-   digests.
+1. **Foundation** ✅ — registry, outbox, engine, adapters, and every existing
+   call site moved onto `emit()`.
+2. **Content** ✅ — `Marketplace Notification Template` overrides the shipped
+   wording per event per language, edited from Admin → Notifications with a live
+   preview against sample values. Deleting an override falls back to code, so an
+   edit survives an upgrade and a new event ships working.
+3. **Control** ✅ — `Marketplace Notification Preference` per recipient (marketing
+   email/push), a signed unsubscribe link in every marketing email that works
+   without a login, and quiet hours (`Marketplace Settings`) that **hold**
+   marketing until morning rather than dropping it. Transactional traffic ignores
+   all three by design.
+4. **Coverage** — partly done: welcome, support ticket and vendor new-order are
+   wired. Still to come: review requests, price drops, payout settled, low stock,
+   refund initiated.
+5. **Operations** ✅ — the outbox screen (filter by status, read the failure,
+   re-send) ships with phase 2's console. Metrics and digests remain.
 
 ## Adding an event
 

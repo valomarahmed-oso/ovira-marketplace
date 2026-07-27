@@ -96,6 +96,7 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
       { href: "/admin/currencies", key: "adminNavCurrencies", icon: Coins },
       { href: "/admin/email", key: "adminNavEmail", icon: Mail },
       { href: "/admin/messaging", key: "adminNavMessagingHub", icon: RadioTower },
+      { href: "/admin/notifications", key: "adminNavNotifications", icon: BellRing },
       { href: "/admin/content", key: "adminNavContent", icon: FileText, contentEditor: true },
       { href: "/admin/banners", key: "adminNavBanners", icon: Images, contentEditor: true },
       { href: "/admin/team", key: "adminNavTeam", icon: Users },

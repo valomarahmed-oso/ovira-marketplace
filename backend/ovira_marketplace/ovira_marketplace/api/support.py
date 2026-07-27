@@ -347,29 +347,13 @@ def all_tickets(status=None, limit=100):
 
 
 def _notify_operators(ticket_name, subject):
-    """Best-effort — a notification hiccup must never lose the ticket."""
-    try:
-        users = set()
-        for role in OPERATOR_ROLES:
-            for u in frappe.get_all(
-                "Has Role", filters={"role": role, "parenttype": "User"},
-                fields=["parent"], ignore_permissions=True,
-            ):
-                users.add(u["parent"])
-        for user in users:
-            if user in ("Administrator", "Guest"):
-                continue
-            create_notification(
-                user,
-                title=_("تذكرة دعم جديدة {0}").format(ticket_name),
-                message=subject[:120],
-                kind="message",
-                reference_doctype=TICKET_DT,
-                reference_name=ticket_name,
-            )
-        frappe.db.commit()
-    except Exception:
-        frappe.log_error(title="Ovira: support ticket notify failed")
+    """Announce the ticket; the engine resolves which users are operators, in
+    which language, over which channels."""
+    from ovira_marketplace.notifications.dispatch import emit
+
+    emit("operator.support_ticket",
+         {"ticket": ticket_name, "subject": (subject or "")[:120], "kind": "message"},
+         reference={"doctype": TICKET_DT, "name": ticket_name})
 
 
 def _notify_counterpart(ticket_name, sender_role, body):

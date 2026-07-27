@@ -12,6 +12,7 @@ import {
 } from "@/lib/notifications-api";
 import { useI18n } from "@/components/i18n-provider";
 import { PushToggle } from "@/components/push-toggle";
+import { MarketingPreferences } from "@/components/marketing-preferences";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<NotificationKind, typeof Bell> = {
@@ -64,6 +65,8 @@ export default function NotificationsPage() {
       </div>
 
       <PushToggle />
+
+      <MarketingPreferences />
 
       {notifications.length === 0 ? (
         <div className="card space-y-4 p-10 text-center">

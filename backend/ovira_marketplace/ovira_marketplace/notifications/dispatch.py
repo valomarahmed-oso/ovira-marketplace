@@ -21,7 +21,7 @@ import hashlib
 import json
 
 import frappe
-from frappe.utils import add_to_date, now_datetime
+from frappe.utils import add_to_date, cint, now_datetime
 
 from ovira_marketplace.notifications import events as catalog
 from ovira_marketplace.notifications.channels import ADAPTERS
@@ -81,6 +81,57 @@ def _emit(event_id, context, doc, recipients, reference, force=False):
     return queued
 
 
+def _allowed(event, channel, rcpt):
+    """Marketing obeys the recipient; transactional does not.
+
+    A receipt, a shipping update or a delivery code is part of the purchase — the
+    same line Amazon draws. Everything else is the customer's call, and a missing
+    preference row means they never objected.
+    """
+    if event.transactional:
+        return True, None
+    pref = None
+    try:
+        from ovira_marketplace.marketplace.doctype.marketplace_notification_preference.marketplace_notification_preference import (
+            for_recipient,
+        )
+
+        pref = for_recipient(rcpt.get("email"), user=rcpt.get("user"))
+    except Exception:
+        pref = None   # doctype not migrated yet — don't silence the store
+    if not pref:
+        return True, None
+    if channel == "email" and not pref.marketing_email:
+        return False, "unsubscribed from marketing email"
+    if channel == "push" and not pref.marketing_push:
+        return False, "unsubscribed from marketing push"
+    return True, None
+
+
+def _quiet_until():
+    """End of the store's quiet hours, if we're inside them right now.
+
+    Marketing that lands at 3am reads as spam even when the customer asked for
+    it, so it waits for morning instead of being dropped.
+    """
+    try:
+        settings = frappe.get_cached_doc("Marketplace Settings")
+        start = cint(settings.get("quiet_hours_start"))
+        end = cint(settings.get("quiet_hours_end"))
+    except Exception:
+        return None
+    if start == end:
+        return None
+    hour = now_datetime().hour
+    inside = (start <= hour < end) if start < end else (hour >= start or hour < end)
+    if not inside:
+        return None
+    target = now_datetime().replace(minute=0, second=0, microsecond=0)
+    while target.hour != end:
+        target = add_to_date(target, hours=1)
+    return target
+
+
 def _queue(event_id, event, channel, rcpt, context, reference, salt=""):
     """Render now, deliver later. Returns the outbox row name, or None when this
     (event, recipient, channel) was already written."""
@@ -92,25 +143,34 @@ def _queue(event_id, event, channel, rcpt, context, reference, salt=""):
     if not content:
         return None
 
-    title = _fill(content.title, context)
-    lines = [ln for ln in (_fill(x, context) for x in content.lines) if ln.strip()]
+    ctx = _with_defaults(context)
+    title = _fill(content.title, ctx)
+    lines = [ln for ln in (_fill(x, ctx) for x in content.lines) if ln.strip()]
 
     key = _dedupe_key(event_id, channel, rcpt, reference, salt)
     if frappe.db.exists(OUTBOX, {"dedupe_key": key}):
         return None
 
+    allowed, refusal = _allowed(event, channel, rcpt)
+    # Marketing outside waking hours waits rather than lands at 3am.
+    hold = None if (event.transactional or not allowed) else _quiet_until()
+
     doc = frappe.get_doc({
         "doctype": OUTBOX,
-        "event": event_id, "channel": channel, "status": "queued",
+        "event": event_id, "channel": channel,
+        "status": "skipped" if not allowed else "queued",
         "recipient_user": rcpt.get("user"), "recipient_email": rcpt.get("email"),
         "recipient_phone": rcpt.get("phone"), "language": lang,
         "transactional": 1 if event.transactional else 0,
         "subject": title[:140], "body": json.dumps(lines, ensure_ascii=False),
         "reference_doctype": reference.get("doctype"), "reference_name": reference.get("name"),
         "dedupe_key": key, "attempts": 0,
+        "last_error": refusal, "next_attempt_at": hold,
     })
     doc.insert(ignore_permissions=True)
-    return doc.name
+    # A held or refused row is not handed to the worker: the sweep picks the held
+    # one up when its hour comes, and the refused one is already final.
+    return None if (not allowed or hold) else doc.name
 
 
 def _dedupe_key(event_id, channel, rcpt, reference, salt=""):
@@ -118,6 +178,19 @@ def _dedupe_key(event_id, channel, rcpt, reference, salt=""):
     raw = "|".join([event_id, channel, str(who),
                     str(reference.get("doctype") or ""), str(reference.get("name") or ""), str(salt)])
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()
+
+
+def _with_defaults(context):
+    """Values every message may use without each call site remembering them."""
+    ctx = dict(context or {})
+    if "store" not in ctx:
+        try:
+            from ovira_marketplace.emails import STORE_NAME
+
+            ctx["store"] = STORE_NAME
+        except Exception:
+            ctx["store"] = ""
+    return ctx
 
 
 class _Safe(dict):
@@ -237,7 +310,8 @@ def deliver_one(name):
         lines = []
     reference = {"doctype": row.reference_doctype, "name": row.reference_name}
 
-    result = adapter(rcpt, row.subject or "", lines, reference=reference) or {}
+    result = adapter(rcpt, row.subject or "", lines, reference=reference,
+                     transactional=bool(row.transactional)) or {}
     if result.get("skipped"):
         _finish(row, "skipped", reason=result["skipped"])
         return
@@ -278,7 +352,7 @@ def retry_pending():
         filters=[["status", "in", ["retry", "queued"]],
                  ["next_attempt_at", "<", now_datetime()]],
         pluck="name", limit_page_length=200, order_by="creation asc",
-    )
+    )   # includes marketing held for quiet hours, once its hour has come
     # A queued row with no next_attempt_at is either in flight or was dropped; give
     # it a grace period before re-sending so we don't race the original worker.
     stale = frappe.get_all(

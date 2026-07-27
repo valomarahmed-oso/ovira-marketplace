@@ -150,6 +150,16 @@ EVENTS = {
         Content("New order 🛍️", ["Order: {order}", "Total: {total} {currency}", "Please prepare it soon."]),
     ),
 
+    "account.welcome": _ev(
+        BUYER, (INAPP, EMAIL),
+        Content("أهلاً بيك في {store} 👋", [
+            "حسابك اتفتح بنجاح.", "تقدر تتابع طلباتك وعناوينك من صفحة حسابك.",
+        ]),
+        Content("Welcome to {store} 👋", [
+            "Your account is ready.", "Track your orders and addresses from your account page.",
+        ]),
+    ),
+
     # ── operator ─────────────────────────────────────────────────────────
     "operator.support_ticket": _ev(
         OPERATOR, (INAPP, EMAIL),
@@ -163,9 +173,51 @@ def get(event_id):
     return EVENTS.get(event_id)
 
 
-def content_for(event_id, lang):
-    """The content block for an event in `lang` ('ar'/'en'), Arabic by default."""
+def default_content(event_id, lang):
+    """The SHIPPED wording, ignoring any operator override."""
     ev = EVENTS.get(event_id)
     if not ev:
         return None
     return ev.en if (lang or "").lower().startswith("en") else ev.ar
+
+
+def _overrides():
+    """{(event, lang): Content} from Marketplace Notification Template, cached.
+
+    Kept here rather than in the engine so every reader — the dispatcher, the
+    preview, the admin list — resolves wording exactly one way.
+    """
+    import frappe
+
+    cached = frappe.cache().get_value("ovira_notification_templates")
+    if cached is not None:
+        return {tuple(k.split("::", 1)): Content(v[0], v[1]) for k, v in cached.items()}
+
+    out = {}
+    try:
+        rows = frappe.get_all(
+            "Marketplace Notification Template",
+            filters={"enabled": 1}, fields=["event", "language", "title", "lines"],
+            ignore_permissions=True,
+        )
+    except Exception:
+        return {}   # doctype not migrated yet — defaults still work
+    for r in rows:
+        lines = [ln.strip() for ln in (r.get("lines") or "").splitlines() if ln.strip()]
+        out["{0}::{1}".format(r["event"], r["language"])] = [r.get("title") or "", lines]
+    try:
+        frappe.cache().set_value("ovira_notification_templates", out)
+    except Exception:
+        pass
+    return {tuple(k.split("::", 1)): Content(v[0], v[1]) for k, v in out.items()}
+
+
+def content_for(event_id, lang):
+    """The content block for an event in `lang` ('ar'/'en'), Arabic by default —
+    the operator's override when there is one, otherwise the shipped default."""
+    code = (lang or "ar").lower()[:2]
+    code = "en" if code == "en" else "ar"
+    override = _overrides().get((event_id, code))
+    if override and override.title:
+        return override
+    return default_content(event_id, code)

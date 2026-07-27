@@ -43,7 +43,12 @@
   "cod_max_open_orders",
   "cod_max_order_value",
   "cod_new_customer_max_value",
-  "cod_max_refusal_rate"
+  "cod_max_refusal_rate",
+  "notifications_section",
+  "quiet_hours_help",
+  "quiet_hours_start",
+  "column_break_quiet",
+  "quiet_hours_end"
  ],
  "fields": [
   {
@@ -298,6 +303,32 @@
    "default": "40",
    "precision": "2",
    "description": "Flag once the buyer refuses more than this share of their decided COD orders (needs 3+). 0 = off."
+  },
+  {
+   "fieldname": "notifications_section",
+   "fieldtype": "Section Break",
+   "label": "Notifications"
+  },
+  {
+   "fieldname": "quiet_hours_help",
+   "fieldtype": "HTML",
+   "options": "<p class='text-muted small'>Marketing messages are held during these hours and sent when they end. Transactional messages (receipts, shipping, delivery codes) always go out immediately. Set both to the same value to disable.</p>"
+  },
+  {
+   "fieldname": "quiet_hours_start",
+   "fieldtype": "Int",
+   "label": "Quiet Hours Start (0-23)",
+   "default": "22"
+  },
+  {
+   "fieldname": "column_break_quiet",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "quiet_hours_end",
+   "fieldtype": "Int",
+   "label": "Quiet Hours End (0-23)",
+   "default": "8"
   }
  ],
  "index_web_pages_for_search": 1,

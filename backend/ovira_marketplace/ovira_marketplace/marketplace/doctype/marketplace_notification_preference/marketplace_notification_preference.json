@@ -1,0 +1,94 @@
+{
+ "actions": [],
+ "autoname": "field:recipient",
+ "creation": "2026-07-27 00:00:00.000000",
+ "description": "What one recipient agreed to receive. Transactional messages (receipts, shipping, delivery codes, refunds) are never listed here — they are not opt-out.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "recipient",
+  "user",
+  "column_break_who",
+  "marketing_email",
+  "marketing_push",
+  "token_section",
+  "unsubscribe_token"
+ ],
+ "fields": [
+  {
+   "description": "The email address these preferences belong to (a guest buyer has no user account).",
+   "fieldname": "recipient",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Recipient",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_who",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "marketing_email",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Marketing Email"
+  },
+  {
+   "default": "1",
+   "fieldname": "marketing_push",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Marketing Push"
+  },
+  {
+   "fieldname": "token_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "description": "Signed value in the unsubscribe link — proves the click came from the message we sent.",
+   "fieldname": "unsubscribe_token",
+   "fieldtype": "Data",
+   "label": "Unsubscribe Token",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-27 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Notification Preference",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Operator"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}
