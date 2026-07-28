@@ -12,6 +12,7 @@ const REASON_KEY: Record<string, keyof Dict> = {
   "Order payment": "walletReasonOrderPayment",
   Adjustment: "walletReasonAdjustment",
   Referral: "walletReasonReferral",
+  Loyalty: "walletReasonLoyalty",
 };
 
 export default function WalletPage() {

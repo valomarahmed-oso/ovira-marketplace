@@ -41,6 +41,11 @@ def _bump(product, field, by=1):
              "views": by if field == "views" else 0,
              "carts": by if field == "cart_adds" else 0},
         )
+        # Frappe only commits at the end of POST/PUT requests. A product page is
+        # fetched with GET, so without this every view counted here is rolled
+        # back — which is exactly how this table stayed empty. The statement
+        # above is the only write in that request, so committing it is safe.
+        frappe.db.commit()
     except Exception:
         # Analytics must never break the page it's measuring.
         frappe.log_error(frappe.get_traceback(), "Ovira: product stat")
@@ -127,6 +132,12 @@ def _diagnose(views, carts, sold, published):
     """
     if not published:
         return "unpublished"
+    if not (views or carts or sold):
+        return "no_data"         # nothing measured yet — say so, don't invent a cause
+    if sold and views < 20:
+        # It sells. Whatever the traffic numbers say, "nobody sees it" is not the
+        # problem — we simply haven't measured enough of the funnel to judge it.
+        return "healthy"
     if views < 20:
         return "unseen"          # nobody is finding it — visibility, not the product
     if carts == 0:

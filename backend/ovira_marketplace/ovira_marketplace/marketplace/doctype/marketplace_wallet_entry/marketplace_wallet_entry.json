@@ -53,7 +53,7 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Reason",
-   "options": "Refund\nPromotional\nOrder payment\nAdjustment\nReferral"
+   "options": "Refund\nPromotional\nOrder payment\nAdjustment\nReferral\nLoyalty"
   },
   {
    "fieldname": "reference_doctype",

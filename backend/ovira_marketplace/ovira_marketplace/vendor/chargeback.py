@@ -103,6 +103,10 @@ def preview(doc):
     refund = flt(doc.get("refund_amount"))
     if refund <= 0:
         return {"applies": False, "reason": "no_refund"}
+    # Single Company mode has no third-party seller to charge back — the store
+    # would be billing itself for its own refund. See settlement._splits_revenue.
+    if (settings.get("mode") or "Multi Vendor") != "Multi Vendor":
+        return {"applies": False, "reason": "single_company"}
     if not settings.get("refund_charge_vendor"):
         return {"applies": False, "reason": "disabled"}
     if (doc.get("fault") or "Vendor") != "Vendor":

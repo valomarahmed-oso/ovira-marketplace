@@ -17,8 +17,23 @@ import frappe
 from frappe.utils import flt, nowdate
 
 
+def _splits_revenue():
+    """Is there anyone to settle WITH?
+
+    In Single Company mode the store sells its own goods: the "vendor" behind
+    every order is the operator. Booking an expense and a payable there would
+    have the company owing itself the money it just earned — a liability that
+    can never be paid and an expense that never happened. Only a marketplace
+    with third-party sellers splits revenue.
+    """
+    settings = frappe.get_cached_doc("Marketplace Settings")
+    return (settings.get("mode") or "Multi Vendor") == "Multi Vendor"
+
+
 def settle_order(order):
     """Book the operator's payable to each vendor for a paid order. Idempotent."""
+    if not _splits_revenue():
+        return []
     if isinstance(order, str):
         order = frappe.get_doc("Marketplace Order", order)
 
@@ -150,7 +165,10 @@ def vendor_balances(company=None):
     """Every vendor with a linked supplier and the balance the operator owes them.
 
     Powers the operator's payout view: each row carries the outstanding payable
-    so the operator can see who is due what before paying."""
+    so the operator can see who is due what before paying. Empty in Single
+    Company mode — an operator is never owed money by themselves."""
+    if not _splits_revenue():
+        return []
     settings = frappe.get_cached_doc("Marketplace Settings")
     company = company or settings.operator_company
     rows = []
@@ -176,6 +194,8 @@ def vendor_balances(company=None):
 def run_due_payouts(company=None):
     """Pay each active vendor their outstanding payable balance via a Payment
     Entry (Pay). Best-effort per vendor. Returns the list of created payments."""
+    if not _splits_revenue():
+        return []
     settings = frappe.get_cached_doc("Marketplace Settings")
     company = company or settings.operator_company
     payable, paid_from = _payout_accounts(company)

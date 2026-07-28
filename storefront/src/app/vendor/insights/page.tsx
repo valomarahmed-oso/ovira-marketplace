@@ -17,7 +17,7 @@ type Row = {
   cart_to_sale: number;
   stock_qty: number;
   published: number;
-  diagnosis: "unpublished" | "unseen" | "not_tempting" | "abandoned" | "healthy";
+  diagnosis: "unpublished" | "no_data" | "unseen" | "not_tempting" | "abandoned" | "healthy";
 };
 
 /** Views → basket → sold, per product.
@@ -53,6 +53,7 @@ export default function VendorInsightsPage() {
 
   const label: Record<Row["diagnosis"], string> = {
     unpublished: t.viUnpublished,
+    no_data: t.viNoData,
     unseen: t.viUnseen,
     not_tempting: t.viNotTempting,
     abandoned: t.viAbandoned,
@@ -60,6 +61,7 @@ export default function VendorInsightsPage() {
   };
   const tone: Record<Row["diagnosis"], string> = {
     unpublished: "bg-ink-50 text-ink-500",
+    no_data: "bg-ink-50 text-ink-500",
     unseen: "bg-amber-50 text-amber-700",
     not_tempting: "bg-coral-50 text-coral",
     abandoned: "bg-blue-50 text-blue-700",

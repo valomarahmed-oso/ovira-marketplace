@@ -95,6 +95,7 @@ export function ReturnSettlement({
     disabled: t.rtnCbDisabled,
     not_vendor_fault: t.rtnCbOperatorAbsorbs,
     multi_vendor: t.rtnCbMultiVendor,
+    single_company: t.rtnCbSingleCompany,
   };
 
   return (
