@@ -4,9 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Banknote, CreditCard, Info, Loader2, MapPin, Plus, Tag, Truck, Wallet, X } from "lucide-react";
-import { getAppConfig, previewShipping, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
+import { getAppConfig, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
 import { getMyAddresses, upsertAddress, type BuyerAddress } from "@/lib/addresses-api";
-import { getShippingRates } from "@/lib/shipping-rates-api";
+import {
+  getShippingMethods,
+  getShippingQuote,
+  getShippingRates,
+  type ShippingMethod,
+  type ShippingQuote,
+} from "@/lib/shipping-rates-api";
 import { listPaymentMethods, type PaymentMethod } from "@/lib/payment-methods";
 import { saveAbandonedCart } from "@/lib/abandoned-cart";
 import { getWallet } from "@/lib/wallet-api";
@@ -149,19 +155,30 @@ export default function CheckoutPage() {
   const subtotal = cartSubtotal(items);
   // Cart signature — recompute the quote when contents, options or quantities change.
   const cartKey = items.map((i) => `${i.product.slug}:${i.variant?.sku ?? ""}:${i.qty}`).join("|");
-  const [shipRate, setShipRate] = useState<number | null>(null);
+  // Delivery options. None configured → no picker, and the quote is the plain
+  // fee the store already calculated, exactly as before this existed.
+  const [shipMethods, setShipMethods] = useState<ShippingMethod[]>([]);
+  const [shipMethod, setShipMethod] = useState<string | null>(null);
+  useEffect(() => {
+    getShippingMethods().then((list) => {
+      setShipMethods(list);
+      setShipMethod(list.find((m) => m.is_default)?.name ?? list[0]?.name ?? null);
+    });
+  }, []);
+
+  const [quote, setQuote] = useState<ShippingQuote | null>(null);
   useEffect(() => {
     if (subtotal <= 0) return;
     let cancelled = false;
     const payload = items.map((i) => ({ slug: i.product.slug, qty: i.qty, variant: i.variant?.sku }));
-    previewShipping(payload, form.gov).then((r) => {
-      if (!cancelled) setShipRate(r);
+    getShippingQuote(payload, form.gov, shipMethod).then((q) => {
+      if (!cancelled) setQuote(q);
     });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartKey, form.gov]);
+  }, [cartKey, form.gov, shipMethod]);
 
   // Capture the cart for abandoned-cart recovery (signed-in shoppers we can
   // email). Debounced; the server only emails carts left untouched for a while.
@@ -214,8 +231,25 @@ export default function CheckoutPage() {
   // Shipping shown is ALWAYS the server quote (the same value the order charges);
   // never the local free-over-500 estimate, which would wrongly read "free" while
   // the operator's rate table actually charges a fee. 0 only while it loads.
-  const shippingLoading = shipRate === null;
-  const effShipping = shipRate ?? 0;
+  const shippingLoading = quote === null;
+  const effShipping = quote?.total ?? 0;
+
+  /** A day window as one line: "3 days" when it's a single number, "2–4" when
+   *  it's a range. Used for the promise under the address and per method. */
+  function daysText(min: number, max: number): string | null {
+    if (!max) return null;
+    return min && min !== max
+      ? t.shipEtaRange.replace("{from}", String(min)).replace("{to}", String(max))
+      : t.shipEtaHint.replace("{days}", String(max));
+  }
+
+  // What the shopper is promised: the picked method's window plus the
+  // governorate's own transit days. Without methods this falls back to the rate
+  // table alone — which is all there ever was, and nothing at all in Per-Vendor
+  // mode.
+  const etaText =
+    daysText(quote?.eta_min_days ?? 0, quote?.eta_max_days ?? 0) ??
+    (govEta ? t.shipEtaHint.replace("{days}", String(govEta)) : null);
   const payableBeforeWallet = Math.max(0, subtotal + effShipping - (coupon?.discount ?? 0));
   const walletApplied = useWallet ? Math.min(walletBalance, payableBeforeWallet) : 0;
 
@@ -280,6 +314,7 @@ export default function CheckoutPage() {
       payment_method_ref: selectedOption?.ref,
       coupon: coupon?.code,
       use_wallet: useWallet && walletBalance > 0,
+      shipping_method: shipMethod,
     });
     const id = remote?.name ?? "OVR-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 
@@ -359,9 +394,7 @@ export default function CheckoutPage() {
                       <option key={g}>{g}</option>
                     ))}
                   </select>
-                  {govEta ? (
-                    <p className="mt-1 text-xs text-mint">{t.shipEtaHint.replace("{days}", String(govEta))}</p>
-                  ) : null}
+                  {etaText ? <p className="mt-1 text-xs text-mint">{etaText}</p> : null}
                 </div>
                 <input required placeholder={t.adrDetail} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={`${field} sm:col-span-2`} />
                 {user && (
@@ -373,6 +406,42 @@ export default function CheckoutPage() {
               </div>
             )}
           </section>
+
+          {shipMethods.length > 0 && (
+            <section className="card space-y-3 p-5">
+              <h2 className="font-medium text-ink">{t.coShipTitle}</h2>
+              {shipMethods.map((m) => {
+                const note = m.description || daysText(m.eta_min_days, m.eta_max_days);
+                return (
+                  <label
+                    key={m.name}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors",
+                      shipMethod === m.name ? "border-blue bg-blue-50" : "border-line",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="ship"
+                      checked={shipMethod === m.name}
+                      onChange={() => setShipMethod(m.name)}
+                      className="accent-blue"
+                    />
+                    <Truck className="h-5 w-5 text-blue-600" />
+                    <span className="flex-1">
+                      <span className="block text-sm font-medium text-ink">
+                        {locale === "en" && m.method_name_en ? m.method_name_en : m.method_name}
+                      </span>
+                      {note && <span className="block text-xs text-ink-400">{note}</span>}
+                    </span>
+                    <span className="shrink-0 font-tech text-sm text-ink">
+                      {m.surcharge > 0 ? `+${formatPrice(m.surcharge)}` : t.coShipNoExtra}
+                    </span>
+                  </label>
+                );
+              })}
+            </section>
+          )}
 
           <section className="card space-y-3 p-5">
             <h2 className="font-medium text-ink">{t.coPayTitle}</h2>

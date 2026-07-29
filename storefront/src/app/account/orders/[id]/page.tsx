@@ -219,6 +219,23 @@ export default function OrderDetailPage() {
                 {order.shipping_address}
                 {order.governorate ? `، ${order.governorate}` : ""}
               </div>
+              {/* The delivery option and the window promised at checkout — kept
+                  on the order, so a later rate change can't rewrite it. */}
+              {order.shipping_method && (
+                <div className="mt-1 text-ink">
+                  {order.shipping_method}
+                  {order.shipping_eta_max ? (
+                    <span className="text-ink-400">
+                      {" — "}
+                      {order.shipping_eta_min && order.shipping_eta_min !== order.shipping_eta_max
+                        ? t.shipEtaRange
+                            .replace("{from}", String(order.shipping_eta_min))
+                            .replace("{to}", String(order.shipping_eta_max))
+                        : t.shipEtaHint.replace("{days}", String(order.shipping_eta_max))}
+                    </span>
+                  ) : null}
+                </div>
+              )}
             </div>
           </div>
 

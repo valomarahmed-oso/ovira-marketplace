@@ -503,6 +503,8 @@ export type CheckoutPayload = {
   payment_method_ref?: string;
   coupon?: string;
   use_wallet?: boolean;
+  /** The delivery option picked; the server re-resolves it and prices it. */
+  shipping_method?: string | null;
 };
 
 export async function placeOrder(

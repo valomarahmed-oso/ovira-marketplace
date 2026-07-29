@@ -192,6 +192,155 @@ def delete_shipping_rate(name):
     return {"deleted": name}
 
 
+# -- shipping methods (what the shopper picks) -------------------------------
+# The rate table and the per-vendor rules answer "how much does delivery cost".
+# They do not answer "how fast", and they give the shopper nothing to choose.
+# A method sits on top of whichever of those is active: it adds a surcharge and
+# carries a delivery window, so the same list works in both shipping modes.
+# With no methods configured the store behaves exactly as it did before — the
+# picker hides, the surcharge is 0, and the quote is the base fee.
+
+METHOD_FIELDS = [
+    "name",
+    "method_name",
+    "method_name_en",
+    "surcharge",
+    "eta_min_days",
+    "eta_max_days",
+    "description",
+    "is_default",
+    "display_order",
+    "enabled",
+]
+
+METHOD_ORDER = "display_order asc, method_name asc"
+
+
+def _gov_extra_days(governorate):
+    """Extra transit days the destination adds, from the operator's rate table.
+
+    Kept separate from the method's own window: a governorate is slower or
+    faster regardless of which service the shopper picked."""
+    if not governorate:
+        return 0
+    return cint(
+        frappe.db.get_value(
+            "Marketplace Shipping Rate", {"governorate": governorate, "enabled": 1}, "eta_days"
+        )
+    )
+
+
+def resolve_method(method=None):
+    """The method row to charge for, as a dict, or None when none are set up.
+
+    An unknown or disabled name falls back to the default (then the first
+    enabled one) rather than throwing: a stale pick in a client that sat open
+    must not be able to block a checkout."""
+    rows = frappe.get_all(
+        "Marketplace Shipping Method",
+        filters={"enabled": 1},
+        fields=METHOD_FIELDS,
+        order_by=METHOD_ORDER,
+        ignore_permissions=True,
+    )
+    if not rows:
+        return None
+    wanted = (method or "").strip()
+    if wanted:
+        for row in rows:
+            if row["name"] == wanted or (row.get("method_name_en") or "") == wanted:
+                return row
+    return next((r for r in rows if r.get("is_default")), rows[0])
+
+
+@frappe.whitelist(allow_guest=True)
+def list_shipping_methods():
+    """Public: the delivery options a shopper can pick between."""
+    return frappe.get_all(
+        "Marketplace Shipping Method",
+        filters={"enabled": 1},
+        fields=METHOD_FIELDS,
+        order_by=METHOD_ORDER,
+        ignore_permissions=True,
+    )
+
+
+@frappe.whitelist(allow_guest=True)
+def quote(items, governorate=None, method=None):
+    """Full delivery quote for a cart: cost split into base + method surcharge,
+    plus the delivery window. `preview` stays the base-only number so anything
+    still calling it keeps working."""
+    base = flt(preview(items, governorate))
+    row = resolve_method(method)
+    extra = _gov_extra_days(governorate)
+    surcharge = flt(row["surcharge"]) if row else 0.0
+    eta_min = (cint(row["eta_min_days"]) + extra) if row else extra
+    eta_max = (cint(row["eta_max_days"]) + extra) if row else extra
+    return {
+        "base": base,
+        "surcharge": surcharge,
+        "total": base + surcharge,
+        "method": row["name"] if row else None,
+        "method_name": row["method_name"] if row else None,
+        "method_name_en": (row.get("method_name_en") if row else None),
+        "eta_min_days": eta_min,
+        "eta_max_days": max(eta_min, eta_max),
+    }
+
+
+@frappe.whitelist()
+def list_shipping_methods_admin():
+    """Operator: every method row, enabled or not."""
+    _require_operator()
+    return frappe.get_all(
+        "Marketplace Shipping Method",
+        fields=METHOD_FIELDS,
+        order_by=METHOD_ORDER,
+        ignore_permissions=True,
+    )
+
+
+@frappe.whitelist()
+def upsert_shipping_method(
+    method_name, method_name_en=None, surcharge=0, eta_min_days=0, eta_max_days=0,
+    description=None, is_default=0, display_order=0, enabled=1, name=None,
+):
+    """Operator: create or update one delivery option."""
+    _require_operator()
+    method_name = (method_name or "").strip()
+    if not method_name:
+        frappe.throw(_("Enter a name for the shipping method."))
+
+    existing = name or frappe.db.get_value("Marketplace Shipping Method", {"method_name": method_name})
+    doc = (
+        frappe.get_doc("Marketplace Shipping Method", existing)
+        if existing and frappe.db.exists("Marketplace Shipping Method", existing)
+        else frappe.new_doc("Marketplace Shipping Method")
+    )
+    doc.method_name = method_name
+    doc.method_name_en = (method_name_en or "").strip() or None
+    doc.surcharge = flt(surcharge)
+    doc.eta_min_days = cint(eta_min_days)
+    doc.eta_max_days = cint(eta_max_days)
+    doc.description = (description or "").strip() or None
+    doc.is_default = 1 if cint(is_default) else 0
+    doc.display_order = cint(display_order)
+    doc.enabled = 1 if cint(enabled) else 0
+    doc.flags.ignore_permissions = True
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {f: doc.get(f) for f in METHOD_FIELDS}
+
+
+@frappe.whitelist()
+def delete_shipping_method(name):
+    _require_operator()
+    if frappe.db.exists("Marketplace Shipping Method", name):
+        frappe.delete_doc("Marketplace Shipping Method", name, ignore_permissions=True)
+        frappe.db.commit()
+    return {"deleted": name}
+
+
 # -- dynamic shipping carriers (portal-managed directory) --------------------
 # A marketplace-neutral courier list the operator maintains from the portal (no
 # code / no ERPNext Desk). Vendors pick a carrier when they ship; the tracking

@@ -41,6 +41,10 @@ export type BuyerOrder = Omit<BuyerOrderSummary, "item_count"> & {
   shipping_address?: string;
   discount_amount?: number;
   coupon_code?: string;
+  /** Delivery option picked at checkout, and the window promised at the time. */
+  shipping_method?: string | null;
+  shipping_eta_min?: number;
+  shipping_eta_max?: number;
   items: BuyerOrderItem[];
   /** Most significant return status on the order; "Completed" = sale reversed. */
   return_status?: string | null;

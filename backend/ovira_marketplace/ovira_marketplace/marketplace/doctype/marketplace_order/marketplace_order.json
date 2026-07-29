@@ -22,6 +22,9 @@
   "shipping_section",
   "governorate",
   "shipping_address",
+  "shipping_method",
+  "shipping_eta_min",
+  "shipping_eta_max",
   "delivery_confirmed",
   "delivered_on",
   "delivery_otp",
@@ -30,6 +33,7 @@
   "totals_section",
   "subtotal",
   "shipping_amount",
+  "shipping_method_surcharge",
   "discount_amount",
   "coupon_code",
   "coupon_vendor",
@@ -160,6 +164,28 @@
    "label": "Shipping address"
   },
   {
+   "description": "The delivery option the shopper picked, as it was named at the time.",
+   "fieldname": "shipping_method",
+   "fieldtype": "Data",
+   "label": "Shipping method",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "Delivery window promised at checkout, in days — kept on the order so a later rate change can't rewrite what the shopper was told.",
+   "fieldname": "shipping_eta_min",
+   "fieldtype": "Int",
+   "label": "Delivery from (days)",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "shipping_eta_max",
+   "fieldtype": "Int",
+   "label": "Delivery to (days)",
+   "read_only": 1
+  },
+  {
    "default": "0",
    "description": "Set when delivery was verified with the buyer's one-time code.",
    "fieldname": "delivery_confirmed",
@@ -208,6 +234,13 @@
    "fieldname": "shipping_amount",
    "fieldtype": "Currency",
    "label": "Shipping",
+   "read_only": 1
+  },
+  {
+   "description": "The extra the picked delivery option added on top of the base shipping fee. Operator revenue — never paid out to a vendor.",
+   "fieldname": "shipping_method_surcharge",
+   "fieldtype": "Currency",
+   "label": "Delivery option extra",
    "read_only": 1
   },
   {

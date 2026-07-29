@@ -3,7 +3,7 @@ import json
 import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
-from frappe.utils import flt
+from frappe.utils import cint, flt
 
 from ovira_marketplace.customers import (
     customer_for_user,
@@ -22,7 +22,7 @@ FLAT_SHIPPING = 50
 @rate_limit(limit=30, seconds=60 * 60, methods="POST")
 def place_order(
     items, customer, payment_method="cod", coupon=None, attribution=None, use_wallet=False,
-    payment_method_ref=None,
+    payment_method_ref=None, shipping_method=None,
 ):
     """Create a Marketplace Order from the storefront cart and split it into
     per-vendor ERPNext Sales Orders.
@@ -34,6 +34,9 @@ def place_order(
       landing_page} captured by the storefront; the channel is derived here.
     `use_wallet`: when true, spend the signed-in buyer's store credit (capped at
       the payable) — booked as an operator-funded discount, like a coupon.
+    `shipping_method`: the delivery option the shopper picked; re-resolved here
+      so the surcharge and the promised window come from the server, not the
+      client.
     """
     items = _loads(items)
     customer = _loads(customer)
@@ -168,6 +171,7 @@ def place_order(
 
     order.subtotal = subtotal
     order.shipping_amount = _order_shipping(order, subtotal, customer.get("gov"), settings)
+    _apply_shipping_method(order, customer.get("gov"), shipping_method)
 
     # Coupon discount is always recomputed here — the client's number is never
     # trusted. An invalid/expired code surfaces its reason and stops checkout.
@@ -442,6 +446,26 @@ def _order_shipping(order, subtotal, governorate, settings):
                 frappe.log_error(title="Ovira: per-vendor shipping failed")
         return total
     return _shipping_amount(subtotal, governorate)
+
+
+def _apply_shipping_method(order, governorate, method):
+    """Charge the picked delivery option and record what it promised.
+
+    The surcharge stays with the operator: `create_vendor_orders` recomputes each
+    vendor's shipping from that vendor's own rule, so paying for faster delivery
+    never leaks into a vendor payout. Storing the window on the order means the
+    promise the shopper saw survives a later rate change."""
+    from ovira_marketplace.api.shipping import _gov_extra_days, resolve_method
+
+    row = resolve_method(method)
+    if not row:
+        return  # no methods configured — the store prices delivery as it always did
+    extra = _gov_extra_days(governorate)
+    order.shipping_method = row["method_name"]
+    order.shipping_method_surcharge = flt(row["surcharge"])
+    order.shipping_amount = flt(order.shipping_amount) + flt(row["surcharge"])
+    order.shipping_eta_min = cint(row["eta_min_days"]) + extra
+    order.shipping_eta_max = max(order.shipping_eta_min, cint(row["eta_max_days"]) + extra)
 
 
 def _shipping_amount(subtotal, governorate=None):

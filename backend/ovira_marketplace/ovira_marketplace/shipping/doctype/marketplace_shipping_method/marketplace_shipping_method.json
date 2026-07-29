@@ -1,0 +1,143 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:method_name",
+ "creation": "2026-07-29 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "method_name",
+  "method_name_en",
+  "enabled",
+  "is_default",
+  "column_break_main",
+  "surcharge",
+  "display_order",
+  "eta_section",
+  "eta_min_days",
+  "column_break_eta",
+  "eta_max_days",
+  "note_section",
+  "description"
+ ],
+ "fields": [
+  {
+   "description": "Shown to the shopper at checkout, in Arabic (e.g. توصيل عادي).",
+   "fieldname": "method_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Method name (AR)",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "description": "The same method in English (e.g. Standard delivery).",
+   "fieldname": "method_name_en",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Method name (EN)"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "default": "0",
+   "description": "Pre-selected at checkout. Exactly one method can be the default.",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "label": "Default method"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Added on top of the shipping fee the store already calculates (operator rate table, or the vendor's own rule). Leave 0 for the standard method; charge for the faster one.",
+   "fieldname": "surcharge",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Extra charge"
+  },
+  {
+   "default": "0",
+   "description": "Lower numbers show first at checkout.",
+   "fieldname": "display_order",
+   "fieldtype": "Int",
+   "label": "Display order"
+  },
+  {
+   "fieldname": "eta_section",
+   "fieldtype": "Section Break",
+   "label": "Delivery time"
+  },
+  {
+   "default": "0",
+   "description": "Fastest this method usually arrives, in days. The destination governorate's own extra days (if set in the rate table) are added on top.",
+   "fieldname": "eta_min_days",
+   "fieldtype": "Int",
+   "label": "From (days)"
+  },
+  {
+   "fieldname": "column_break_eta",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Slowest this method usually arrives, in days. Same as the minimum for a single-day promise.",
+   "fieldname": "eta_max_days",
+   "fieldtype": "Int",
+   "label": "To (days)"
+  },
+  {
+   "fieldname": "note_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "description": "Optional line under the method name at checkout.",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-29 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Shipping",
+ "name": "Marketplace Shipping Method",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Operator",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
