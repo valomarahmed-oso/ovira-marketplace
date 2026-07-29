@@ -505,6 +505,8 @@ export type CheckoutPayload = {
   use_wallet?: boolean;
   /** The delivery option picked; the server re-resolves it and prices it. */
   shipping_method?: string | null;
+  /** Courier the shopper would rather have — a request, not an instruction. */
+  preferred_carrier?: string;
 };
 
 export async function placeOrder(

@@ -31,6 +31,7 @@ export function VendorShipments({
   const { t, locale } = useI18n();
   const [shipments, setShipments] = useState<Shipment[] | null>(null);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [wanted, setWanted] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [busy, setBusy] = useState(false);
   const [savedName, setSavedName] = useState<string | null>(null);
@@ -51,7 +52,11 @@ export function VendorShipments({
 
   useEffect(() => {
     let cancelled = false;
-    getMyOrderShipments(order).then((s) => !cancelled && hydrate(s));
+    getMyOrderShipments(order).then((r) => {
+      if (cancelled) return;
+      hydrate(r.shipments);
+      setWanted(r.preferred_carrier);
+    });
     listCarriers().then((c) => !cancelled && setCarriers(c));
     return () => {
       cancelled = true;
@@ -69,7 +74,7 @@ export function VendorShipments({
     setError(null);
     try {
       await createMyShipment(order);
-      hydrate(await getMyOrderShipments(order));
+      hydrate((await getMyOrderShipments(order)).shipments);
       onChange?.();
     } catch (e) {
       setError(msg(e));
@@ -143,6 +148,18 @@ export function VendorShipments({
       {error && (
         <div className="flex items-center gap-2 rounded-lg bg-coral-50 px-3 py-2 text-sm text-coral">
           <AlertCircle className="h-4 w-4" /> {error}
+        </div>
+      )}
+
+      {/* What the buyer asked for. It pre-fills a shipment booked without a
+          courier, but the vendor is free to ship with whoever they hold an
+          account with — so this reads as a request, not a rule. */}
+      {wanted && (
+        <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+          <Truck className="h-4 w-4 shrink-0" />
+          <span>
+            {t.vshWantedCarrier}: <span className="font-medium">{wanted}</span>
+          </span>
         </div>
       )}
 

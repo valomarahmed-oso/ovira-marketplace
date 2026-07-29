@@ -109,8 +109,25 @@ export const getOperatorOrderShipments = (order: string) =>
 export const createOrderShipments = (order: string) =>
   post<{ shipments: string[] }>("create_shipments_for_order", { order });
 
-/** Vendor: their own shipments for their sub-order of an order. */
-export const getMyOrderShipments = (order: string) => getShipments("my_order_shipments", order);
+/** Vendor: their own shipments for their sub-order of an order, plus the
+ *  courier the buyer asked for (null when they didn't ask). */
+export async function getMyOrderShipments(
+  order: string,
+): Promise<{ shipments: Shipment[]; preferred_carrier: string | null }> {
+  const empty = { shipments: [], preferred_carrier: null };
+  if (!BASE) return empty;
+  try {
+    const res = await fetch(
+      `${BASE}/api/method/${M}.my_order_shipments?order=${encodeURIComponent(order)}`,
+      { headers: { Accept: "application/json" }, credentials: "include", cache: "no-store" },
+    );
+    if (!res.ok) return empty;
+    const msg = (await res.json()).message ?? {};
+    return { shipments: (msg.shipments ?? []) as Shipment[], preferred_carrier: msg.preferred_carrier ?? null };
+  } catch {
+    return empty;
+  }
+}
 
 /** Vendor: create the shipment for their sub-order (per-vendor fulfilment).
  * Optionally records the courier company + tracking the vendor chose. */
@@ -144,6 +161,22 @@ export type Carrier = {
   logo?: string | null;
   tracking_url_template?: string | null;
 };
+
+/** Public: courier companies a shopper can ask for at checkout. Narrower than
+ *  `listCarriers` — no tracking template, no support line. */
+export async function getCarrierOptions(): Promise<Carrier[]> {
+  if (!BASE) return [];
+  try {
+    const res = await fetch(`${BASE}/api/method/${M}.carrier_options`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return ((await res.json()).message ?? []) as Carrier[];
+  } catch {
+    return [];
+  }
+}
 
 /** Enabled carriers for the vendor's shipment picker. */
 export async function listCarriers(): Promise<Carrier[]> {

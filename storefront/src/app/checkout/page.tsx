@@ -14,6 +14,7 @@ import {
   type ShippingQuote,
 } from "@/lib/shipping-rates-api";
 import { listPaymentMethods, type PaymentMethod } from "@/lib/payment-methods";
+import { getCarrierOptions, type Carrier } from "@/lib/shipments-api";
 import { saveAbandonedCart } from "@/lib/abandoned-cart";
 import { getWallet } from "@/lib/wallet-api";
 import { cartSubtotal, useCart } from "@/lib/cart-store";
@@ -166,6 +167,14 @@ export default function CheckoutPage() {
     });
   }, []);
 
+  // Which courier the shopper would rather have. Optional on purpose: most
+  // people don't care, and the store choosing is the sane default.
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [carrier, setCarrier] = useState("");
+  useEffect(() => {
+    getCarrierOptions().then(setCarriers);
+  }, []);
+
   const [quote, setQuote] = useState<ShippingQuote | null>(null);
   useEffect(() => {
     if (subtotal <= 0) return;
@@ -306,6 +315,7 @@ export default function CheckoutPage() {
       coupon: coupon?.code,
       use_wallet: useWallet && walletBalance > 0,
       shipping_method: shipMethod,
+      preferred_carrier: carrier || undefined,
     });
     const id = remote?.name ?? "OVR-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 
@@ -398,7 +408,7 @@ export default function CheckoutPage() {
             )}
           </section>
 
-          {shipMethods.length > 0 && (
+          {(shipMethods.length > 0 || carriers.length > 0) && (
             <section className="card space-y-3 p-5">
               <h2 className="font-medium text-ink">{t.coShipTitle}</h2>
               {shipMethods.map((m) => {
@@ -431,6 +441,32 @@ export default function CheckoutPage() {
                   </label>
                 );
               })}
+
+              {/* Courier preference. Priced at nothing and binding on nobody —
+                  the vendor books the shipment and may not hold an account with
+                  the company asked for — so it stays a quiet extra line rather
+                  than a third decision the shopper has to make. */}
+              {carriers.length > 0 && (
+                <div className={shipMethods.length > 0 ? "border-t border-line pt-3" : undefined}>
+                  <label className="mb-1 block text-xs font-medium text-ink-600" htmlFor="carrier">
+                    {t.coCarrierLabel}
+                  </label>
+                  <select
+                    id="carrier"
+                    value={carrier}
+                    onChange={(e) => setCarrier(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-line bg-white px-4 text-sm outline-none focus:border-blue"
+                  >
+                    <option value="">{t.coCarrierAny}</option>
+                    {carriers.map((c) => (
+                      <option key={c.carrier_name} value={c.carrier_name}>
+                        {locale === "en" && c.carrier_name_en ? c.carrier_name_en : c.carrier_name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-ink-400">{t.coCarrierHint}</p>
+                </div>
+              )}
             </section>
           )}
 

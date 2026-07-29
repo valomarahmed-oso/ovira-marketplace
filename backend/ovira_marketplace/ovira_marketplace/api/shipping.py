@@ -384,6 +384,40 @@ def list_carriers():
     )
 
 
+@frappe.whitelist(allow_guest=True)
+def carrier_options():
+    """Public: the courier companies a shopper may ask for at checkout.
+
+    Deliberately narrower than `list_carriers` — a shopper picking a company has
+    no use for its tracking-URL template or support line, and a guest endpoint
+    should hand back the least it can."""
+    return frappe.get_all(
+        "Marketplace Shipping Carrier",
+        filters={"enabled": 1},
+        fields=["carrier_name", "carrier_name_en", "logo"],
+        order_by="display_order asc, carrier_name asc",
+        ignore_permissions=True,
+    )
+
+
+def resolve_carrier(carrier=None):
+    """The enabled carrier matching a shopper's pick, by its Arabic or English
+    name, or None. Never trust the posted string: an unknown one is dropped
+    rather than stored, so an order can't carry a courier that doesn't exist."""
+    wanted = _fold(carrier)
+    if not wanted:
+        return None
+    for row in frappe.get_all(
+        "Marketplace Shipping Carrier",
+        filters={"enabled": 1},
+        fields=["carrier_name", "carrier_name_en"],
+        ignore_permissions=True,
+    ):
+        if wanted in (_fold(row["carrier_name"]), _fold(row.get("carrier_name_en"))):
+            return row["carrier_name"]
+    return None
+
+
 @frappe.whitelist()
 def list_carriers_admin():
     """Operator: every carrier row (enabled or not) for management."""
@@ -509,7 +543,11 @@ def my_order_shipments(order):
         filters={"marketplace_order": order, "vendor": vendor},
         pluck="name",
     )
-    return {"shipments": [_shipment_flat(frappe.get_doc("Marketplace Shipment", n)) for n in names]}
+    return {
+        "shipments": [_shipment_flat(frappe.get_doc("Marketplace Shipment", n)) for n in names],
+        # So the vendor can see what the buyer asked for before they book.
+        "preferred_carrier": frappe.db.get_value("Marketplace Order", order, "preferred_carrier"),
+    }
 
 
 @frappe.whitelist()
@@ -528,7 +566,9 @@ def create_my_shipment(order, provider=None, carrier=None, tracking_number=None,
         frappe.throw(_("You don't have a vendor store."), frappe.PermissionError)
     order_doc = frappe.get_doc("Marketplace Order", order)
     provider = provider or default_provider() or "Manual"
-    carrier = (carrier or "").strip()
+    # A vendor who books without naming a courier gets the one the buyer asked
+    # for. Asking and then being ignored by default is worse than not asking.
+    carrier = (carrier or "").strip() or (order_doc.get("preferred_carrier") or "").strip()
     tracking_number = (tracking_number or "").strip()
     tracking_url = (tracking_url or "").strip()
     created = []

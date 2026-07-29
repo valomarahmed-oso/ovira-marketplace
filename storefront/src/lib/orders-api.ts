@@ -45,6 +45,7 @@ export type BuyerOrder = Omit<BuyerOrderSummary, "item_count"> & {
   shipping_method?: string | null;
   shipping_eta_min?: number;
   shipping_eta_max?: number;
+  preferred_carrier?: string | null;
   items: BuyerOrderItem[];
   /** Most significant return status on the order; "Completed" = sale reversed. */
   return_status?: string | null;

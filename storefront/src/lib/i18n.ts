@@ -846,6 +846,11 @@ const ar = {
   shipEtaTwoDays: "التوصيل المتوقّع خلال يومين",
   coShipTitle: "طريقة الشحن",
   coShipNoExtra: "بدون زيادة",
+  coCarrierLabel: "شركة الشحن المفضّلة",
+  coCarrierAny: "سيب المتجر يختار",
+  coCarrierHint: "طلب مش إلزام — لو الشركة دي مش متاحة للبائع هيشحن بغيرها، والسعر ما بيتغيرش.",
+  odtCarrierAsked: "شركة الشحن المطلوبة",
+  vshWantedCarrier: "العميل طلب الشحن مع",
   shipMethodsTitle: "طرق الشحن",
   shipMethodsHint:
     "الخيارات اللي المشتري بيختار منها عند إتمام الطلب. الزيادة بتتضاف فوق سعر الشحن المحسوب (جدول المحافظات أو قاعدة البائع)، ومدة التوصيل بتتعرض له. سيب القائمة فاضية والمتجر يشتغل زي الأول من غير اختيار.",
@@ -2445,6 +2450,12 @@ const en: Dict = {
   shipEtaTwoDays: "Estimated delivery in 2 days",
   coShipTitle: "Delivery method",
   coShipNoExtra: "No extra",
+  coCarrierLabel: "Preferred courier",
+  coCarrierAny: "Let the store choose",
+  coCarrierHint:
+    "A request, not a rule — if the seller can't ship with them they'll use another, and the price doesn't change.",
+  odtCarrierAsked: "Courier requested",
+  vshWantedCarrier: "The buyer asked to ship with",
   shipMethodsTitle: "Delivery methods",
   shipMethodsHint:
     "What the shopper chooses between at checkout. The extra is added on top of the shipping fee the store already calculates (rate table, or the vendor's own rule), and the delivery window is shown to them. Leave the list empty and the store behaves exactly as before, with no picker.",

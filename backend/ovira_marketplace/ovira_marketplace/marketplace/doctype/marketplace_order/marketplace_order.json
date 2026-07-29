@@ -23,6 +23,7 @@
   "governorate",
   "shipping_address",
   "shipping_method",
+  "preferred_carrier",
   "shipping_eta_min",
   "shipping_eta_max",
   "delivery_confirmed",
@@ -168,6 +169,13 @@
    "fieldname": "shipping_method",
    "fieldtype": "Data",
    "label": "Shipping method",
+   "read_only": 1
+  },
+  {
+   "description": "The courier the shopper asked for. A request, not an instruction — it pre-fills the vendor's shipment, and the vendor may still ship with another company.",
+   "fieldname": "preferred_carrier",
+   "fieldtype": "Data",
+   "label": "Preferred carrier",
    "read_only": 1
   },
   {

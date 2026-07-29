@@ -232,6 +232,11 @@ export default function OrderDetailPage() {
                   )}
                 </div>
               )}
+              {order.preferred_carrier && (
+                <div className="text-ink-400">
+                  {t.odtCarrierAsked}: <span className="text-ink">{order.preferred_carrier}</span>
+                </div>
+              )}
             </div>
           </div>
 

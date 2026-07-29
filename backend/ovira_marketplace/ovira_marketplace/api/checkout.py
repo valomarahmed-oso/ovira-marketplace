@@ -22,7 +22,7 @@ FLAT_SHIPPING = 50
 @rate_limit(limit=30, seconds=60 * 60, methods="POST")
 def place_order(
     items, customer, payment_method="cod", coupon=None, attribution=None, use_wallet=False,
-    payment_method_ref=None, shipping_method=None,
+    payment_method_ref=None, shipping_method=None, preferred_carrier=None,
 ):
     """Create a Marketplace Order from the storefront cart and split it into
     per-vendor ERPNext Sales Orders.
@@ -37,6 +37,9 @@ def place_order(
     `shipping_method`: the delivery option the shopper picked; re-resolved here
       so the surcharge and the promised window come from the server, not the
       client.
+    `preferred_carrier`: the courier the shopper would rather have. A request,
+      not an instruction — the vendor books the shipment and may not hold an
+      account with it — so it costs nothing and blocks nothing.
     """
     items = _loads(items)
     customer = _loads(customer)
@@ -172,6 +175,10 @@ def place_order(
     order.subtotal = subtotal
     order.shipping_amount = _order_shipping(order, subtotal, customer.get("gov"), settings)
     _apply_shipping_method(order, customer.get("gov"), shipping_method)
+
+    from ovira_marketplace.api.shipping import resolve_carrier
+
+    order.preferred_carrier = resolve_carrier(preferred_carrier)
 
     # Coupon discount is always recomputed here — the client's number is never
     # trusted. An invalid/expired code surfaces its reason and stops checkout.
