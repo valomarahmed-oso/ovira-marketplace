@@ -13,6 +13,25 @@ export function formatPrice(amount: number, currency = "EGP") {
   return `${value} ${currency === "EGP" ? "ج.م" : currency}`;
 }
 
+/** A delivery window as one readable line, or null when there's nothing to
+ *  promise. Arabic counts one and two as their own words — "خلال 1 أيام" is
+ *  what a machine says, not a shop — so those get their own phrasings. */
+export function deliveryWindowText(
+  t: { shipEtaDay: string; shipEtaTwoDays: string; shipEtaHint: string; shipEtaRange: string },
+  min?: number,
+  max?: number,
+): string | null {
+  const to = max ?? 0;
+  const from = min ?? 0;
+  if (!to) return null;
+  if (from && from !== to) {
+    return t.shipEtaRange.replace("{from}", String(from)).replace("{to}", String(to));
+  }
+  if (to === 1) return t.shipEtaDay;
+  if (to === 2) return t.shipEtaTwoDays;
+  return t.shipEtaHint.replace("{days}", String(to));
+}
+
 export function discountPercent(price: number, compareAt?: number) {
   if (!compareAt || compareAt <= price) return 0;
   return Math.round(((compareAt - price) / compareAt) * 100);

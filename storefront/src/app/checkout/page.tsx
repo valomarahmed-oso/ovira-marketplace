@@ -21,7 +21,7 @@ import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import { useHydrated } from "@/lib/use-hydrated";
 import { OrderSummary } from "@/components/order-summary";
-import { formatPrice, cn } from "@/lib/utils";
+import { deliveryWindowText, formatPrice, cn } from "@/lib/utils";
 
 const GOVERNORATES = ["القاهرة", "الجيزة", "الإسكندرية", "الدقهلية", "الشرقية", "القليوبية", "أخرى"];
 
@@ -234,22 +234,13 @@ export default function CheckoutPage() {
   const shippingLoading = quote === null;
   const effShipping = quote?.total ?? 0;
 
-  /** A day window as one line: "3 days" when it's a single number, "2–4" when
-   *  it's a range. Used for the promise under the address and per method. */
-  function daysText(min: number, max: number): string | null {
-    if (!max) return null;
-    return min && min !== max
-      ? t.shipEtaRange.replace("{from}", String(min)).replace("{to}", String(max))
-      : t.shipEtaHint.replace("{days}", String(max));
-  }
-
   // What the shopper is promised: the picked method's window plus the
   // governorate's own transit days. Without methods this falls back to the rate
   // table alone — which is all there ever was, and nothing at all in Per-Vendor
   // mode.
   const etaText =
-    daysText(quote?.eta_min_days ?? 0, quote?.eta_max_days ?? 0) ??
-    (govEta ? t.shipEtaHint.replace("{days}", String(govEta)) : null);
+    deliveryWindowText(t, quote?.eta_min_days, quote?.eta_max_days) ??
+    deliveryWindowText(t, govEta, govEta);
   const payableBeforeWallet = Math.max(0, subtotal + effShipping - (coupon?.discount ?? 0));
   const walletApplied = useWallet ? Math.min(walletBalance, payableBeforeWallet) : 0;
 
@@ -411,7 +402,7 @@ export default function CheckoutPage() {
             <section className="card space-y-3 p-5">
               <h2 className="font-medium text-ink">{t.coShipTitle}</h2>
               {shipMethods.map((m) => {
-                const note = m.description || daysText(m.eta_min_days, m.eta_max_days);
+                const note = m.description || deliveryWindowText(t, m.eta_min_days, m.eta_max_days);
                 return (
                   <label
                     key={m.name}

@@ -1,4 +1,5 @@
 import secrets
+import unicodedata
 
 import frappe
 from frappe import _
@@ -245,12 +246,24 @@ def resolve_method(method=None):
     )
     if not rows:
         return None
-    wanted = (method or "").strip()
+    wanted = _fold(method)
     if wanted:
         for row in rows:
-            if row["name"] == wanted or (row.get("method_name_en") or "") == wanted:
+            if wanted in (_fold(row["name"]), _fold(row.get("method_name_en"))):
                 return row
     return next((r for r in rows if r.get("is_default")), rows[0])
+
+
+def _fold(value):
+    """Compare names the way a human would.
+
+    These are named in Arabic, so the key travels as non-ASCII text through JSON
+    and back. Two byte sequences can spell the same word (NFC vs NFD), and a
+    stray bidi/tatweel mark is invisible in a form field. A mismatch here would
+    silently downgrade a shopper who paid for the faster option, so normalise
+    before comparing rather than trusting the bytes."""
+    text = unicodedata.normalize("NFC", (value or "").strip())
+    return "".join(ch for ch in text if not unicodedata.category(ch).startswith("C") and ch != "ـ")
 
 
 @frappe.whitelist(allow_guest=True)

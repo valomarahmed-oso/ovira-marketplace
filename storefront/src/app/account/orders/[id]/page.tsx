@@ -14,7 +14,7 @@ import { cancelOrder, getOrder, ORDER_STEPS, reorderItems, type BuyerOrder } fro
 import { getProduct } from "@/lib/api";
 import { useCart } from "@/lib/cart-store";
 import { useI18n } from "@/components/i18n-provider";
-import { cn, formatPrice } from "@/lib/utils";
+import { cn, deliveryWindowText, formatPrice } from "@/lib/utils";
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat("ar-EG", { dateStyle: "long" }).format(new Date(iso));
@@ -224,16 +224,12 @@ export default function OrderDetailPage() {
               {order.shipping_method && (
                 <div className="mt-1 text-ink">
                   {order.shipping_method}
-                  {order.shipping_eta_max ? (
+                  {deliveryWindowText(t, order.shipping_eta_min, order.shipping_eta_max) && (
                     <span className="text-ink-400">
                       {" — "}
-                      {order.shipping_eta_min && order.shipping_eta_min !== order.shipping_eta_max
-                        ? t.shipEtaRange
-                            .replace("{from}", String(order.shipping_eta_min))
-                            .replace("{to}", String(order.shipping_eta_max))
-                        : t.shipEtaHint.replace("{days}", String(order.shipping_eta_max))}
+                      {deliveryWindowText(t, order.shipping_eta_min, order.shipping_eta_max)}
                     </span>
-                  ) : null}
+                  )}
                 </div>
               )}
             </div>
