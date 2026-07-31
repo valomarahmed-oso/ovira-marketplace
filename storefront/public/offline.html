@@ -1,0 +1,113 @@
+<!doctype html>
+<!--
+  The offline fallback, deliberately a plain static file rather than a Next.js
+  route.
+
+  The service worker serves this document in response to a navigation to some
+  OTHER url — /shop/account/orders, say. A Next page shipped that way hydrates,
+  finds the route it was built for is not the route it is being rendered at, and
+  throws "a client-side exception has occurred". So the shopper who lost their
+  connection was shown a crash instead of an explanation, which is how it had
+  always behaved.
+
+  Nothing here loads: no script, no font, no image request. A page that needs the
+  network to tell you the network is down is not a fallback.
+-->
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0e8bff" />
+    <title>إنت غير متصل بالإنترنت | أوفيرا</title>
+    <style>
+      :root {
+        --blue: #0e8bff;
+        --ink: #0b1f38;
+        --ink-400: #6b7a90;
+        --line: #dbe6f5;
+        --canvas: #f4f8ff;
+        --surface: #ffffff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --blue: #2f9bff;
+          --ink: #e8eefb;
+          --ink-400: #7e8ca4;
+          --line: #243349;
+          --canvas: #0a121f;
+          --surface: #111c2e;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif;
+        line-height: 1.7;
+      }
+      .card {
+        width: 100%;
+        max-width: 420px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 40px 28px;
+        text-align: center;
+      }
+      .mark {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 20px;
+        border-radius: 16px;
+        background: var(--blue);
+        display: grid;
+        place-items: center;
+      }
+      h1 { font-size: 20px; font-weight: 600; margin: 0 0 10px; }
+      p { font-size: 14px; color: var(--ink-400); margin: 0 0 24px; }
+      .links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+      a {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 10px 22px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+      }
+      .primary { background: var(--blue); color: #fff; }
+      .ghost { border: 1px solid var(--line); color: var(--ink); }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="28" height="28" fill="none">
+          <path
+            d="M16 4a12 12 0 1 0 0 24 12 12 0 0 0 11-7.2"
+            stroke="#fff"
+            stroke-width="3.4"
+            stroke-linecap="round"
+          />
+          <rect x="20.5" y="11" width="8.5" height="2.4" rx="1.2" fill="#fff" />
+          <rect x="20.5" y="14.8" width="8.5" height="2.4" rx="1.2" fill="#fff" />
+          <rect x="20.5" y="18.6" width="8.5" height="2.4" rx="1.2" fill="#fff" />
+        </svg>
+      </div>
+      <h1>إنت غير متصل بالإنترنت</h1>
+      <p>
+        تقدر تتصفّح صفحات المنتجات اللي فتحتها قبل كده وتشوف سلتك.
+        الطلبات والحساب والدفع محتاجين اتصال.
+      </p>
+      <div class="links">
+        <a class="primary" href="/shop">الرئيسية</a>
+        <a class="ghost" href="/shop/cart">السلة</a>
+      </div>
+    </main>
+  </body>
+</html>

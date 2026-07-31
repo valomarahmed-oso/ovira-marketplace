@@ -236,11 +236,58 @@ def _check_deferred_work(out):
     ))
 
 
+#: Files the installed app and the notifications depend on, which live in the
+#: storefront container rather than in this one — so nothing here can import
+#: them, and a rename or a wrong path is invisible from the Frappe side.
+STOREFRONT_ASSETS = (
+    ("/shop/sw.js", "عامل الخدمة — بدونه مفيش تثبيت ولا إشعارات ولا وضع بدون نت"),
+    ("/shop/manifest.webmanifest", "ملف التثبيت — بدونه المتجر مايتثبّتش على الشاشة الرئيسية"),
+    ("/shop/icons/icon-192.png", "أيقونة الإشعارات — لو ناقصة كل إشعار بيظهر بأيقونة المتصفح"),
+    ("/shop/icons/icon-512.png", "أيقونة التثبيت"),
+    ("/shop/icons/icon-maskable-512.png", "أيقونة أندرويد المقصوصة"),
+    ("/shop/offline.html", "صفحة انقطاع الاتصال"),
+)
+
+
+def _check_pwa_assets(out):
+    """The installable-app files actually resolve.
+
+    Every one of these is referenced by a string in another container, so a
+    rename breaks them silently: the notification icon pointed at a path that
+    had never existed, and for months every push this store sent showed the
+    browser's generic bell. Nothing logged it, because a 404 on an icon is not
+    an error anyone raises.
+    """
+    import requests
+
+    base = (frappe.utils.get_url() or "").rstrip("/")
+    if not base:
+        return
+    missing = []
+    for path, why in STOREFRONT_ASSETS:
+        try:
+            res = requests.head(base + path, timeout=5, allow_redirects=True)
+            if res.status_code >= 400:
+                missing.append("{0} ({1})".format(path, why))
+        except Exception:
+            # The storefront being unreachable is a different problem, and
+            # guessing about it here would be a false alarm.
+            return
+    if missing:
+        out.append(_finding(
+            "warning", "pwa_assets",
+            "{0} ملف من ملفات التطبيق المثبَّت مفقود".format(len(missing)),
+            "؛ ".join(missing[:6]),
+            "تأكد إن حاوية المتجر متبنيّة من آخر نسخة، والمسارات في public/ متطابقة",
+            len(missing),
+        ))
+
+
 CHECKS_WITH_SETTINGS = (_check_loyalty, _check_tax, _check_operator_vendor)
 CHECKS = (
     _check_stock, _check_hidden_vendor_products, _check_slugs,
     _check_outgoing_email, _check_zero_refunds, _check_failed_accounting,
-    _check_deferred_work,
+    _check_deferred_work, _check_pwa_assets,
 )
 
 SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
