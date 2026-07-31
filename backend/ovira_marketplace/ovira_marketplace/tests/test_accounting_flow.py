@@ -108,18 +108,27 @@ class TestAccountingFlow(IntegrationTestCase):
 
     def test_the_vendor_is_owed_net_of_commission(self):
         """The whole point of the marketplace's economics: the operator keeps the
-        commission, the vendor is credited the rest."""
+        commission, the vendor is credited the rest.
+
+        Measured as the CHANGE across this order, not as the supplier's balance —
+        the GL accumulates across runs, so an absolute assertion passes once and
+        then reads 2x, 3x, 4x.
+        """
         from ovira_marketplace.vendor.settlement import _supplier_outstanding
 
-        order = self._paid_order()
         supplier = frappe.db.get_value("Marketplace Vendor", self.seller.name, "supplier")
         if not supplier:
             self.skipTest("vendor has no linked Supplier on this site")
+        company = fx.settings().operator_company
+        before = _supplier_outstanding(supplier, company)
+
+        order = self._paid_order()
         so_name = order.items[0].sales_order
         net = flt(frappe.db.get_value("Sales Order", so_name, "net_total"))
         commission = sum(flt(r.commission_amount) for r in order.items)
-        owed = _supplier_outstanding(supplier, frappe.db.get_value("Sales Order", so_name, "company"))
-        self.assertAlmostEqual(owed, net - commission, places=2)
+
+        after = _supplier_outstanding(supplier, frappe.db.get_value("Sales Order", so_name, "company"))
+        self.assertAlmostEqual(after - before, net - commission, places=2)
         self.assertGreater(commission, 0, "a 10% commission should have been booked")
 
     def test_settling_twice_does_not_credit_the_vendor_twice(self):

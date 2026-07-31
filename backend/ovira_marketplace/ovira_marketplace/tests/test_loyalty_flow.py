@@ -120,10 +120,15 @@ class TestRedeemPoints(IntegrationTestCase):
         )
         frappe.db.commit()
 
+        # The CHANGE in that batch's spent counter — the account survives between
+        # runs, so an absolute reads 100, then 200, then 300.
+        spent_before = frappe.db.get_value("Marketplace Loyalty Entry", soonest, "points_used")
         frappe.set_user(self.email)
         redeem_points(100)
-        spent = frappe.db.get_value("Marketplace Loyalty Entry", soonest, "points_used")
-        self.assertEqual(spent, 100, "the batch about to lapse should be the one spent")
+        spent_after = frappe.db.get_value("Marketplace Loyalty Entry", soonest, "points_used")
+        self.assertEqual(
+            spent_after - spent_before, 100, "the batch about to lapse should be the one spent"
+        )
 
     def test_an_expired_batch_does_not_count_towards_the_balance(self):
         from frappe.utils import add_days, nowdate
