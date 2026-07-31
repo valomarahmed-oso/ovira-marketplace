@@ -124,30 +124,48 @@ def _tier(score, orders_count, ratings_count):
     return "new"
 
 
+def blend_score(rating, ratings_count, fulfillment_rate, return_rate, has_orders):
+    """Weighted blend of whatever signals exist, as a 0–5 score.
+
+    Rating dominates, but its weight ramps with review volume so one five-star
+    review doesn't crown a store. Pure arithmetic, separated from the queries so
+    it can be reasoned about — and tested — without a database.
+    """
+    signals, weights = [], []
+    if ratings_count > 0:
+        signals.append(flt(rating))
+        weights.append(1.0 + min(ratings_count, 20) / 20 * 2.0)
+    if has_orders:
+        signals.append(flt(fulfillment_rate) * 5)
+        weights.append(1.5)
+        signals.append(max(0.0, 1.0 - flt(return_rate)) * 5)
+        weights.append(1.0)
+    if not signals:
+        return 0.0
+    return round(sum(s * w for s, w in zip(signals, weights)) / sum(weights), 2)
+
+
+def rates(decided, fulfilled, received, returns):
+    """(fulfillment_rate, return_rate) from the four counts.
+
+    `fulfillment_rate` is None with nothing decided yet — a store with no history
+    has no rate, which is different from a rate of zero. `return_rate` is capped
+    at 1 because a buyer can open more than one return against an order, and a
+    figure above 100% is nonsense on a badge.
+    """
+    fulfillment_rate = round(fulfilled / decided, 3) if decided else None
+    return_rate = round(min(1.0, returns / received), 3) if received else 0.0
+    return fulfillment_rate, return_rate
+
+
 def compute_vendor_trust(vendor):
     """Live-compute the trust breakdown for a resolved vendor docname."""
     rating, ratings_count = _rating_stats(vendor)
     total, decided, fulfilled, received = _order_stats(vendor)
     returns = _return_count(vendor)
 
-    fulfillment_rate = round(fulfilled / decided, 3) if decided else None
-    # Capped at 1: a buyer can open more than one return against an order, and a
-    # rate above 100% is nonsense on a badge.
-    return_rate = round(min(1.0, returns / received), 3) if received else 0.0
-
-    # Weighted blend of whatever signals exist. Rating dominates but its weight
-    # ramps with review volume so one 5-star review doesn't crown a store.
-    signals, weights = [], []
-    if ratings_count > 0:
-        signals.append(rating)
-        weights.append(1.0 + min(ratings_count, 20) / 20 * 2.0)
-    if decided > 0:
-        signals.append(fulfillment_rate * 5)
-        weights.append(1.5)
-        signals.append(max(0.0, 1.0 - return_rate) * 5)
-        weights.append(1.0)
-
-    score = round(sum(s * w for s, w in zip(signals, weights)) / sum(weights), 2) if signals else 0.0
+    fulfillment_rate, return_rate = rates(decided, fulfilled, received, returns)
+    score = blend_score(rating, ratings_count, fulfillment_rate, return_rate, decided > 0)
     tier = _tier(score, total, ratings_count)
 
     return {
@@ -160,6 +178,11 @@ def compute_vendor_trust(vendor):
         "fulfillment_rate": fulfillment_rate,
         "return_rate": return_rate,
     }
+
+
+# The `_tier` label is part of the public contract, so expose it under a name a
+# caller can reasonably import.
+tier_for = _tier
 
 
 def recompute_vendor_trust(vendor):

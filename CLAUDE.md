@@ -74,10 +74,34 @@ docs/             # architecture, data-model, roadmap
 
 ## Verifying a change
 
+- Money maths: `cd backend/ovira_marketplace && python -m pytest`. No site
+  needed — `tests/conftest.py` stubs `frappe` when the real one isn't importable.
+  Covers the arithmetic that decides what a customer is charged, what a vendor is
+  billed back, what points are worth and what quantity ERPNext is told to hold
+  (`totals`, `taxes`, `chargeback`, `trust`, `loyalty` guards, `inventory`
+  targets, `slugs`). **If you change any of those, the test goes in the same
+  commit.**
+- Anything DB-shaped (document hooks, permissions, submitted ERPNext vouchers,
+  `on_update` transitions) is deliberately NOT in that suite — a stub asserting
+  against itself proves nothing. Those need `bench --site <test-site> run-tests
+  --app ovira_marketplace`, which nothing is wired up for yet.
 - Storefront types: `cd storefront && npx tsc --noEmit -p tsconfig.json`.
 - Backend syntax: `python -m py_compile <file.py>`; import smoke test on the
   server: `bench --site <site> execute frappe.get_attr --args "['<dotted.path>']"`.
 - Doctype JSON edits are schema changes → require `bench migrate` on deploy.
+
+## Where money is decided
+
+Keep these pure and tested; they are the files where a silent arithmetic slip
+costs someone real money:
+
+| | |
+|---|---|
+| `totals.py` | discounts → tax → store credit, in that order |
+| `taxes.py` | inclusive tax is disclosed; exclusive tax is ADDED to the order total |
+| `vendor/chargeback.py` | who funds a refund, and the clamp that stops a small refund paying the vendor |
+| `api/trust.py` | `rates()` / `blend_score()` — the denominators are the easy thing to get wrong |
+| `inventory.py` | `reconciliation_targets()` — target = offered **+ reserved**, always |
 
 ## Deploy
 

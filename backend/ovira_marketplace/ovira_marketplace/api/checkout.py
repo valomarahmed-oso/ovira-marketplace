@@ -204,8 +204,9 @@ def place_order(
     # the cart said. An exclusive one is added here, because ERPNext would
     # otherwise add it downstream and invoice more than the shopper approved.
     from ovira_marketplace.taxes import apply_order_tax
+    from ovira_marketplace.totals import goods_total, order_total, payable, wallet_to_spend
 
-    goods = subtotal - discount - vendor_discount
+    goods = goods_total(subtotal, discount, vendor_discount)
     extra_tax = apply_order_tax(order, goods, settings)
 
     # Store credit is applied after the coupon(s) and the tax, capped at what's
@@ -217,10 +218,12 @@ def place_order(
     if _truthy(use_wallet) and user and user != "Guest":
         from ovira_marketplace.api.wallet import balance as wallet_balance
 
-        payable = goods + order.shipping_amount + extra_tax
-        wallet_applied = max(0.0, min(flt(wallet_balance(user)), flt(payable)))
+        due = payable(goods, order.shipping_amount, extra_tax)
+        wallet_applied = wallet_to_spend(wallet_balance(user), due)
     order.wallet_applied = wallet_applied
-    order.total = goods + order.shipping_amount + extra_tax - wallet_applied
+    order.total = order_total(
+        subtotal, order.shipping_amount, discount, vendor_discount, extra_tax, wallet_applied
+    )
 
     # Screen cash-on-delivery before the order exists, so a blocked one is
     # refused rather than created-then-cancelled (which would have already moved

@@ -96,6 +96,35 @@ def desired_distribution(product):
     return {warehouse: flt(product.get("stock_qty"))} if warehouse else {}
 
 
+def reconciliation_targets(wanted, bins):
+    """[(warehouse, target actual_qty)] for every warehouse that needs moving.
+
+    `wanted` is {warehouse: units the storefront offers}; `bins` is
+    {warehouse: {"actual", "reserved"}} as ERPNext holds it today.
+
+    Two rules, and both were bugs before:
+
+    * **Target = offered + reserved.** Reserved units belong to submitted Sales
+      Orders that haven't shipped. The storefront already deducted them and
+      ERPNext removes them at dispatch, so ERPNext must still be carrying them —
+      setting `actual` to the offered figure would delete an open order's stock.
+    * **Warehouses ERPNext holds but the storefront no longer names are included**
+      with a target that empties them. A deleted branch row otherwise leaves
+      stock stranded in a warehouse nothing sells from.
+
+    Warehouses already at their target are omitted, so a save that changes
+    nothing posts nothing.
+    """
+    out = []
+    for warehouse in sorted(set(wanted) | set(bins)):
+        current = bins.get(warehouse) or {"actual": 0.0, "reserved": 0.0}
+        target = flt(wanted.get(warehouse, 0.0)) + flt(current.get("reserved"))
+        if abs(target - flt(current.get("actual"))) < 0.001:
+            continue
+        out.append((warehouse, target))
+    return out
+
+
 def _valuation_rate(item_code, warehouse, fallback):
     existing = frappe.db.get_value(
         "Bin", {"item_code": item_code, "warehouse": warehouse}, "valuation_rate"
@@ -131,26 +160,15 @@ def sync_product_stock(product):
         return None
     bins = _bins(item)
 
-    lines = []
-    # Every warehouse the storefront names, plus any warehouse ERPNext still
-    # holds stock in that the storefront no longer offers (branch row deleted →
-    # that stock has to come back out, or it is invisible inventory).
-    for warehouse in set(wanted) | set(bins):
-        current = bins.get(warehouse) or {"actual": 0.0, "reserved": 0.0}
-        # Reserved units belong to submitted Sales Orders that haven't shipped;
-        # the storefront already deducted them, so ERPNext must still carry them.
-        target = flt(wanted.get(warehouse, 0.0)) + current["reserved"]
-        if abs(target - current["actual"]) < 0.001:
-            continue
-        lines.append(
-            {
-                "item_code": item,
-                "warehouse": warehouse,
-                "qty": target,
-                "valuation_rate": _valuation_rate(item, warehouse, product.get("price")),
-            }
-        )
-
+    lines = [
+        {
+            "item_code": item,
+            "warehouse": warehouse,
+            "qty": qty,
+            "valuation_rate": _valuation_rate(item, warehouse, product.get("price")),
+        }
+        for warehouse, qty in reconciliation_targets(wanted, bins)
+    ]
     if not lines:
         return None
     try:
