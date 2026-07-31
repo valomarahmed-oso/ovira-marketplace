@@ -57,10 +57,16 @@ class TestSlugMinting(IntegrationTestCase):
 
     def test_an_old_arabic_link_still_resolves(self):
         """No mapping table: transliterating the OLD slug produces the NEW one,
-        because hyphens separate words either way."""
+        because hyphens separate words either way.
+
+        The title has to be unique across the whole suite — `unique_slug` would
+        otherwise hand this product `…-2` while `resolve` correctly returns the
+        product that owns the un-suffixed slug.
+        """
         from ovira_marketplace.slugs import resolve
 
-        item = fx.product("رواكول", vendor_name=self.seller.name)
-        name, canonical = resolve("Marketplace Product", "رواكول")
+        title = "مصباح مكتبي فريد"
+        item = fx.product(title, vendor_name=self.seller.name)
+        name, canonical = resolve("Marketplace Product", title.replace(" ", "-"))
         self.assertEqual(name, item.name)
         self.assertEqual(canonical, item.slug)
