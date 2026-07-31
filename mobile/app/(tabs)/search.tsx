@@ -3,7 +3,7 @@ import { listProducts, searchSuggestions } from "@ovira/core";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 
 import { ProductGrid, SuggestionRow } from "../../src/components/product-grid";
 import { SearchBar } from "../../src/components/search-bar";
@@ -79,17 +79,41 @@ export default function SearchScreen() {
   return (
     <Screen scroll={false}>
       <VStack gap="lg" style={{ flex: 1 }}>
-        <SearchBar
-          value={query}
-          onChange={(text) => {
-            setQuery(text);
-            // A new term invalidates the previous full result set; leaving it on
-            // screen under a different query is the same stale-answer problem.
-            setResults(null);
-          }}
-          onSubmit={() => void runFullSearch()}
-          autoFocus
-        />
+        <Row gap="sm">
+          <View style={{ flex: 1 }}>
+            <SearchBar
+              value={query}
+              onChange={(text) => {
+                setQuery(text);
+                // A new term invalidates the previous full result set; leaving
+                // it on screen under a different query is the same stale-answer
+                // problem.
+                setResults(null);
+              }}
+              onSubmit={() => void runFullSearch()}
+              autoFocus
+            />
+          </View>
+          {/* Only on a device — react-native-web has no camera to open. */}
+          {Platform.OS !== "web" && (
+            <Pressable
+              onPress={() => router.push("/scan")}
+              accessibilityLabel={t.scan}
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: radius.pill,
+                borderWidth: 1,
+                borderColor: c.line,
+                backgroundColor: c.surface,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="barcode-outline" size={20} color={c.blue} />
+            </Pressable>
+          )}
+        </Row>
 
         {short ? (
           <Empty icon="search-outline" title={t.searchHint} />

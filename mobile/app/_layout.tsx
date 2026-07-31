@@ -4,17 +4,23 @@ import {
   Stack,
   ThemeProvider as NavigationThemeProvider,
 } from "expo-router";
+import * as Notifications from "expo-notifications";
+import { useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { AppLock } from "../src/app-lock";
+import { routeFor } from "../src/deep-links";
 import { dict } from "../src/i18n";
+import { urlFromNotification } from "../src/notifications";
 import { configureOvira } from "../src/ovira";
 import { ensureRtl } from "../src/rtl";
 import { useSession } from "../src/session";
 import { ThemeProvider, useTheme } from "../src/theme-context";
+import { usePush } from "../src/use-push";
 
 // Both of these decide how the first frame is drawn, so they run while the
 // module loads rather than in an effect — an effect is already too late.
@@ -30,7 +36,11 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <Shell />
+          {/* Outside the navigator on purpose: the lock must cover whatever
+              screen the app was left on, including a half-finished checkout. */}
+          <AppLock>
+            <Shell />
+          </AppLock>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -42,6 +52,11 @@ function Shell() {
   const t = dict();
 
   const refreshSession = useSession((s) => s.refresh);
+  const router = useRouter();
+
+  // Registers this phone for order updates once someone is signed in, and
+  // releases it when they sign out.
+  usePush();
 
   useEffect(() => {
     // Ask who is signed in before the splash goes, so no screen has to render a
@@ -50,6 +65,29 @@ function Shell() {
       SplashScreen.hideAsync().catch(() => {});
     });
   }, [refreshSession]);
+
+  /**
+   * A tapped notification must land on the thing it was about.
+   *
+   * Two cases, and missing either one is a dead end: the app was already
+   * running (the listener fires), or the tap is what launched it — then there
+   * is no event to hear, and the response has to be asked for.
+   */
+  useEffect(() => {
+    const go = (url: string | null) => {
+      if (!url) return;
+      router.push(routeFor(url) as never);
+    };
+
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      go(urlFromNotification(response));
+    });
+
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      go(urlFromNotification(response));
+    });
+    return () => sub.remove();
+  }, [router]);
 
   /**
    * React Navigation paints the frame *around* our screens — the space behind a
@@ -87,6 +125,7 @@ function Shell() {
         {/* Checkout is a modal-ish push: it is a task with a beginning and an
             end, not a place in the app you browse to and stay. */}
         <Stack.Screen name="checkout" options={{ title: t.checkout }} />
+        <Stack.Screen name="scan" options={{ title: t.scan }} />
         <Stack.Screen name="+not-found" options={{ title: t.notFound }} />
       </Stack>
     </NavigationThemeProvider>

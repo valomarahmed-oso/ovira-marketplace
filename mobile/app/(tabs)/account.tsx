@@ -144,6 +144,11 @@ export default function AccountScreen() {
             label={t.addresses}
             onPress={() => router.push("/account/addresses")}
           />
+          <MenuItem
+            icon="settings-outline"
+            label={t.settings}
+            onPress={() => router.push("/account/settings")}
+          />
         </VStack>
 
         <Pressable onPress={() => void logOut()} style={{ alignItems: "center", paddingTop: space.lg }}>
