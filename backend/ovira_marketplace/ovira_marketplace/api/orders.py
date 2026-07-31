@@ -135,6 +135,12 @@ TRACK_FIELDS = [
     "discount_amount",
     "coupon_code",
     "wallet_applied",
+    # The buyer's own invoice has to be able to show the VAT it was billed.
+    "net_total",
+    "tax_amount",
+    "tax_rate",
+    "tax_inclusive",
+    "tax_label",
     "total",
     "customer_name",
     "governorate",

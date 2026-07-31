@@ -198,19 +198,29 @@ def place_order(
             order.discount_amount = coupon_discount
             discount = coupon_discount
 
-    # Store credit is applied after the coupon(s), capped at what's still payable.
-    # It's booked as an operator-funded discount (see payment._invoice_and_pay),
-    # so vendor settlement stays whole. Debited from the ledger once the order
-    # exists (needs the order name as the reference).
+    # Tax, from the same template ERPNext will bill the Sales Order with. An
+    # inclusive template (the Egyptian retail norm) only DISCLOSES the tax — the
+    # price already contains it, so `extra_tax` is zero and the shopper pays what
+    # the cart said. An exclusive one is added here, because ERPNext would
+    # otherwise add it downstream and invoice more than the shopper approved.
+    from ovira_marketplace.taxes import apply_order_tax
+
+    goods = subtotal - discount - vendor_discount
+    extra_tax = apply_order_tax(order, goods, settings)
+
+    # Store credit is applied after the coupon(s) and the tax, capped at what's
+    # still payable. It's booked as an operator-funded discount (see
+    # payment._invoice_and_pay), so vendor settlement stays whole. Debited from
+    # the ledger once the order exists (needs the order name as the reference).
     wallet_applied = 0.0
     user = frappe.session.user
     if _truthy(use_wallet) and user and user != "Guest":
         from ovira_marketplace.api.wallet import balance as wallet_balance
 
-        payable = subtotal + order.shipping_amount - discount - vendor_discount
+        payable = goods + order.shipping_amount + extra_tax
         wallet_applied = max(0.0, min(flt(wallet_balance(user)), flt(payable)))
     order.wallet_applied = wallet_applied
-    order.total = subtotal + order.shipping_amount - discount - vendor_discount - wallet_applied
+    order.total = goods + order.shipping_amount + extra_tax - wallet_applied
 
     # Screen cash-on-delivery before the order exists, so a blocked one is
     # refused rather than created-then-cancelled (which would have already moved

@@ -2,7 +2,13 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { ProductFilters } from "@/components/product-filters";
 import { ProductGrid } from "@/components/product-grid";
 import { SponsoredStrip } from "@/components/sponsored-strip";
-import { getCategories, getFacets, getProducts, searchParamsToQuery } from "@/lib/api";
+import {
+  decodeSlug,
+  getCategories,
+  getFacets,
+  getProducts,
+  searchParamsToQuery,
+} from "@/lib/api";
 import { getDict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 
@@ -15,7 +21,9 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<SP>;
 }) {
-  const { slug } = await params;
+  // Raw from the route — an Arabic slug arrives percent-encoded and matches
+  // nothing until it is decoded.
+  const slug = decodeSlug((await params).slug);
   const query = searchParamsToQuery(await searchParams);
   const [categories, facets, products, locale] = await Promise.all([
     getCategories(),

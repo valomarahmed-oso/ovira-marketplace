@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import flt
 
 from ovira_marketplace.marketplace.doctype.marketplace_settings.marketplace_settings import (
     get_settings,
@@ -31,8 +32,20 @@ class MarketplaceProduct(Document):
             )
 
     def _ensure_slug(self):
-        if not self.slug and self.title:
-            self.slug = frappe.scrub(self.title).replace("_", "-")
+        """Mint a URL-safe slug once, and never let a non-ASCII one through.
+
+        `frappe.scrub` keeps Arabic letters, which produced slugs that
+        percent-encode in every link and come back from Next's router still
+        encoded — a product page that can't find its own product. See
+        `ovira_marketplace.slugs`.
+        """
+        from ovira_marketplace.slugs import is_ascii_slug, unique_slug
+
+        if not self.slug or not is_ascii_slug(self.slug):
+            source = self.slug or self.title
+            self.slug = unique_slug(
+                "Marketplace Product", source, fallback=self.name, exclude=self.name
+            )
         if self.slug:
             self.slug = self.slug.strip().lower()
 
@@ -58,12 +71,13 @@ class MarketplaceProduct(Document):
             self.db_set("item", self._create_item())
         if not self.website_item and _website_item_available() and get_settings().sync_website_item:
             self.db_set("website_item", self._create_website_item())
-        # Tracked products: seed ERPNext stock once, then let it be the source of
-        # truth. refresh_stock mirrors the resulting Bin back onto stock_qty.
-        from ovira_marketplace.inventory import ensure_opening_stock
+        # Tracked products: push this screen's quantities INTO ERPNext, per
+        # warehouse. The vendor's number is the master (see inventory.py) — the
+        # old code seeded ERPNext once and then read back from it, which is how
+        # a product showing 98 in the shop sat at 1 in the stock ledger.
+        from ovira_marketplace.inventory import sync_product_stock
 
-        ensure_opening_stock(self)
-        self.refresh_stock()
+        sync_product_stock(self)
 
     def _create_item(self):
         item = frappe.new_doc("Item")
@@ -93,18 +107,36 @@ class MarketplaceProduct(Document):
         return frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
 
     def refresh_stock(self):
+        """Pull ERPNext's quantity back onto this product.
+
+        The opposite direction to `sync_to_erpnext`, and used only where ERPNext
+        genuinely moved first: an operator booking a Purchase Receipt, or the
+        back-in-stock sweep. What's read is **available** stock (actual minus
+        what submitted Sales Orders already reserved) — reading `actual_qty`
+        alone re-offers units that are spoken for, and, now that saving pushes
+        `stock_qty + reserved` into the Bin, would inflate the number a little
+        more on every single save.
+        """
         if not self.item:
             return
-        # Marketplace stock is managed directly on the product unless the Item
-        # actually carries POSITIVE ERPNext inventory. There's no stock-entry
-        # flow in use, so an empty/zero Bin just means "not managed in ERPNext" —
-        # never let that zero out the vendor's declared/restocked number. Only a
-        # positive ERPNext quantity overrides the manual one.
         if not frappe.db.get_value("Item", self.item, "is_stock_item"):
             return
-        bins = frappe.get_all("Bin", filters={"item_code": self.item}, pluck="actual_qty")
-        new_qty = sum(q or 0 for q in bins)
+        # A product with per-branch rows keeps its headline as the sum of those
+        # rows; ERPNext must not overwrite a distribution it doesn't own.
+        from ovira_marketplace.api.fulfillment import has_stock_locations
+
+        if has_stock_locations(self.name):
+            return
+        rows = frappe.get_all(
+            "Bin",
+            filters={"item_code": self.item},
+            fields=["actual_qty", "reserved_qty"],
+            ignore_permissions=True,
+        )
+        new_qty = sum(flt(r.actual_qty) - flt(r.reserved_qty) for r in rows)
         if new_qty <= 0:
+            # An empty ledger means "not managed in ERPNext", not "sold out" —
+            # never zero out a vendor's declared number on the strength of it.
             return
         old_qty = self.stock_qty or 0
         self.db_set("stock_qty", new_qty)

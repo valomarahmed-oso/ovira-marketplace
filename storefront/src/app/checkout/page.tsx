@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Banknote, CreditCard, Info, Loader2, MapPin, Plus, Tag, Truck, Wallet, X } from "lucide-react";
 import { getAppConfig, initiatePayment, placeOrder as apiPlaceOrder, validateCoupon } from "@/lib/api";
+import { useAppConfig } from "@/components/app-config-provider";
 import { getMyAddresses, upsertAddress, type BuyerAddress } from "@/lib/addresses-api";
 import {
   getShippingMethods,
@@ -52,6 +53,10 @@ export default function CheckoutPage() {
   // permanent "coming soon". Falls back to COD-only until then.
   const [onlinePayment, setOnlinePayment] = useState(false);
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
+  // The store's VAT, so the summary can disclose it before the order is placed
+  // rather than leaving it to surface for the first time on the invoice. It
+  // rides on the config the root layout already fetched — no extra round trip.
+  const tax = useAppConfig().tax;
   useEffect(() => {
     getAppConfig().then((c) => setOnlinePayment(c.onlinePayment));
     listPaymentMethods().then(setMethods);
@@ -570,6 +575,7 @@ export default function CheckoutPage() {
             discount={coupon?.discount ?? 0}
             walletApplied={walletApplied}
             walletLabel={t.walletApplied}
+            tax={tax}
           >
             <button type="submit" disabled={submitting} className="btn btn-primary w-full disabled:opacity-50">
               {t.coConfirmOrder}

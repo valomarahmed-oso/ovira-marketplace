@@ -127,17 +127,28 @@ def _mark_read(ticket, role):
 
 
 def _unread_counts(ticket_names, role):
-    """{ticket: n} unread for this side, in one query."""
+    """{ticket: n} unread for this side, in one query.
+
+    Raw SQL on purpose: frappe v16 rejects an aggregate written as a string in
+    `fields` ("count(name) as n" → ValidationError), and its dict form returns a
+    column keyed ``COUNT(`name`)`` that changes shape between versions. This
+    query threw for every caller, and both `my_tickets` and `all_tickets` go
+    through it — which is how a working ticket queue rendered as empty on BOTH
+    sides while the rows sat happily in the database.
+    """
     if not ticket_names:
         return {}
-    field = _unread_field(role)
+    field = _unread_field(role)  # fixed map — never user input
     other = "Support" if role == "customer" else "Customer"
-    rows = frappe.get_all(
-        MSG_DT,
-        filters={"ticket": ["in", ticket_names], field: 0, "sender_role": other},
-        fields=["ticket", "count(name) as n"],
-        group_by="ticket",
-        ignore_permissions=True,
+    rows = frappe.db.sql(
+        f"""
+        SELECT ticket, COUNT(name) AS n
+        FROM `tabMarketplace Support Message`
+        WHERE ticket IN %(tickets)s AND `{field}` = 0 AND sender_role = %(other)s
+        GROUP BY ticket
+        """,
+        {"tickets": tuple(ticket_names), "other": other},
+        as_dict=True,
     )
     return {r["ticket"]: cint(r["n"]) for r in rows}
 

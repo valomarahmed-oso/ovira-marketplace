@@ -23,9 +23,19 @@ _EXCLUDED_STATUSES = ("Cancelled", "Pending Payment")
 
 
 def _cards(names, exclude=None):
-    """Resolve product names → approved+published card rows, preserving the
-    given order and dropping anything unpublished or excluded."""
-    from ovira_marketplace.api.catalog import PRODUCT_LIST_FIELDS, _attach_card_fields
+    """Resolve product names → visible card rows, preserving the given order and
+    dropping anything a shopper isn't allowed to see.
+
+    `visibility_filters` rather than a hand-rolled approved+published pair: this
+    strip used to check only those two, so a suspended vendor's product still
+    appeared here while `get_product` refused to open it — a recommendation that
+    404s when you click it.
+    """
+    from ovira_marketplace.api.catalog import (
+        PRODUCT_LIST_FIELDS,
+        _attach_card_fields,
+        visibility_filters,
+    )
 
     exclude = set(exclude or [])
     wanted = [n for n in names if n and n not in exclude]
@@ -33,11 +43,7 @@ def _cards(names, exclude=None):
         return []
     rows = frappe.get_all(
         "Marketplace Product",
-        filters=[
-            ["name", "in", wanted],
-            ["approval_status", "=", "Approved"],
-            ["published", "=", 1],
-        ],
+        filters=visibility_filters([["name", "in", wanted]]),
         fields=PRODUCT_LIST_FIELDS,
         ignore_permissions=True,
     )
@@ -104,7 +110,11 @@ def frequently_bought_together(slug, limit=4):
 def popular_products(limit=12):
     """Best sellers by units sold; newest published products when nothing has
     sold yet, so the strip always has something to show."""
-    from ovira_marketplace.api.catalog import PRODUCT_LIST_FIELDS, _attach_card_fields
+    from ovira_marketplace.api.catalog import (
+        PRODUCT_LIST_FIELDS,
+        _attach_card_fields,
+        visibility_filters,
+    )
 
     limit = min(cint(limit) or 12, 24)
     rows = frappe.db.sql(
@@ -129,7 +139,7 @@ def popular_products(limit=12):
     have = {c.name for c in cards}
     fresh = frappe.get_all(
         "Marketplace Product",
-        filters=[["approval_status", "=", "Approved"], ["published", "=", 1]],
+        filters=visibility_filters(),
         fields=PRODUCT_LIST_FIELDS,
         order_by="creation desc",
         limit_page_length=limit * 2,

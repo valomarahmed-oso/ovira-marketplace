@@ -87,10 +87,10 @@ def _hard_where_sql(params, category, vendor, brand, min_price, max_price, in_st
         clauses.append("p.price <= %(f_max)s")
     if cint(in_stock):
         clauses.append("p.stock_qty > 0")
-    suspended = _suspended_vendors()
-    if suspended:
-        params["f_susp"] = tuple(suspended)
-        clauses.append("(p.vendor IS NULL OR p.vendor NOT IN %(f_susp)s)")
+    hidden = hidden_vendors()
+    if hidden:
+        params["f_hidden"] = tuple(hidden)
+        clauses.append("(p.vendor IS NULL OR p.vendor NOT IN %(f_hidden)s)")
     return " AND ".join(clauses)
 
 
@@ -268,16 +268,88 @@ def _catalog_filters(
         filters.append(["price", "<=", flt(max_price)])
     if cint(in_stock):
         filters.append(["stock_qty", ">", 0])
-    suspended = _suspended_vendors()
-    if suspended:
-        # A suspended vendor's storefront goes dark — hide their products from
-        # every listing (they reappear when the vendor is reactivated).
-        filters.append(["vendor", "not in", suspended])
+    hidden = hidden_vendors()
+    if hidden:
+        filters.append(["vendor", "not in", hidden])
     return filters
 
 
-def _suspended_vendors():
-    return frappe.get_all("Marketplace Vendor", filters={"status": "Suspended"}, pluck="name")
+def hidden_vendors():
+    """Vendors whose products no shopper may see, whatever surface asks.
+
+    Two rules, one answer:
+
+    * **Suspended sellers.** Their storefront goes dark; the products come back
+      if the vendor is reactivated.
+    * **Single Company mode.** The setting says this site sells ONE catalogue, so
+      any other seller's products — a demo vendor, a seller from before the
+      switch — stay out of it. Gating only the money paths (settlement, payouts)
+      left their products cheerfully on sale.
+    """
+    # Memoised per request: a single catalogue page calls this from the listing,
+    # the facets, the sponsored strip and the recommendation rails, and the answer
+    # cannot change mid-request.
+    cached = getattr(frappe.local, "_ovira_hidden_vendors", None)
+    if cached is not None:
+        return cached
+
+    hidden = set(
+        frappe.get_all("Marketplace Vendor", filters={"status": "Suspended"}, pluck="name")
+    )
+    own = _sole_vendor()
+    if own is not None:
+        hidden |= {
+            v for v in frappe.get_all("Marketplace Vendor", pluck="name") if v != own
+        }
+    result = sorted(hidden)
+    frappe.local._ovira_hidden_vendors = result
+    return result
+
+
+def _sole_vendor():
+    """In Single Company mode, the one vendor record the store sells as.
+
+    The operator's explicit choice when they made one; otherwise the single
+    Active vendor, which is what a single-company store has by definition.
+    Returns None in Multi Vendor mode, or when the answer would be a guess —
+    hiding the whole catalogue is far worse than showing one stale seller.
+    """
+    from ovira_marketplace.marketplace.doctype.marketplace_settings.marketplace_settings import (
+        get_settings,
+    )
+
+    try:
+        settings = get_settings()
+    except Exception:
+        return None
+    if (settings.get("mode") or "") != "Single Company":
+        return None
+    chosen = settings.get("operator_vendor")
+    if chosen and frappe.db.exists("Marketplace Vendor", chosen):
+        return chosen
+    active = frappe.get_all("Marketplace Vendor", filters={"status": "Active"}, pluck="name")
+    return active[0] if len(active) == 1 else None
+
+
+def visibility_filters(extra=None):
+    """The complete "may a shopper see this product" rule, as `get_all` filters.
+
+    EVERY public surface must go through this — listing, search, recommendations,
+    deals, homepage rails, sponsored strips, related products. A surface that
+    builds its own approved+published pair renders a card that `get_product`
+    then refuses to open, and the shopper gets a 404 they cannot explain. That
+    is exactly how suspended vendors leaked into "recommended for you".
+    """
+    filters = [["approval_status", "=", "Approved"], ["published", "=", 1]]
+    hidden = hidden_vendors()
+    if hidden:
+        filters.append(["vendor", "not in", hidden])
+    return filters + list(extra or [])
+
+
+def is_visible_vendor(vendor):
+    """False when this vendor's products must not be shown to shoppers."""
+    return not (vendor and vendor in hidden_vendors())
 
 
 def _attach_card_fields(products):
@@ -355,7 +427,7 @@ def get_product(slug):
     if not name:
         frappe.throw(_("Product not found."), frappe.DoesNotExistError)
     doc = frappe.get_doc("Marketplace Product", name).as_dict()
-    if doc.get("vendor") and frappe.db.get_value("Marketplace Vendor", doc["vendor"], "status") == "Suspended":
+    if not is_visible_vendor(doc.get("vendor")):
         frappe.throw(_("Product not found."), frappe.DoesNotExistError)
 
     # Counted here rather than on the listing: opening the page is interest,
@@ -430,17 +502,13 @@ def related_products(slug, limit=8):
     limit = cint(limit) or 8
     picked: list = []
     seen = {base.name}
-    suspended = _suspended_vendors()
 
     def _take(extra_filters):
         if len(picked) >= limit:
             return
-        gate = [["approval_status", "=", "Approved"], ["published", "=", 1]]
-        if suspended:
-            gate.append(["vendor", "not in", suspended])
         rows = frappe.get_all(
             "Marketplace Product",
-            filters=gate + extra_filters,
+            filters=visibility_filters(extra_filters),
             fields=PRODUCT_LIST_FIELDS,
             order_by="creation desc",
             limit_page_length=limit * 2,

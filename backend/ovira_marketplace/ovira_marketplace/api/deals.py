@@ -98,7 +98,7 @@ def list_deals(limit=24):
     from ovira_marketplace.api.catalog import (
         PRODUCT_LIST_FIELDS,
         _attach_card_fields,
-        _suspended_vendors,
+        visibility_filters,
     )
 
     now = now_datetime()
@@ -113,19 +113,9 @@ def list_deals(limit=24):
     if not names:
         return []
 
-    product_filters = [
-        ["name", "in", names],
-        ["approval_status", "=", "Approved"],
-        ["published", "=", 1],
-    ]
-    suspended = _suspended_vendors()
-    if suspended:
-        # A suspended vendor's storefront goes dark — hide their deals too.
-        product_filters.append(["vendor", "not in", suspended])
-
     products = frappe.get_all(
         "Marketplace Product",
-        filters=product_filters,
+        filters=visibility_filters([["name", "in", names]]),
         fields=PRODUCT_LIST_FIELDS,
         ignore_permissions=True,
     )

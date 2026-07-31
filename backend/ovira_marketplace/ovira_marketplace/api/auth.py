@@ -62,12 +62,17 @@ def _csrf_token():
 
 @frappe.whitelist(allow_guest=True)
 @rate_limit(limit=10, seconds=60 * 60, methods="POST")
-def register_customer(full_name, email, password, phone=None):
+def register_customer(full_name, email, password, phone=None, lang=None):
     """Self-service buyer sign-up.
 
     Creates a Website User + an ERPNext Customer linked to that login, so the
     new account can immediately check out and see its own orders. The storefront
     follows this with a normal ``/api/method/login`` call to open the session.
+
+    ``lang`` is the locale the shopper was actually browsing in. Stamping it here
+    matters: left alone, Frappe fills `User.language` with the SITE language
+    ("en" on a stock install), and every receipt, shipping update and delivery
+    code afterwards goes out in English, left-to-right, to an Arabic customer.
     """
     email = (email or "").strip().lower()
     full_name = (full_name or "").strip()
@@ -77,12 +82,16 @@ def register_customer(full_name, email, password, phone=None):
     if frappe.db.exists("User", email):
         frappe.throw(_("هذا البريد مسجّل بالفعل. سجّل دخولك بدلاً من ذلك."))
 
+    from ovira_marketplace.notifications.dispatch import store_language
+
+    code = (lang or "").strip().lower()[:2]
     # Frappe enforces password policy + email format here; let it surface.
     user = frappe.new_doc("User")
     user.email = email
     user.first_name = full_name
     user.mobile_no = phone
     user.user_type = "Website User"
+    user.language = code if code in ("ar", "en") else store_language()
     user.send_welcome_email = 0
     user.new_password = password
     user.flags.ignore_permissions = True

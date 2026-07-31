@@ -41,6 +41,10 @@ export default function AdminReturnsPage() {
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  // Editable refund per row. The server fills a sensible default the moment a
+  // return is approved, so this starts populated rather than blank — a blank
+  // field is how every return on this store completed refunding nothing.
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,7 +65,14 @@ export default function AdminReturnsPage() {
     setActingOn(row.name);
     setError(null);
     try {
-      const updated = await setReturnStatus(row.name, status, notes[row.name]?.trim() || undefined);
+      const typed = amounts[row.name];
+      const amount = typed === undefined || typed === "" ? undefined : Number(typed);
+      const updated = await setReturnStatus(
+        row.name,
+        status,
+        notes[row.name]?.trim() || undefined,
+        Number.isFinite(amount) ? amount : undefined,
+      );
       setRows((prev) =>
         // Drop it from a filtered tab if it no longer matches.
         prev.flatMap((r) => {
@@ -173,15 +184,30 @@ export default function AdminReturnsPage() {
                     {/* Fault has to be settled BEFORE completing — that's when the
                         vendor chargeback books. */}
                     <ReturnSettlement row={r} onUpdated={(patch) => patchRow(r.name, patch)} />
-                    <div className="border-t border-line pt-3">
+                    <div className="flex flex-wrap items-end gap-3 border-t border-line pt-3">
+                      <label className="block text-sm">
+                        <span className="mb-1 block text-ink-400">{t.rtnRefundAmount}</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          dir="ltr"
+                          value={amounts[r.name] ?? String(r.refund_amount ?? 0)}
+                          onChange={(e) =>
+                            setAmounts((a) => ({ ...a, [r.name]: e.target.value }))
+                          }
+                          className="h-10 w-40 rounded-xl border border-line bg-white px-3 text-sm outline-none focus:border-blue"
+                        />
+                      </label>
                       <button
                         type="button"
                         disabled={acting}
                         onClick={() => decide(r, "Completed")}
-                        className="btn btn-ghost disabled:opacity-50"
+                        className="btn btn-primary disabled:opacity-50"
                       >
                         {acting && <Loader2 className="h-4 w-4 animate-spin" />} {t.rtnMarkComplete}
                       </button>
+                      <p className="w-full text-xs text-ink-400">{t.rtnRefundAmountHint}</p>
                     </div>
                   </>
                 ) : r.status === "Completed" ? (

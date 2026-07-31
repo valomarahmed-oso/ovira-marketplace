@@ -66,7 +66,11 @@ def sponsored_products(category=None, limit=8):
 
     Scope: a placement with a `target_category` shows only on that category's
     page; a blank one shows across the whole catalog (and on any category)."""
-    from ovira_marketplace.api.catalog import PRODUCT_LIST_FIELDS, _attach_card_fields
+    from ovira_marketplace.api.catalog import (
+        PRODUCT_LIST_FIELDS,
+        _attach_card_fields,
+        visibility_filters,
+    )
 
     limit = min(cint(limit) or 8, 12)
     now = now_datetime()
@@ -100,11 +104,7 @@ def sponsored_products(category=None, limit=8):
 
     products = frappe.get_all(
         "Marketplace Product",
-        filters=[
-            ["name", "in", ordered],
-            ["approval_status", "=", "Approved"],
-            ["published", "=", 1],
-        ],
+        filters=visibility_filters([["name", "in", ordered]]),
         fields=PRODUCT_LIST_FIELDS,
         ignore_permissions=True,
     )

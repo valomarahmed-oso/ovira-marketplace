@@ -262,6 +262,17 @@ def _invoice_and_pay(order, reference, errors):
         if not so_name or so_name in done:
             continue
         done.add(so_name)
+        # A Sales Order that no longer exists is not a transient failure: retrying
+        # cannot bring a deleted document back, so the order would sit in the
+        # "accounting incomplete" queue forever reporting DoesNotExistError. Say
+        # what actually has to happen instead.
+        if not frappe.db.exists("Sales Order", so_name):
+            errors.append(
+                f"SO {so_name}: "
+                + _("this Sales Order was deleted in ERPNext — rebuild the order's "
+                    "vendor orders before booking it again")
+            )
+            continue
         try:
             invoice = _existing_invoice(so_name)
             if not invoice:
@@ -278,6 +289,52 @@ def _invoice_and_pay(order, reference, errors):
                 title="Ovira: invoice/payment failed",
                 message=f"Order {order.name}, SO {so_name}\n{frappe.get_traceback()}",
             )
+
+
+@frappe.whitelist()
+@rate_limit(limit=30, seconds=60 * 60, methods="POST")
+def rebuild_vendor_orders(order_name):
+    """Re-create the ERPNext Sales Orders an order's lines point at, when those
+    documents no longer exist, then book the accounting again.
+
+    Deleting a submitted Sales Order in the Desk leaves `Marketplace Order
+    Item.sales_order` pointing at nothing. `book_order_accounting` then fails on
+    every retry with `Sales Order … not found`, and the order is stuck in the
+    operator's "payment taken, books incomplete" queue with no way out of the UI.
+
+    Only DANGLING links are cleared — a line whose Sales Order is alive is left
+    exactly as it is, so this can never duplicate an existing order or re-bill a
+    customer.
+    """
+    from ovira_marketplace.api.admin import _require_operator
+
+    _require_operator()
+    order = frappe.get_doc("Marketplace Order", order_name)
+
+    cleared = 0
+    for row in order.items:
+        if row.sales_order and not frappe.db.exists("Sales Order", row.sales_order):
+            row.db_set("sales_order", None, update_modified=False)
+            cleared += 1
+    if not cleared:
+        frappe.throw(
+            _("كل أوامر البيع لهذا الطلب موجودة — المشكلة في مكان آخر، راجع سجل الأخطاء.")
+        )
+
+    order.reload()
+    order.create_vendor_orders()
+    frappe.db.commit()
+
+    booked = book_order_accounting(order, order.payment_reference)
+    frappe.db.commit()
+    return {
+        "order": order.name,
+        "relinked": cleared,
+        "accounting_status": frappe.db.get_value(
+            "Marketplace Order", order.name, "accounting_status"
+        ),
+        "booked": booked,
+    }
 
 
 def _remaining_discount(order, discount_total):

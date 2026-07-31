@@ -5,9 +5,17 @@ import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
 import {
   failedAccountingOrders,
+  rebuildVendorOrders,
   retryOrderAccounting,
   type FailedAccountingOrder,
 } from "@/lib/operator";
+
+/** A deleted Sales Order can't be retried back into existence — the order needs
+ *  its vendor orders rebuilt instead. Detected from the recorded error so the
+ *  operator is offered the action that can actually work. */
+function needsRebuild(error?: string) {
+  return !!error && /not found|deleted in ERPNext/i.test(error);
+}
 
 /** Operator banner: paid orders whose post-payment booking failed, with retry. */
 export function AccountingAlerts() {
@@ -24,15 +32,17 @@ export function AccountingAlerts() {
     void load();
   }, [load]);
 
-  async function retry(order: string) {
+  async function retry(order: string, rebuild: boolean) {
     setRetrying(order);
     setNote(null);
     try {
-      const res = await retryOrderAccounting(order);
-      setNote(res.ok ? t.acctRetrySuccess : t.acctRetryStillFailing);
+      const ok = rebuild
+        ? (await rebuildVendorOrders(order)).booked
+        : (await retryOrderAccounting(order)).ok;
+      setNote(ok ? t.acctRetrySuccess : t.acctRetryStillFailing);
       await load();
-    } catch {
-      setNote(t.acctRetryStillFailing);
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : t.acctRetryStillFailing);
     } finally {
       setRetrying(null);
     }
@@ -72,7 +82,7 @@ export function AccountingAlerts() {
             <button
               type="button"
               disabled={retrying === o.name}
-              onClick={() => retry(o.name)}
+              onClick={() => retry(o.name, needsRebuild(o.accounting_error))}
               className="btn btn-ghost shrink-0 disabled:opacity-50"
             >
               {retrying === o.name ? (
@@ -80,7 +90,11 @@ export function AccountingAlerts() {
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              {retrying === o.name ? t.acctRetrying : t.acctRetry}
+              {retrying === o.name
+                ? t.acctRetrying
+                : needsRebuild(o.accounting_error)
+                  ? t.acctRebuild
+                  : t.acctRetry}
             </button>
           </div>
         ))}

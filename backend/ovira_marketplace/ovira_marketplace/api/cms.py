@@ -12,7 +12,8 @@ from frappe.utils import cint, flt, now_datetime
 from ovira_marketplace.api.catalog import (
     PRODUCT_LIST_FIELDS,
     _attach_card_fields,
-    _suspended_vendors,
+    hidden_vendors,
+    is_visible_vendor,
 )
 from ovira_marketplace.marketplace.doctype.marketplace_settings.marketplace_settings import (
     get_settings,
@@ -116,9 +117,9 @@ def _list(filters, limit, order_by):
     # A suspended vendor's storefront goes dark — keep their products out of
     # every homepage rail (Latest / Discounted / Best Selling / Category).
     filters = dict(filters)
-    suspended = _suspended_vendors()
-    if suspended:
-        filters["vendor"] = ["not in", suspended]
+    hidden = hidden_vendors()
+    if hidden:
+        filters["vendor"] = ["not in", hidden]
     return frappe.get_all(
         "Marketplace Product",
         filters=filters,
@@ -186,8 +187,8 @@ def _deal_product():
     )
     if not row:
         return None
-    # Don't feature a suspended vendor's product as the deal of the day.
-    if row.get("vendor") and row["vendor"] in _suspended_vendors():
+    # Don't feature a hidden vendor's product as the deal of the day.
+    if not is_visible_vendor(row.get("vendor")):
         return None
     rows = [row]
     _attach_card_fields(rows)

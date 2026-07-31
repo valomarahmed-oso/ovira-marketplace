@@ -152,7 +152,11 @@ export function searchParamsToQuery(
  * slugs) can arrive still percent-encoded; URLSearchParams would then encode
  * them again and the server lookup misses. Decoding first is safe — a plain
  * Arabic/ascii slug has no `%`, so this is a no-op for it. */
-function decodeSlug(slug: string): string {
+/** Next 15 hands dynamic-route `params` through RAW — percent-encoded, not
+ *  decoded. An Arabic slug therefore arrives as "%D8%A7%D9%84…", matches no
+ *  record, and the page renders an empty result with the escape sequence as its
+ *  heading. Every `[slug]` route must decode before it queries or compares. */
+export function decodeSlug(slug: string): string {
   try {
     return decodeURIComponent(slug);
   } catch {
@@ -316,6 +320,14 @@ export type DisplayCurrency = {
   is_base: boolean;
 };
 
+/** The store's sales tax, for display only — the charge is always recomputed
+ *  server-side. `inclusive` means the shown prices already contain it. */
+export type TaxDisclosure = {
+  rate: number;
+  inclusive: boolean;
+  label?: string | null;
+};
+
 export type AppConfig = {
   multiVendor: boolean;
   /** Base currency — what every price is stored, charged and settled in. */
@@ -324,6 +336,8 @@ export type AppConfig = {
   onlinePayment: boolean;
   /** Empty until the operator adds any; the switcher hides itself then. */
   currencies: DisplayCurrency[];
+  /** Null when the operator has configured no tax template. */
+  tax: TaxDisclosure | null;
 };
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -332,6 +346,7 @@ const DEFAULT_CONFIG: AppConfig = {
   autoApproveVendors: false,
   onlinePayment: false,
   currencies: [],
+  tax: null,
 };
 
 export type SiteContent = {
@@ -396,6 +411,7 @@ export async function getAppConfig(): Promise<AppConfig> {
       auto_approve_vendors: boolean;
       online_payment: boolean;
       currencies?: DisplayCurrency[];
+      tax?: { rate?: number; inclusive?: boolean; label?: string | null };
     };
     return {
       multiVendor: !!live.multi_vendor,
@@ -403,6 +419,13 @@ export async function getAppConfig(): Promise<AppConfig> {
       autoApproveVendors: !!live.auto_approve_vendors,
       onlinePayment: !!live.online_payment,
       currencies: Array.isArray(live.currencies) ? live.currencies : [],
+      tax: live.tax?.rate
+        ? {
+            rate: Number(live.tax.rate),
+            inclusive: !!live.tax.inclusive,
+            label: live.tax.label ?? null,
+          }
+        : null,
     };
   } catch {
     return DEFAULT_CONFIG;

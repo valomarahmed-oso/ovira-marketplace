@@ -212,6 +212,39 @@ def restock_product(product, qty, supplier=None, rate=None):
 
 
 @frappe.whitelist()
+def stock_health(limit=200):
+    """Products whose ERPNext quantity disagrees with what the shop offers.
+
+    "The card says 98 and the stock ledger says 1" is a question the operator
+    could previously only answer by opening two systems side by side. A healthy
+    store returns an empty list.
+    """
+    _require_operator()
+    from ovira_marketplace.inventory import stock_mismatches
+
+    rows = stock_mismatches(cint(limit) or 200)
+    return {"mismatches": rows, "count": len(rows)}
+
+
+@frappe.whitelist()
+def resync_stock(product=None):
+    """Push the shop's quantities into ERPNext — one product, or everything that
+    has drifted. Idempotent: posts nothing where the two already agree."""
+    _require_operator()
+    from ovira_marketplace.inventory import reconcile_all_products, sync_product_stock
+
+    if product:
+        doc = frappe.get_doc("Marketplace Product", product)
+        voucher = sync_product_stock(doc)
+        frappe.db.commit()
+        return {"product": doc.name, "voucher": voucher}
+    reconcile_all_products()
+    from ovira_marketplace.inventory import stock_mismatches
+
+    return {"remaining": len(stock_mismatches())}
+
+
+@frappe.whitelist()
 def low_stock_products(limit=100):
     """Tracked products at or below their low-stock threshold — the reorder list."""
     _require_operator()

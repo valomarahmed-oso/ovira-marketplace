@@ -29,7 +29,12 @@ class MarketplaceOrder(Document):
             row.amount = flt(row.rate) * (row.qty or 0)
         self.subtotal = sum(flt(r.amount) for r in self.items)
         if self.total is None:
-            self.total = flt(self.subtotal) + flt(self.shipping_amount) - flt(self.discount_amount)
+            # Fallback for an order built outside checkout. Exclusive tax adds to
+            # the total; inclusive tax is already inside the line rates.
+            extra_tax = 0.0 if self.get("tax_inclusive") else flt(self.get("tax_amount"))
+            self.total = (
+                flt(self.subtotal) + flt(self.shipping_amount) - flt(self.discount_amount) + extra_tax
+            )
 
     def on_update(self):
         self._notify_status_change()

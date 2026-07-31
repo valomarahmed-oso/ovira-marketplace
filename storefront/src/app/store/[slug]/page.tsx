@@ -4,7 +4,7 @@ import { StoreProducts } from "@/components/store-products";
 import { VendorReviews } from "@/components/vendor-reviews";
 import { Rating } from "@/components/rating";
 import { TrustBadge } from "@/components/trust-badge";
-import { getProducts, getVendorStore } from "@/lib/api";
+import { decodeSlug, getProducts, getVendorStore } from "@/lib/api";
 import { getDict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 
@@ -13,7 +13,8 @@ const abs = (p?: string | null) =>
   !p ? undefined : /^https?:\/\//.test(p) ? p : `${FRAPPE}${p.startsWith("/") ? "" : "/"}${p}`;
 
 export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+  // Route params arrive percent-encoded in Next 15 — decode before lookup.
+  const slug = decodeSlug((await params).slug);
   const [store, locale] = await Promise.all([getVendorStore(slug), getLocale()]);
   const t = getDict(locale);
 

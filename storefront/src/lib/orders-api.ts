@@ -41,6 +41,14 @@ export type BuyerOrder = Omit<BuyerOrderSummary, "item_count"> & {
   shipping_address?: string;
   discount_amount?: number;
   coupon_code?: string;
+  wallet_applied?: number;
+  /** Sales tax as billed. `tax_inclusive` means it is already inside `total` —
+   *  the invoice still has to state it. */
+  net_total?: number;
+  tax_amount?: number;
+  tax_rate?: number;
+  tax_inclusive?: 0 | 1 | boolean;
+  tax_label?: string | null;
   /** Delivery option picked at checkout, and the window promised at the time. */
   shipping_method?: string | null;
   shipping_eta_min?: number;

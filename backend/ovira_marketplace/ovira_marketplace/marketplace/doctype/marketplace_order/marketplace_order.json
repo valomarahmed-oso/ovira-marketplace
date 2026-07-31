@@ -41,6 +41,11 @@
   "vendor_discount_amount",
   "wallet_applied",
   "column_break_totals",
+  "net_total",
+  "tax_amount",
+  "tax_rate",
+  "tax_inclusive",
+  "tax_label",
   "total",
   "access_token",
   "source_section",
@@ -287,6 +292,40 @@
   {
    "fieldname": "column_break_totals",
    "fieldtype": "Column Break"
+  },
+  {
+   "description": "Goods total excluding tax, after discounts. With an inclusive tax template this is LESS than what the customer paid — the difference is the tax below.",
+   "fieldname": "net_total",
+   "fieldtype": "Currency",
+   "label": "Net total (before tax)",
+   "read_only": 1
+  },
+  {
+   "description": "Sales tax on this order, computed from the same template ERPNext bills with.",
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_rate",
+   "fieldtype": "Percent",
+   "label": "Tax rate",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "On: the displayed prices already contain the tax (the total does not change). Off: the tax was added on top of the goods.",
+   "fieldname": "tax_inclusive",
+   "fieldtype": "Check",
+   "label": "Tax included in price",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_label",
+   "fieldtype": "Data",
+   "label": "Tax description",
+   "read_only": 1
   },
   {
    "fieldname": "total",

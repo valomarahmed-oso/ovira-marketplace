@@ -467,6 +467,25 @@ export async function retryOrderAccounting(
   return (await res.json()).message;
 }
 
+/** Re-create the ERPNext Sales Orders an order points at, when they were deleted
+ *  from the Desk. Plain retry can never fix that — the document is gone. */
+export async function rebuildVendorOrders(
+  order: string,
+): Promise<{ order: string; relinked: number; accounting_status: string; booked: boolean }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(
+    `${BASE}/api/method/ovira_marketplace.api.payment.rebuild_vendor_orders`,
+    {
+      method: "POST",
+      headers: writeHeaders(),
+      body: JSON.stringify({ order_name: order }),
+      credentials: "include",
+    },
+  );
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّر إعادة إنشاء أوامر البيع."));
+  return (await res.json()).message;
+}
+
 // --- COD / manual collection -------------------------------------------------
 
 export async function markOrderPaid(

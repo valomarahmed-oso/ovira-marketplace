@@ -30,7 +30,28 @@ def get_public_config():
         # "Operator" (one operator rate table) or "Per Vendor" (each vendor sets
         # their own) — lets the storefront label shipping accordingly.
         "shipping_mode": settings.get("shipping_mode") or "Operator",
+        # So the cart can say "prices include 14% VAT" instead of leaving the tax
+        # to appear for the first time on the ERPNext invoice.
+        "tax": _tax_disclosure(),
     }
+
+
+def _tax_disclosure():
+    """The store's sales tax, for display. Empty dict when no template is set."""
+    try:
+        from ovira_marketplace.taxes import sales_tax_profile
+
+        profile = sales_tax_profile()
+        if not profile.get("rate"):
+            return {}
+        return {
+            "rate": round(profile["rate"] * 100, 4),
+            "inclusive": bool(profile["inclusive"]),
+            "label": profile.get("label"),
+        }
+    except Exception:
+        frappe.log_error(title="Ovira: tax disclosure failed")
+        return {}
 
 
 def _display_currencies():

@@ -25,6 +25,8 @@ export function useAppConfig(): AppConfig {
       // No currencies outside a provider — the switcher hides and prices render
       // in the base currency, which is the correct degraded state.
       currencies: [],
+      // Same reasoning for tax: say nothing rather than guess a rate.
+      tax: null,
     }
   );
 }

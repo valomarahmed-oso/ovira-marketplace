@@ -34,7 +34,80 @@ def after_migrate():
     _seed_settings_if_ready()
     _seed_cms_if_empty()
     _backfill_singleton_defaults()
+    _backfill_user_language()
+    _repair_non_ascii_slugs()
     frappe.db.commit()
+
+
+SLUGGED = (
+    ("Marketplace Product", "title"),
+    ("Marketplace Category", "category_name"),
+    ("Marketplace Vendor", "vendor_name"),
+)
+
+
+def _repair_non_ascii_slugs():
+    """Latinise slugs that were minted before `slugs.web_slug` existed.
+
+    An Arabic slug percent-encodes in every link and comes back from Next's
+    router still encoded, so those pages were already unreachable — rewriting
+    them breaks no working URL. Every link is generated from the database, so
+    the storefront picks up the new address on the next render. Idempotent:
+    only non-ASCII slugs are touched.
+    """
+    from ovira_marketplace.slugs import is_ascii_slug, unique_slug
+
+    for doctype, label_field in SLUGGED:
+        if not frappe.db.exists("DocType", doctype):
+            continue
+        try:
+            rows = frappe.get_all(doctype, fields=["name", "slug", label_field])
+        except Exception:
+            continue
+        for row in rows:
+            if is_ascii_slug(row.get("slug")):
+                continue
+            fixed = unique_slug(
+                doctype, row.get(label_field) or row["name"],
+                fallback=row["name"], exclude=row["name"],
+            )
+            if not fixed or fixed == row.get("slug"):
+                continue
+            try:
+                frappe.db.set_value(doctype, row["name"], "slug", fixed, update_modified=False)
+                frappe.db.commit()
+            except Exception:
+                frappe.log_error(title=f"Ovira: slug repair failed for {row['name']}")
+
+
+BACKFILL_FLAG = "ovira_user_language_backfilled"
+
+
+def _backfill_user_language():
+    """Point existing shoppers at the store's language, once.
+
+    Frappe stamps `User.language` with the SITE language on account creation, so
+    every buyer on an Arabic-first store carried "en" and received English,
+    left-to-right receipts. New accounts are stamped correctly at registration;
+    this repairs the ones created before that. Run-once (and only over Website
+    Users) so an operator who later sets a shopper to English keeps that choice,
+    and desk staff are never touched.
+    """
+    if frappe.db.get_default(BACKFILL_FLAG):
+        return
+    try:
+        from ovira_marketplace.notifications.dispatch import store_language
+
+        lang = store_language()
+        frappe.db.sql(
+            "update `tabUser` set language=%s where user_type='Website User'"
+            " and ifnull(language,'') != %s",
+            (lang, lang),
+        )
+        frappe.db.set_default(BACKFILL_FLAG, "1")
+        frappe.db.commit()
+    except Exception:
+        frappe.log_error(title="Ovira: user language backfill failed")
 
 
 # Fields added to an EXISTING single doctype whose declared default never fires.
@@ -45,6 +118,7 @@ SINGLETON_DEFAULTS = {
     "Marketplace Settings": {
         "refund_charge_vendor": 1,
         "refund_admin_fee_percent": 20,
+        "default_language": "ar",
     },
 }
 

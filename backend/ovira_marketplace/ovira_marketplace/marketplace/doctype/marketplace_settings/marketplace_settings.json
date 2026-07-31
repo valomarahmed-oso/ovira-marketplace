@@ -7,8 +7,10 @@
   "mode_section",
   "mode",
   "operator_company",
+  "operator_vendor",
   "column_break_defaults",
   "default_currency",
+  "default_language",
   "default_commission_rate",
   "shipping_mode",
   "approvals_section",
@@ -78,6 +80,14 @@
    "reqd": 1
   },
   {
+   "depends_on": "eval:doc.mode=='Single Company'",
+   "description": "Single Company mode only: the seller record this store sells as. Products belonging to any OTHER vendor stay out of the storefront entirely. Leave empty and the single Active vendor is used.",
+   "fieldname": "operator_vendor",
+   "fieldtype": "Link",
+   "label": "Store's own seller",
+   "options": "Marketplace Vendor"
+  },
+  {
    "fieldname": "column_break_defaults",
    "fieldtype": "Column Break"
   },
@@ -86,6 +96,14 @@
    "fieldtype": "Link",
    "label": "Default currency",
    "options": "Currency"
+  },
+  {
+   "default": "ar",
+   "description": "The language every customer message is written in unless that shopper chose otherwise. Frappe stamps new logins with the SITE language (usually English), which is not a choice the shopper made — this is what the store actually speaks.",
+   "fieldname": "default_language",
+   "fieldtype": "Select",
+   "label": "Default store language",
+   "options": "ar\nen"
   },
   {
    "default": "10",

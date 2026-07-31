@@ -67,10 +67,18 @@ STORE_CARD_FIELDS = [
 def list_stores(search=None, limit=60):
     """Public directory of Active seller storefronts that have at least one
     approved, published product. Best-established first."""
+    from ovira_marketplace.api.catalog import hidden_vendors
+
     or_filters = [["vendor_name", "like", f"%{search}%"]] if search else None
+    filters = [["status", "=", "Active"]]
+    # Single Company mode leaves exactly one store standing; a leftover seller
+    # must not be browsable from the directory either.
+    hidden = hidden_vendors()
+    if hidden:
+        filters.append(["name", "not in", hidden])
     vendors = frappe.get_all(
         "Marketplace Vendor",
-        filters={"status": "Active"},
+        filters=filters,
         or_filters=or_filters,
         fields=STORE_CARD_FIELDS,
         order_by="orders_count desc, rating desc, creation desc",

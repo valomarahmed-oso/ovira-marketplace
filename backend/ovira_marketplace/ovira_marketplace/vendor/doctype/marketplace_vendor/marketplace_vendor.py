@@ -31,8 +31,14 @@ class MarketplaceVendor(Document):
             note.insert(ignore_permissions=True)
 
     def _ensure_slug(self):
-        if not self.slug and self.vendor_name:
-            self.slug = frappe.scrub(self.vendor_name).replace("_", "-")
+        """URL-safe, ASCII-only — see `ovira_marketplace.slugs`."""
+        from ovira_marketplace.slugs import is_ascii_slug, unique_slug
+
+        if not self.slug or not is_ascii_slug(self.slug):
+            source = self.slug or self.vendor_name
+            self.slug = unique_slug(
+                "Marketplace Vendor", source, fallback=self.name, exclude=self.name
+            )
         if self.slug:
             self.slug = self.slug.strip().lower()
 

@@ -15,7 +15,7 @@ instead — see `Marketplace Return.fault`.
 import frappe
 from frappe import _
 from frappe.rate_limiter import rate_limit
-from frappe.utils import flt
+from frappe.utils import cint, flt
 
 from ovira_marketplace.api.admin import _require_operator
 from ovira_marketplace.api.orders import _my_customers, _session_email
@@ -283,6 +283,25 @@ def _post_return_reversal(doc):
         frappe.log_error(title="Ovira: return manual restock failed")
 
 
+def _revoke_loyalty(doc):
+    """Take back the loyalty points the returned order earned.
+
+    Points are awarded when an order reaches Completed, and a returned order
+    STAYS Completed — so without this the buyer keeps the reward for a purchase
+    they've been refunded for. Proportional to how much came back, so a partial
+    refund only costs a partial share.
+    """
+    from ovira_marketplace.api.loyalty import revoke_for_order
+
+    paid = flt(
+        frappe.db.get_value("Marketplace Order", doc.marketplace_order, "total")
+    )
+    ratio = 1.0 if paid <= 0 else min(1.0, flt(doc.refund_amount) / paid)
+    if ratio <= 0:
+        return
+    revoke_for_order(doc.marketplace_order, ratio)
+
+
 def _credit_note_for_so(so_name):
     """Credit Note (return Sales Invoice) reversing the customer invoice for one
     vendor Sales Order. Skips if already credited."""
@@ -317,13 +336,37 @@ def _return_delivery_for_so(so_name):
     rdn.submit()
 
 
+def default_refund_amount(order_name):
+    """What a return on this order refunds unless the operator says otherwise:
+    what the buyer actually paid.
+
+    There has to be a default. Left to a blank field, every return on this store
+    completed with `refund_amount = 0`, and the `> 0` guard below then skipped
+    the wallet credit, the vendor chargeback AND the "money is on its way"
+    message — silently. The buyer saw an approved return and an empty wallet.
+    """
+    order = frappe.db.get_value(
+        "Marketplace Order", order_name, ["total", "wallet_applied"], as_dict=True
+    )
+    if not order:
+        return 0.0
+    # Store credit spent on the order is refunded too — it was real money to the
+    # buyer, and `total` is already net of it.
+    return flt(order.get("total")) + flt(order.get("wallet_applied"))
+
+
 @frappe.whitelist()
-def set_return_status(name, status, note=None, refund_amount=None, fault=None):
+def set_return_status(name, status, note=None, refund_amount=None, fault=None, no_refund=0):
     """Operator decision on a return.
 
     `fault` decides who funds the refund: "Vendor" charges it back to the seller,
     "Store"/"Goodwill" leaves the operator absorbing it. It must be settled
     before Completed, because that's when the chargeback books.
+
+    `no_refund` is the ONLY way to decide a return refunds nothing. An unset
+    amount is treated as "the operator hasn't said yet" and filled with what the
+    buyer paid, because a zero that nobody chose is indistinguishable from a
+    forgotten field — and it costs the customer their money.
     """
     _require_operator()
     if status not in RETURN_STATUSES:
@@ -334,6 +377,8 @@ def set_return_status(name, status, note=None, refund_amount=None, fault=None):
         doc.operator_note = note
     if refund_amount is not None:
         doc.refund_amount = flt(refund_amount)
+    elif status in ("Approved", "Completed") and flt(doc.refund_amount) <= 0:
+        doc.refund_amount = 0.0 if cint(no_refund) else default_refund_amount(doc.marketplace_order)
     if fault is not None:
         if fault not in ("Vendor", "Store", "Goodwill"):
             frappe.throw(_("قيمة غير معروفة لسبب الإرجاع."))
@@ -358,6 +403,7 @@ def set_return_status(name, status, note=None, refund_amount=None, fault=None):
     # Delivery Note (tracked stock back) + manual stock. Best-effort/idempotent.
     if status == "Completed":
         _post_return_reversal(doc)
+        _revoke_loyalty(doc)
 
     _notify_return_status(doc)
 

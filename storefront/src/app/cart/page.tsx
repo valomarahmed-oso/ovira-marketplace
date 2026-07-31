@@ -6,6 +6,7 @@ import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { cartSubtotal, lineId, unitPrice, useCart } from "@/lib/cart-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { OrderSummary } from "@/components/order-summary";
+import { useAppConfig } from "@/components/app-config-provider";
 import { useI18n } from "@/components/i18n-provider";
 import { useMoney } from "@/lib/currency";
 
@@ -109,7 +110,7 @@ export default function CartPage() {
         </div>
 
         <div className="h-fit">
-          <OrderSummary subtotal={subtotal}>
+          <OrderSummary subtotal={subtotal} tax={useAppConfig().tax}>
             <Link href="/checkout" className="btn btn-primary w-full">
               {t.cartCheckout} <ArrowLeft className="h-4 w-4" />
             </Link>

@@ -14,7 +14,17 @@ from frappe.utils import cint, flt
 
 # Orders that count as successfully fulfilled vs. the whole decided pipeline.
 FULFILLED_STATUSES = ("Shipped", "Completed")
-DECIDED_STATUSES = ("Paid", "Processing", "Shipped", "Completed", "Cancelled")
+# Cancelled is deliberately NOT here. It used to be, which meant an order the
+# BUYER cancelled counted against the seller's fulfilment rate — a store could
+# ship everything it was ever asked to ship and still read 73%. A cancellation is
+# only the vendor's failure when the vendor caused it, and nothing in the data
+# says which is which, so it stays out of the denominator entirely.
+DECIDED_STATUSES = ("Paid", "Processing", "Shipped", "Completed")
+
+# A return is opened against an order that REACHED the buyer, which is Shipped or
+# Completed — not Completed alone. Dividing by the smaller number inflated every
+# store's return rate.
+RECEIVED_STATUSES = ("Shipped", "Completed")
 
 TIERS = ("new", "rising", "trusted", "top")
 
@@ -29,18 +39,41 @@ def _vendor_name(vendor):
 
 
 def _rating_stats(vendor):
+    """Average rating and review count across ALL of this vendor's products.
+
+    Reviews written by the store's own staff are excluded. One operator account
+    leaving a five-star review is not a signal of anything, and a trust score is
+    exactly the number that must not be self-issued.
+    """
     row = frappe.db.sql(
         """
         select avg(r.rating) as avg_rating, count(*) as cnt
         from `tabMarketplace Review` r
         join `tabMarketplace Product` p on p.name = r.product
         where p.vendor = %s and r.status = 'Published'
+          and ifnull(r.owner,'') not in %s
         """,
-        (vendor,),
+        (vendor, tuple(_staff_logins()) or ("",)),
         as_dict=True,
     )
     avg = flt(row[0].avg_rating) if row and row[0].avg_rating is not None else 0.0
     return round(avg, 2), cint(row[0].cnt) if row else 0
+
+
+def _staff_logins():
+    """Logins whose reviews must not count: Administrator, the store's operators,
+    and the vendor's own users."""
+    from ovira_marketplace.api.admin import OPERATOR_ROLES
+
+    staff = {"Administrator", "Guest"}
+    for role in OPERATOR_ROLES:
+        staff.update(
+            frappe.get_all(
+                "Has Role", filters={"role": role, "parenttype": "User"}, pluck="parent"
+            )
+            or []
+        )
+    return sorted(staff)
 
 
 def _order_stats(vendor):
@@ -58,9 +91,9 @@ def _order_stats(vendor):
     by_status = {r.status: cint(r.cnt) for r in rows}
     decided = sum(by_status.get(s, 0) for s in DECIDED_STATUSES)
     fulfilled = sum(by_status.get(s, 0) for s in FULFILLED_STATUSES)
-    delivered = by_status.get("Completed", 0)
+    received = sum(by_status.get(s, 0) for s in RECEIVED_STATUSES)
     total = sum(by_status.values())
-    return total, decided, fulfilled, delivered
+    return total, decided, fulfilled, received
 
 
 def _return_count(vendor):
@@ -94,11 +127,13 @@ def _tier(score, orders_count, ratings_count):
 def compute_vendor_trust(vendor):
     """Live-compute the trust breakdown for a resolved vendor docname."""
     rating, ratings_count = _rating_stats(vendor)
-    total, decided, fulfilled, delivered = _order_stats(vendor)
+    total, decided, fulfilled, received = _order_stats(vendor)
     returns = _return_count(vendor)
 
     fulfillment_rate = round(fulfilled / decided, 3) if decided else None
-    return_rate = round(returns / delivered, 3) if delivered else 0.0
+    # Capped at 1: a buyer can open more than one return against an order, and a
+    # rate above 100% is nonsense on a badge.
+    return_rate = round(min(1.0, returns / received), 3) if received else 0.0
 
     # Weighted blend of whatever signals exist. Rating dominates but its weight
     # ramps with review volume so one 5-star review doesn't crown a store.
@@ -121,7 +156,7 @@ def compute_vendor_trust(vendor):
         "rating": rating,
         "ratings_count": ratings_count,
         "orders": total,
-        "delivered": delivered,
+        "delivered": received,
         "fulfillment_rate": fulfillment_rate,
         "return_rate": return_rate,
     }
@@ -165,11 +200,30 @@ def recompute_all_vendor_trust():
 
 @frappe.whitelist(allow_guest=True)
 def vendor_trust(vendor):
-    """Public trust breakdown for a vendor (docname or slug)."""
+    """Public trust breakdown for a vendor (docname or slug).
+
+    Recomputes AND caches, rather than computing a private answer. This panel
+    used to compute live while every product card read the value the nightly
+    scheduler had cached, so the same store showed 4.2 here and 4.3 one section
+    above it, off one review left that morning. One number, one source.
+
+    The write needs its own commit: Frappe only commits automatically on
+    POST/PUT, and the storefront reads this over GET — without it the refreshed
+    score is rolled back and the drift returns on the next render.
+    """
     name = _vendor_name(vendor)
     if not name:
         return None
-    data = compute_vendor_trust(name)
+    data = recompute_vendor_trust(name) or compute_vendor_trust(name)
+    try:
+        frappe.db.commit()
+    except Exception:
+        pass
+    data = dict(data)
     data["vendor"] = name
     data["vendor_name"] = frappe.db.get_value("Marketplace Vendor", name, "vendor_name")
+    # The panel reports on the STORE, not on the product being viewed. Saying so
+    # is what stops "3 ratings" here reading as a contradiction of the 2 reviews
+    # listed further down the same page.
+    data["scope"] = "vendor"
     return data

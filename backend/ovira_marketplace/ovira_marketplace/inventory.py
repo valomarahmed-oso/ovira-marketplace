@@ -1,22 +1,45 @@
-"""ERPNext stock movement for inventory-tracked marketplace products.
+"""Keeping ERPNext stock equal to what the storefront promises.
 
-Only products with ``track_inventory`` on take part: their declared stock is
-received into a warehouse as opening stock, and a Delivery Note draws it down
-when the order **ships** (Amazon-style — stock leaves the warehouse at dispatch).
-Products without tracking keep the lightweight manual stock model (the
-marketplace ``stock_qty`` decremented at order time — see ``api/checkout``).
+**Direction of truth.** For a product with ``track_inventory`` on, the number the
+vendor types on the product screen — and the per-branch rows under it — is the
+master. ERPNext is brought into line with it. The one exception is a receipt the
+operator books deliberately (`restock_product` → Purchase Receipt / Material
+Receipt): that starts in ERPNext, and the marketplace number is pulled back from
+it afterwards. Products without tracking use the lightweight manual model and
+never touch a warehouse at all.
 
-Everything here is best-effort: a stock hiccup must never block a product save
-or an order's status change.
+**Why this file was rewritten.** The old version seeded a product's declared
+stock into ONE warehouse exactly once, guarded by "does ERPNext already hold any
+of this item?". After that guard closed, nothing ever topped ERPNext up again:
+an item that first appeared with 1 unit stayed at 1 in the ledger while the
+storefront sold 98. The per-branch table was worse — it never reached ERPNext at
+all, so an order routed to a branch produced a Sales Order against a warehouse
+holding zero, and no Delivery Note could ever be made from it.
+
+**The invariant.** For every (item, warehouse):
+
+    ERPNext actual_qty − reserved_qty  ==  what the storefront offers
+
+`reserved_qty` is on the right-hand side because a submitted Sales Order already
+holds those units: the storefront decrements at order time, ERPNext removes them
+at dispatch, and `projected_qty` is the figure the two models agree on in
+between. Syncing against `actual_qty` alone would re-introduce the difference on
+every open order.
+
+Everything here is best-effort per product: a stock hiccup must never block a
+product save or an order's status change, but it IS recorded, and
+`stock_mismatches()` lists whatever fell through.
 """
 
 import frappe
 from frappe.utils import flt
 
+CHILD = "Marketplace Product Warehouse"
+
 
 def resolve_warehouse(settings=None, company=None):
-    """Warehouse tracked stock lives in: the configured default, else any
-    non-group warehouse of the operator company. None if none exists."""
+    """Warehouse untracked-by-branch stock lives in: the configured default, else
+    any non-group warehouse of the operator company. None if none exists."""
     settings = settings or frappe.get_cached_doc("Marketplace Settings")
     company = company or settings.operator_company
     return settings.get("default_warehouse") or frappe.db.get_value(
@@ -32,40 +55,118 @@ def item_bin_qty(item_code, warehouse=None):
     return sum(flt(q) for q in frappe.get_all("Bin", filters=filters, pluck="actual_qty"))
 
 
-def ensure_opening_stock(product):
-    """Receive a tracked product's declared stock into the warehouse **once**, as
-    a Material Receipt, when ERPNext holds none for it yet. After that ERPNext is
-    the source of truth (deliveries draw it down; ``refresh_stock`` mirrors it
-    back to the marketplace number)."""
+def _bins(item_code):
+    """{warehouse: {"actual": x, "reserved": y}} for every warehouse holding a row."""
+    rows = frappe.get_all(
+        "Bin",
+        filters={"item_code": item_code},
+        fields=["warehouse", "actual_qty", "reserved_qty"],
+        ignore_permissions=True,
+    )
+    return {
+        r["warehouse"]: {"actual": flt(r["actual_qty"]), "reserved": flt(r["reserved_qty"])}
+        for r in rows
+    }
+
+
+def _branch_rows(product_name):
+    return frappe.get_all(
+        CHILD,
+        filters={"parent": product_name, "parenttype": "Marketplace Product"},
+        fields=["company", "warehouse", "stock_qty"],
+        ignore_permissions=True,
+    )
+
+
+def desired_distribution(product):
+    """{warehouse: units the storefront offers there} for a tracked product.
+
+    Per-branch rows when the product has them — that table is the whole point of
+    multi-warehouse routing, and until now it existed only inside the
+    marketplace. Otherwise the whole quantity sits in the default warehouse.
+    """
+    rows = _branch_rows(product.name)
+    if rows:
+        wanted = {}
+        for r in rows:
+            if r.get("warehouse"):
+                wanted[r["warehouse"]] = wanted.get(r["warehouse"], 0.0) + flt(r.get("stock_qty"))
+        return wanted
+    warehouse = resolve_warehouse()
+    return {warehouse: flt(product.get("stock_qty"))} if warehouse else {}
+
+
+def _valuation_rate(item_code, warehouse, fallback):
+    existing = frappe.db.get_value(
+        "Bin", {"item_code": item_code, "warehouse": warehouse}, "valuation_rate"
+    )
+    return flt(existing) or flt(fallback) or 0.0
+
+
+def sync_product_stock(product):
+    """Bring ERPNext's per-warehouse quantities in line with the storefront.
+
+    Uses a **Stock Reconciliation**, which sets an absolute quantity per
+    warehouse rather than adding a delta — so it is idempotent, corrects drift in
+    either direction, and moves several branches in one document. Only warehouses
+    that actually differ are included, so a save that changes nothing posts
+    nothing.
+    """
     if not product.get("track_inventory") or not product.get("item"):
-        return
-    if not frappe.db.get_value("Item", product.item, "is_stock_item"):
-        return
-    qty = flt(product.get("stock_qty"))
-    if qty <= 0:
-        return
+        return None
+    item = product.item
+    if not frappe.db.get_value("Item", item, "is_stock_item"):
+        return None
+
     settings = frappe.get_cached_doc("Marketplace Settings")
-    warehouse = resolve_warehouse(settings)
-    if not warehouse or item_bin_qty(product.item) > 0:
-        return  # no warehouse, or already stocked — don't double-load
-    try:
-        se = frappe.new_doc("Stock Entry")
-        se.stock_entry_type = "Material Receipt"
-        se.company = settings.operator_company
-        se.append(
-            "items",
+    wanted = desired_distribution(product)
+    if not wanted:
+        return None
+    bins = _bins(item)
+
+    lines = []
+    # Every warehouse the storefront names, plus any warehouse ERPNext still
+    # holds stock in that the storefront no longer offers (branch row deleted →
+    # that stock has to come back out, or it is invisible inventory).
+    for warehouse in set(wanted) | set(bins):
+        current = bins.get(warehouse) or {"actual": 0.0, "reserved": 0.0}
+        # Reserved units belong to submitted Sales Orders that haven't shipped;
+        # the storefront already deducted them, so ERPNext must still carry them.
+        target = flt(wanted.get(warehouse, 0.0)) + current["reserved"]
+        if abs(target - current["actual"]) < 0.001:
+            continue
+        lines.append(
             {
-                "item_code": product.item,
-                "qty": qty,
-                "t_warehouse": warehouse,
-                "basic_rate": flt(product.get("price")),
-            },
+                "item_code": item,
+                "warehouse": warehouse,
+                "qty": target,
+                "valuation_rate": _valuation_rate(item, warehouse, product.get("price")),
+            }
         )
-        se.flags.ignore_permissions = True
-        se.insert()
-        se.submit()
+
+    if not lines:
+        return None
+    try:
+        sr = frappe.new_doc("Stock Reconciliation")
+        sr.company = settings.operator_company
+        sr.purpose = "Stock Reconciliation"
+        for line in lines:
+            sr.append("items", line)
+        sr.flags.ignore_permissions = True
+        sr.insert()
+        sr.submit()
+        return sr.name
     except Exception:
-        frappe.log_error(title="Ovira: opening stock receipt failed")
+        frappe.log_error(
+            title="Ovira: stock sync failed",
+            message="Product %s (item %s)\n%s" % (product.name, item, frappe.get_traceback()),
+        )
+        return None
+
+
+# Kept under its old name so existing callers keep working; the behaviour is now
+# "make ERPNext match", not "seed once and never look again".
+ensure_opening_stock = sync_product_stock
 
 
 def receive_stock(item_code, qty, warehouse=None, rate=0.0, supplier=None):
@@ -107,33 +208,104 @@ def deliver_order(order):
     """Create + submit a Delivery Note per vendor Sales Order for the order's
     **stock** items, drawing them from the warehouse. Called when the order
     ships. Idempotent per Sales Order; best-effort per sub-order."""
-    settings = frappe.get_cached_doc("Marketplace Settings")
-    warehouse = resolve_warehouse(settings)
-    if not warehouse:
-        return
     for so_name in {r.sales_order for r in order.items if r.sales_order}:
         try:
-            _deliver_sales_order(so_name, warehouse)
+            _deliver_sales_order(so_name)
         except Exception:
             frappe.log_error(title="Ovira: delivery note failed")
 
 
-def _deliver_sales_order(so_name, warehouse):
+def _deliver_sales_order(so_name):
     if frappe.db.exists("Delivery Note Item", {"against_sales_order": so_name, "docstatus": 1}):
         return  # already delivered
+    if not frappe.db.exists("Sales Order", so_name):
+        return  # nothing to deliver against — see payment.book_order_accounting
     from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
 
     dn = make_delivery_note(so_name)
+    fallback = resolve_warehouse()
     # Keep only stock items — a Delivery Note line for a non-stock item moves no
     # stock, so there's nothing to deliver for it here.
     kept = []
     for it in dn.items:
-        if frappe.db.get_value("Item", it.item_code, "is_stock_item"):
-            it.warehouse = warehouse
-            kept.append(it)
+        if not frappe.db.get_value("Item", it.item_code, "is_stock_item"):
+            continue
+        # Ship from the warehouse the ORDER was routed to. Overwriting this with
+        # the store default (what the old code did) drew every branch's sales out
+        # of one warehouse, so a correctly routed order still emptied the wrong
+        # shelf — and failed outright once that shelf ran dry.
+        if not it.warehouse:
+            it.warehouse = fallback
+        kept.append(it)
     if not kept:
         return
     dn.set("items", kept)
     dn.flags.ignore_permissions = True
     dn.insert()
     dn.submit()
+
+
+# -- health ------------------------------------------------------------------
+
+
+def stock_mismatches(limit=200):
+    """Every tracked product whose ERPNext stock disagrees with the storefront.
+
+    The reconciliation runs on save, so a healthy store returns an empty list.
+    A row here means a sync was refused or failed — the question "why is the
+    ledger saying something different from the shop?" now has an answer that
+    doesn't require reading two systems by hand.
+    """
+    out = []
+    products = frappe.get_all(
+        "Marketplace Product",
+        filters={"track_inventory": 1},
+        fields=["name", "title", "item", "stock_qty", "price"],
+        limit_page_length=0,
+        ignore_permissions=True,
+    )
+    for p in products:
+        if not p.item or not frappe.db.get_value("Item", p.item, "is_stock_item"):
+            continue
+        wanted = desired_distribution(p)
+        bins = _bins(p.item)
+        rows = []
+        for warehouse in set(wanted) | set(bins):
+            current = bins.get(warehouse) or {"actual": 0.0, "reserved": 0.0}
+            available = current["actual"] - current["reserved"]
+            expected = flt(wanted.get(warehouse, 0.0))
+            if abs(available - expected) >= 0.001:
+                rows.append(
+                    {
+                        "warehouse": warehouse,
+                        "storefront": expected,
+                        "erpnext_available": available,
+                        "erpnext_actual": current["actual"],
+                        "reserved": current["reserved"],
+                    }
+                )
+        if rows:
+            out.append(
+                {
+                    "product": p.name,
+                    "title": p.title,
+                    "item": p.item,
+                    "stock_qty": flt(p.stock_qty),
+                    "warehouses": rows,
+                }
+            )
+        if len(out) >= (limit or 200):
+            break
+    return out
+
+
+def reconcile_all_products():
+    """Daily sweep: push any drifted product back into line. Cheap when healthy —
+    `sync_product_stock` posts nothing when every warehouse already agrees."""
+    for row in stock_mismatches():
+        try:
+            product = frappe.get_doc("Marketplace Product", row["product"])
+            sync_product_stock(product)
+        except Exception:
+            frappe.log_error(title="Ovira: nightly stock reconcile failed")
+    frappe.db.commit()

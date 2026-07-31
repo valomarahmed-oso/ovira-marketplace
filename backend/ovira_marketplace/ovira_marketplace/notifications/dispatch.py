@@ -224,14 +224,32 @@ def _person(user=None, email=None, phone=None, lang=None, kind=None):
     return {"user": user, "email": email, "phone": phone, "lang": lang or _lang_of(user), "kind": kind}
 
 
-def _lang_of(user):
-    """The recipient's own language, Arabic by default (the storefront's default)."""
-    if not user or user == "Guest":
-        return "ar"
+def store_language():
+    """What the store speaks when the recipient hasn't said otherwise."""
     try:
-        return (frappe.db.get_value("User", user, "language") or "ar").lower()[:2]
+        code = (frappe.get_cached_doc("Marketplace Settings").get("default_language") or "").lower()[:2]
     except Exception:
-        return "ar"
+        code = ""
+    return "en" if code == "en" else "ar"
+
+
+def _lang_of(user):
+    """The recipient's own language, falling back to the store's.
+
+    `User.language` is NOT a preference the shopper expressed: Frappe stamps
+    every new account with the SITE language, which on a stock install is "en".
+    Reading it blindly is what sent an Arabic-first store's customers English,
+    left-to-right receipts. So an unset value — and the site default the store
+    never asked for — both defer to the store's own language.
+    """
+    default = store_language()
+    if not user or user == "Guest":
+        return default
+    try:
+        chosen = (frappe.db.get_value("User", user, "language") or "").lower()[:2]
+    except Exception:
+        chosen = ""
+    return chosen if chosen in ("ar", "en") else default
 
 
 def _buyer_of(doc, context):

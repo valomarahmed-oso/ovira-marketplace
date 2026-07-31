@@ -201,10 +201,37 @@ export default function OrderInvoicePage() {
               <span className="font-tech">−{formatPrice(order.discount_amount, order.currency)}</span>
             </div>
           )}
+          {/* An Egyptian invoice must state the tax base and the tax, whether or
+              not the displayed prices already contain it. */}
+          {!!order.tax_amount && order.tax_amount > 0 && (
+            <>
+              {!!order.tax_inclusive && (
+                <div className="flex justify-between text-sm text-ink-600">
+                  <span>{t.taxNet}</span>
+                  <span className="font-tech text-ink">
+                    {formatPrice(order.net_total ?? 0, order.currency)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm text-ink-600">
+                <span>{t.taxLine.replace("{0}", String(order.tax_rate ?? ""))}</span>
+                <span className="font-tech text-ink">
+                  {formatPrice(order.tax_amount, order.currency)}
+                </span>
+              </div>
+            </>
+          )}
           <div className="flex justify-between border-t border-line pt-2 text-base font-medium text-ink">
             <span>{t.odtTotal}</span>
             <span className="font-tech">{formatPrice(order.total, order.currency)}</span>
           </div>
+          {!!order.tax_amount && order.tax_amount > 0 && !!order.tax_inclusive && (
+            <p className="text-[11px] text-ink-400">
+              {t.taxIncluded
+                .replace("{0}", String(order.tax_rate ?? ""))
+                .replace("{1}", formatPrice(order.tax_amount, order.currency))}
+            </p>
+          )}
         </div>
 
         <div className="border-t border-line pt-4 text-center text-xs text-ink-400">

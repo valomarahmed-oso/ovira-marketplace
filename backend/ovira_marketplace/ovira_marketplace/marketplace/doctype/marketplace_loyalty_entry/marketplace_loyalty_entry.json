@@ -35,7 +35,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Entry type",
-   "options": "Earn\nRedeem",
+   "options": "Earn\nRedeem\nRevoke",
    "reqd": 1
   },
   {

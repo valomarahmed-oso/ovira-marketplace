@@ -204,6 +204,66 @@ def award_for_order(order):
         return None
 
 
+def revoke_for_order(order_name, ratio=1.0):
+    """Take back the points an order earned, once its money has been refunded.
+
+    `award_for_order` had no counterpart, so a fully refunded order left the
+    buyer holding points for a purchase that no longer exists — free store
+    credit for returning goods, which is the one loophole a loyalty programme
+    cannot afford.
+
+    Claw-back is proportional to how much was refunded (a partial refund takes
+    back a proportional share) and is capped at what is LEFT of that order's own
+    batch: points already spent are gone, and driving a balance negative would
+    punish the shopper for the store's own delay in processing the return.
+    Idempotent — the batch can only shrink to what remains.
+    """
+    try:
+        entry = frappe.db.get_value(
+            "Marketplace Loyalty Entry",
+            {
+                "reference_doctype": "Marketplace Order",
+                "reference_name": order_name,
+                "entry_type": "Earn",
+            },
+            ["name", "user", "points", "points_used"],
+            as_dict=True,
+        )
+        if not entry:
+            return None
+
+        share = min(1.0, max(0.0, flt(ratio)))
+        wanted = int(round(cint(entry.points) * share))
+        left = cint(entry.points) - cint(entry.points_used)
+        taken = max(0, min(wanted, left))
+        if taken <= 0:
+            return None
+
+        # Shrink the batch itself rather than posting a negative balance: the
+        # batch is what `_live_buckets` counts, so this removes the points from
+        # every view at once and can never produce a negative total.
+        frappe.db.set_value(
+            "Marketplace Loyalty Entry", entry.name,
+            "points", cint(entry.points) - taken, update_modified=False,
+        )
+        doc = frappe.new_doc("Marketplace Loyalty Entry")
+        doc.user = entry.user
+        doc.entry_type = "Revoke"
+        doc.points = taken
+        doc.reason = "Return"
+        doc.reference_doctype = "Marketplace Order"
+        doc.reference_name = order_name
+        doc.note = _("Points reversed after the return on order {0}").format(order_name)
+        doc.balance_after = balance(entry.user)
+        doc.flags.ignore_permissions = True
+        doc.insert(ignore_permissions=True)
+        frappe.db.commit()
+        return doc
+    except Exception:
+        frappe.log_error(title="Ovira: loyalty revoke failed")
+        return None
+
+
 def _notify_earned(user, points, order_name):
     from ovira_marketplace.notifications.dispatch import emit
 
@@ -253,6 +313,37 @@ def my_points(limit=20):
     }
 
 
+def _guard_payout(points, value, cfg):
+    """Stop a redemption whose value is out of all proportion to the spending
+    that earned it.
+
+    Validation on Marketplace Settings blocks a bad rate going IN, but a rate
+    saved before that guard existed is still sitting in the singleton, and the
+    first thing anyone notices is a customer converting 61,016 points into six
+    million pounds of credit. `earn_rate` points per unit of currency means the
+    spend behind these points is `points / earn_rate` — a payout worth more than
+    that spend is arithmetic nobody chose.
+    """
+    earn_rate = flt(cfg.get("earn_rate"))
+    if earn_rate <= 0:
+        return
+    spend_behind = flt(points) / earn_rate
+    if value <= spend_behind:
+        return
+    frappe.log_error(
+        title="Ovira: loyalty payout refused",
+        message=(
+            "points=%s value=%s earn_rate=%s redeem_value=%s — the point value in "
+            "Marketplace Settings gives back more than customers spent. Fix it there."
+            % (points, value, earn_rate, cfg.get("redeem_value"))
+        ),
+    )
+    frappe.throw(
+        _("برنامج النقاط غير مضبوط حاليًا — كلّم إدارة المتجر قبل الاستبدال."),
+        title=_("الاستبدال متوقف مؤقتًا"),
+    )
+
+
 @frappe.whitelist()
 def redeem_points(points):
     """Convert points into store credit at the configured value. Debits the
@@ -280,6 +371,7 @@ def redeem_points(points):
     value = round(points * cfg["redeem_value"], 2)
     if value <= 0:
         frappe.throw(_("That many points is worth nothing yet — redeem more."))
+    _guard_payout(points, value, cfg)
 
     from ovira_marketplace.api import wallet
 

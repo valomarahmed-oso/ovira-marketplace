@@ -50,6 +50,9 @@ scheduler_events = {
     "daily": [
         "ovira_marketplace.api.trust.recompute_all_vendor_trust",
         "ovira_marketplace.api.stock_alerts.sweep_back_in_stock",
+        # Push any product whose ERPNext quantity has drifted from the shop back
+        # into line. Posts nothing when everything already agrees.
+        "ovira_marketplace.inventory.reconcile_all_products",
         # Time-triggered notifications: a review request is caused by days
         # passing, and low stock is a condition worth one digest a day.
         "ovira_marketplace.notifications.sweeps.request_reviews",

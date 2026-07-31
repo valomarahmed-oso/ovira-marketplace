@@ -38,8 +38,12 @@ export function VendorTrust({ vendor }: { vendor: string }) {
             <Star className="h-3.5 w-3.5 fill-gold text-gold" />
             {data.rating > 0 ? data.rating.toFixed(1) : "—"}
           </div>
+          {/* Scoped explicitly: this counts every review across the seller's
+              catalogue, and sits on a page that also lists THIS product's
+              reviews. Two different, both-correct numbers read as a bug unless
+              each says what it is counting. */}
           <div className="text-xs text-ink-400">
-            {data.ratings_count} {t.trustRatingsUnit}
+            {t.trustStoreRating} · {data.ratings_count} {t.trustRatingsUnit}
           </div>
         </div>
         <div>
@@ -55,6 +59,7 @@ export function VendorTrust({ vendor }: { vendor: string }) {
           <div className="text-xs text-ink-400">{t.trustOrders}</div>
         </div>
       </div>
+      <p className="text-xs text-ink-400">{t.trustScopeNote}</p>
     </div>
   );
 }

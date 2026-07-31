@@ -1,7 +1,17 @@
 import type { AuthUser } from "@/lib/auth-store";
 import { setCsrfToken, writeHeaders } from "@/lib/frappe-client";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from "@/lib/i18n";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
+
+/** The locale this browser is reading the store in. `signUp` runs client-side,
+ *  so the cookie is read directly rather than through the server helper. */
+function currentLocale(): string {
+  if (typeof document === "undefined") return DEFAULT_LOCALE;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]*)`));
+  const value = match ? decodeURIComponent(match[1]) : undefined;
+  return isLocale(value) ? value : DEFAULT_LOCALE;
+}
 
 const METHOD = "ovira_marketplace.api.auth";
 
@@ -106,7 +116,10 @@ export async function signUp(
   const res = await fetch(`${BASE}/api/method/${METHOD}.register_customer`, {
     method: "POST",
     headers: writeHeaders(),
-    body: JSON.stringify({ full_name: name, email, password, phone }),
+    // The locale they signed up in decides the language of every receipt and
+    // delivery code afterwards — Frappe would otherwise stamp the account with
+    // the site language and mail an Arabic shopper in English.
+    body: JSON.stringify({ full_name: name, email, password, phone, lang: currentLocale() }),
     credentials: "include",
   });
   if (!res.ok) {
