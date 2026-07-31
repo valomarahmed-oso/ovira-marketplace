@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
@@ -93,9 +94,13 @@ export async function getMyOrders(): Promise<BuyerOrderSummary[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("orders-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as BuyerOrderSummary[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("orders-api", err);
     return [];
   }
 }
@@ -107,9 +112,13 @@ export async function getOrder(name: string): Promise<BuyerOrder | null> {
       `${BASE}/api/method/ovira_marketplace.api.orders.get_order?name=${encodeURIComponent(name)}`,
       { headers: { Accept: "application/json" }, credentials: "include", cache: "no-store" },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("orders-api", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as BuyerOrder | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("orders-api", err);
     return null;
   }
 }
@@ -124,9 +133,13 @@ export async function reorderItems(name: string): Promise<{ slug: string; qty: n
       body: JSON.stringify({ name }),
       credentials: "include",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("orders-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as { slug: string; qty: number }[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("orders-api", err);
     return [];
   }
 }

@@ -41,9 +41,19 @@ def _vendor_name(vendor):
 def _rating_stats(vendor):
     """Average rating and review count across ALL of this vendor's products.
 
-    Reviews written by the store's own staff are excluded. One operator account
-    leaving a five-star review is not a signal of anything, and a trust score is
-    exactly the number that must not be self-issued.
+    Two exclusions, both of which the score is worthless without:
+
+    * **Store staff.** One operator account leaving a five-star review is not a
+      signal of anything, and a trust score is exactly the number that must not
+      be self-issued.
+    * **Unverified purchases.** A review from someone with no paid order for the
+      product costs nothing to write, in either direction — it is the cheapest
+      way to inflate your own store or attack a competitor's. Those reviews still
+      appear on the product page (a shopper can see they're unverified and weigh
+      them); they just don't move a reputation number.
+
+    A store whose only reviews are unverified therefore scores on its ORDER
+    record alone, which is the honest answer rather than a flattering one.
     """
     row = frappe.db.sql(
         """
@@ -51,6 +61,7 @@ def _rating_stats(vendor):
         from `tabMarketplace Review` r
         join `tabMarketplace Product` p on p.name = r.product
         where p.vendor = %s and r.status = 'Published'
+          and ifnull(r.verified_purchase, 0) = 1
           and ifnull(r.owner,'') not in %s
         """,
         (vendor, tuple(_staff_logins()) or ("",)),

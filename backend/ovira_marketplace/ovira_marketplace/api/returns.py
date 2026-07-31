@@ -264,23 +264,21 @@ def _post_return_reversal(doc):
     tracked stock back into the warehouse, plus the manual marketplace stock.
     Idempotent + best-effort per document — a booking hiccup must never block the
     operator's decision or the buyer's wallet refund."""
+    from ovira_marketplace.failures import DEFERRABLE, guard
+
     order = frappe.get_doc("Marketplace Order", doc.marketplace_order)
     for so_name in {r.sales_order for r in order.items if r.sales_order}:
-        try:
+        # Deferrable, not ignorable: an un-reversed sale leaves revenue on the
+        # books for goods that came back. It has to be visible until it's done.
+        with guard("return credit note", DEFERRABLE, ref=so_name):
             _credit_note_for_so(so_name)
-        except Exception:
-            frappe.log_error(title="Ovira: return credit note failed")
-        try:
+        with guard("return delivery note", DEFERRABLE, ref=so_name):
             _return_delivery_for_so(so_name)
-        except Exception:
-            frappe.log_error(title="Ovira: return delivery note failed")
     # Marketplace (manual) stock — mirror of the reservation made at checkout.
-    try:
+    with guard("return restock", DEFERRABLE, ref=order.name):
         from ovira_marketplace.api.checkout import restock_order
 
         restock_order(order)
-    except Exception:
-        frappe.log_error(title="Ovira: return manual restock failed")
 
 
 def _revoke_loyalty(doc):

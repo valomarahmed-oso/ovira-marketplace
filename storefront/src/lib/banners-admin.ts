@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.admin";
@@ -41,7 +42,10 @@ export async function listBanners(): Promise<AdminBanner[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("banners-admin", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as AdminBanner[];
   } catch {
     return [];

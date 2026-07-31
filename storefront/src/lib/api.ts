@@ -1,3 +1,4 @@
+import { reportApiFailure } from "@/lib/api-errors";
 import { getAttribution } from "@/lib/attribution";
 import { writeHeaders } from "@/lib/frappe-client";
 import type { Locale } from "@/lib/i18n";
@@ -73,10 +74,14 @@ async function callMethod<T>(method: string, params: Record<string, string> = {}
       // homepage) reflect across the whole storefront within seconds.
       next: { revalidate: 15 },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure(method, `HTTP ${res.status} ${await res.text().catch(() => "")}`.trim());
+      return null;
+    }
     const data = await res.json();
     return data.message as T;
-  } catch {
+  } catch (err) {
+    reportApiFailure(method, err);
     return null;
   }
 }
@@ -264,6 +269,16 @@ export async function getDeals(limit = 24): Promise<Product[]> {
     limit: String(limit),
   });
   return live ?? [];
+}
+
+export type ResolvedCategory = { name: string; slug: string; category_name: string };
+
+/** Canonical category for a slug, accepting the pre-Latinisation (Arabic) form.
+ *  Resolved on the backend so the transliteration table has exactly one
+ *  implementation — two copies drift, and the day they disagree the redirect
+ *  they drive becomes a loop. */
+export function resolveCategory(slug: string) {
+  return callMethod<ResolvedCategory>("ovira_marketplace.api.catalog.resolve_category", { slug });
 }
 
 export async function getCategories() {

@@ -1,6 +1,7 @@
 import type { AuthUser } from "@/lib/auth-store";
 import { setCsrfToken, writeHeaders } from "@/lib/frappe-client";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from "@/lib/i18n";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
@@ -66,12 +67,16 @@ export async function fetchMe(): Promise<AuthUser | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("auth", `HTTP ${res.status}`);
+      return null;
+    }
     const data = await res.json();
     const me = (data.message ?? {}) as MeResponse;
     setCsrfToken(me.csrf_token);
     return toUser(me);
-  } catch {
+  } catch (err) {
+    reportApiFailure("auth", err);
     return null;
   }
 }

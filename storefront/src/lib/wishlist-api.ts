@@ -1,5 +1,6 @@
 import { writeHeaders } from "@/lib/frappe-client";
 import type { Product } from "@/lib/api";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.wishlist";
@@ -13,7 +14,10 @@ export async function getServerWishlist(): Promise<Product[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("wishlist-api", `HTTP ${res.status}`);
+      return [];
+    }
     const items = (await res.json())?.message?.items;
     return Array.isArray(items) ? (items as Product[]) : [];
   } catch {

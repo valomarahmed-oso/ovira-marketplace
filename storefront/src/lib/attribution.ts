@@ -1,3 +1,4 @@
+import { reportApiFailure } from "@/lib/api-errors";
 // First-touch attribution capture.
 //
 // On the shopper's first landing we record where they came from (UTM tags +
@@ -27,7 +28,8 @@ function read(): Attribution | null {
     // an ancient campaign.
     if (data.ts && Date.now() - data.ts > MAX_AGE_DAYS * 864e5) return null;
     return data;
-  } catch {
+  } catch (err) {
+    reportApiFailure("attribution", err);
     return null;
   }
 }

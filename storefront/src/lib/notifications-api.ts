@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
@@ -40,7 +41,10 @@ export async function getMyNotifications(): Promise<BuyerNotification[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("notifications-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as BuyerNotification[];
   } catch {
     return [];
@@ -57,7 +61,8 @@ export async function getUnreadCount(): Promise<number> {
     });
     if (!res.ok) return 0;
     return Number((await res.json()).message ?? 0);
-  } catch {
+  } catch (err) {
+    reportApiFailure("notifications-api", err);
     return 0;
   }
 }

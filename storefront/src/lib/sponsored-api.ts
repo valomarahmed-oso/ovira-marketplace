@@ -1,5 +1,6 @@
 import type { Product } from "@/lib/api";
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.sponsored";
@@ -59,7 +60,10 @@ export async function getSponsoredProducts(category?: string, limit = 8): Promis
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("sponsored-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as Product[];
   } catch {
     return [];
@@ -91,7 +95,10 @@ export async function listAllSponsored(): Promise<SponsoredPlacement[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("sponsored-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as SponsoredPlacement[];
   } catch {
     return [];

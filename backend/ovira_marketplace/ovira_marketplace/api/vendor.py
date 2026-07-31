@@ -38,14 +38,21 @@ STOREFRONT_FIELDS = [
 def vendor_storefront(slug):
     """Public seller profile by slug (Active stores only) — safe fields plus a
     live count of the store's approved, published products."""
-    v = frappe.db.get_value(
-        "Marketplace Vendor", {"slug": slug, "status": "Active"}, STOREFRONT_FIELDS, as_dict=True
-    )
-    if not v:
+    from ovira_marketplace.api.catalog import is_visible_vendor, visibility_filters
+    from ovira_marketplace.slugs import resolve
+
+    name, _canonical = resolve("Marketplace Vendor", slug, {"status": "Active"})
+    # Suspended sellers, and in Single Company mode everyone but the store
+    # itself, have no public storefront — the same rule their products follow.
+    if not name or not is_visible_vendor(name):
         frappe.throw(_("Store not found."), frappe.DoesNotExistError)
-    v["product_count"] = frappe.db.count(
-        "Marketplace Product",
-        {"vendor": v.name, "approval_status": "Approved", "published": 1},
+    v = frappe.db.get_value("Marketplace Vendor", name, STOREFRONT_FIELDS, as_dict=True)
+    v["product_count"] = len(
+        frappe.get_all(
+            "Marketplace Product",
+            filters=visibility_filters([["vendor", "=", name]]),
+            pluck="name", limit_page_length=0, ignore_permissions=True,
+        )
     )
     return v
 

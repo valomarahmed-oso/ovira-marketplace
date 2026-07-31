@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.deals";
@@ -50,7 +51,10 @@ export async function listAllDeals(): Promise<Deal[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("deals-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as Deal[];
   } catch {
     return [];

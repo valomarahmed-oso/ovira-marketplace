@@ -1,5 +1,6 @@
 import { writeHeaders } from "@/lib/frappe-client";
 import type { SiteContent } from "@/lib/api";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
@@ -57,9 +58,13 @@ export async function getAdminSettings(): Promise<AdminSettings | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("admin", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as AdminSettings | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("admin", err);
     return null;
   }
 }
@@ -98,9 +103,13 @@ export async function getWhatsAppConfig(): Promise<WhatsAppConfig | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("admin", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as WhatsAppConfig | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("admin", err);
     return null;
   }
 }
@@ -136,9 +145,13 @@ export async function getEmailConfig(): Promise<EmailConfig | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("admin", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as EmailConfig | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("admin", err);
     return null;
   }
 }
@@ -163,9 +176,13 @@ export async function getProductOptions(): Promise<{ name: string; title: string
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("admin", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as { name: string; title: string }[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("admin", err);
     return [];
   }
 }
@@ -178,9 +195,13 @@ export async function getSiteContentAdmin(): Promise<SiteContent> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return {};
+    if (!res.ok) {
+      reportApiFailure("admin", `HTTP ${res.status}`);
+      return {};
+    }
     return ((await res.json()).message ?? {}) as SiteContent;
-  } catch {
+  } catch (err) {
+    reportApiFailure("admin", err);
     return {};
   }
 }

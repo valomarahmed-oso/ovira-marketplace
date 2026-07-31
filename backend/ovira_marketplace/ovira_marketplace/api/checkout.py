@@ -321,11 +321,19 @@ def _adjust_stock(product_name, variant_sku, delta, fulfil_warehouse=None):
     """Shift a product's marketplace stock by ``delta`` (negative = sold,
     positive = restocked), floored at zero. For a variant line the specific
     variant row moves and the product's base stock is re-summed from its
-    variants; otherwise the base stock moves directly. Best-effort — a stock
-    hiccup must never break checkout or cancellation."""
+    variants; otherwise the base stock moves directly.
+
+    **Failure here is critical, not best-effort.** This used to swallow its own
+    exception, which meant an order could be created, confirmed and paid for
+    while the quantity it consumed was never taken off the shelf — the store then
+    sells the same unit again, and the second customer is the one who finds out.
+    Better to refuse the order than to promise stock that isn't there.
+    """
     if not product_name or not delta:
         return
-    try:
+    from ovira_marketplace.failures import CRITICAL, guard
+
+    with guard("stock adjustment", CRITICAL, product=product_name, delta=delta):
         # Multi-warehouse line: move the specific branch's stock (which re-sums
         # the product's headline stock_qty from all branches).
         if fulfil_warehouse:
@@ -342,8 +350,6 @@ def _adjust_stock(product_name, variant_sku, delta, fulfil_warehouse=None):
             doc.db_set("stock_qty", sum(flt(v.stock_qty) for v in doc.variants))
         else:
             doc.db_set("stock_qty", max(0.0, flt(doc.stock_qty) + delta))
-    except Exception:
-        frappe.log_error(title="Ovira stock adjust failed")
 
 
 def _ensure_customer(info):

@@ -88,3 +88,32 @@ def unique_slug(doctype, text, fallback=None, exclude=None):
 
 def is_ascii_slug(slug):
     return bool(slug) and str(slug).isascii()
+
+
+def resolve(doctype, slug, extra_filters=None):
+    """Find a record by slug, accepting the pre-Latinisation form.
+
+    Returns ``(name, canonical_slug)`` or ``(None, None)``.
+
+    Links shared before slugs were transliterated point at the Arabic form. No
+    mapping table is needed to honour them: transliterating the OLD slug produces
+    the NEW one, because hyphens are word separators either way
+    (``الكمبيوتر-و-مستلزماته`` → ``alkmbywtr-w-mstlzmath``, which is exactly what
+    the title itself produced). So an exact miss is retried through `web_slug`,
+    and the caller can answer with a permanent redirect to the canonical address
+    instead of a dead page.
+    """
+    if not slug:
+        return None, None
+    filters = dict(extra_filters or {})
+    row = frappe.db.get_value(doctype, dict(filters, slug=slug), ["name", "slug"], as_dict=True)
+    if row:
+        return row.name, row.slug
+    latinised = web_slug(slug)
+    if latinised and latinised != slug:
+        row = frappe.db.get_value(
+            doctype, dict(filters, slug=latinised), ["name", "slug"], as_dict=True
+        )
+        if row:
+            return row.name, row.slug
+    return None, None

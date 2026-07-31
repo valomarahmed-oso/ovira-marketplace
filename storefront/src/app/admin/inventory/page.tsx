@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Boxes, Check, Loader2, PackagePlus } from "lucide-react";
 import { lowStockProducts, restockProduct, type LowStockProduct } from "@/lib/operator";
 import { useI18n } from "@/components/i18n-provider";
+import { StockHealth } from "@/components/stock-health";
 
 export default function AdminInventoryPage() {
   const { t } = useI18n();
@@ -47,6 +48,13 @@ export default function AdminInventoryPage() {
         <h1 className="text-2xl font-medium text-ink">{t.invnTitle}</h1>
       </div>
       <p className="text-sm text-ink-400">{t.invnSubtitle}</p>
+
+      {/* Reconciliation first: a store whose ledger disagrees with its shelves
+          has a bigger problem than a low-stock list, and the low-stock numbers
+          themselves can't be trusted until this is clear. */}
+      <StockHealth />
+
+      <h2 className="pt-2 text-lg font-medium text-ink">{t.invnLowStockHeading}</h2>
 
       {error && (
         <div className="rounded-xl border border-coral bg-coral-50 px-4 py-3 text-sm text-coral">{error}</div>

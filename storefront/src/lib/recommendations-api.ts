@@ -1,4 +1,5 @@
 import type { Product } from "@/lib/api";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.recommendations";
@@ -11,7 +12,10 @@ async function get(method: string, limit: number): Promise<Product[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("recommendations-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as Product[];
   } catch {
     return [];

@@ -203,6 +203,7 @@
   {
    "default": "0",
    "description": "Store-credit value of one point at redemption. E.g. 0.01 = 100 points is worth 1 EGP.",
+   "description": "How much money ONE POINT is worth — not how many points make one unit of currency. With an earn rate of 1 point per EGP, 0.01 here means 1% cash back (100 points = 1 EGP). Entering 100 by mistake turns a 90 EGP order into 9,000 EGP of store credit, so anything above 20% cash back is refused.",
    "fieldname": "loyalty_redeem_value",
    "fieldtype": "Float",
    "label": "Redeem value (currency per point)",

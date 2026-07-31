@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.stock_alerts";
@@ -26,7 +27,10 @@ export async function getMyAlerts(): Promise<StockAlert[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("stock-alerts-api", `HTTP ${res.status}`);
+      return [];
+    }
     const items = (await res.json())?.message;
     return Array.isArray(items) ? (items as StockAlert[]) : [];
   } catch {

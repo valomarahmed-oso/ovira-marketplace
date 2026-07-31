@@ -1,5 +1,6 @@
 import { writeHeaders } from "@/lib/frappe-client";
 import type { WalletEntry } from "@/lib/wallet-api";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
@@ -50,9 +51,13 @@ export async function listVendors(params: { status?: string; search?: string } =
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as Vendor[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return [];
   }
 }
@@ -65,9 +70,13 @@ export async function vendorStatusCounts(): Promise<VendorCounts> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return {};
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return {};
+    }
     return ((await res.json()).message ?? {}) as VendorCounts;
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return {};
   }
 }
@@ -106,9 +115,13 @@ export async function lowStockProducts(limit = 100): Promise<LowStockProduct[]> 
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as LowStockProduct[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return [];
   }
 }
@@ -182,9 +195,13 @@ export async function listProducts(params: { status?: string; search?: string } 
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as AdminProduct[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return [];
   }
 }
@@ -197,9 +214,13 @@ export async function productStatusCounts(): Promise<VendorCounts> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return {};
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return {};
+    }
     return ((await res.json()).message ?? {}) as VendorCounts;
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return {};
   }
 }
@@ -282,9 +303,13 @@ export async function getSourceBreakdown(days = 30): Promise<SourceBreakdown | n
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as SourceBreakdown | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return null;
   }
 }
@@ -322,9 +347,13 @@ export async function listOrders(params: { status?: string; search?: string } = 
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as AdminOrder[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return [];
   }
 }
@@ -337,9 +366,13 @@ export async function orderStatusCounts(): Promise<VendorCounts> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return {};
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return {};
+    }
     return ((await res.json()).message ?? {}) as VendorCounts;
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return {};
   }
 }
@@ -353,9 +386,13 @@ export async function getOrder(name: string): Promise<AdminOrderDetail | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as AdminOrderDetail | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return null;
   }
 }
@@ -394,9 +431,13 @@ export async function vendorPayouts(): Promise<VendorPayout[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as VendorPayout[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return [];
   }
 }
@@ -446,9 +487,13 @@ export async function failedAccountingOrders(): Promise<FailedAccountingOrder[]>
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as FailedAccountingOrder[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return [];
   }
 }
@@ -555,9 +600,13 @@ async function getListOp<T>(method: string): Promise<T[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as T[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return [];
   }
 }
@@ -596,9 +645,13 @@ export async function getUserWallet(user: string): Promise<UserWallet | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as UserWallet | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("operator", err);
     return null;
   }
 }
@@ -617,5 +670,63 @@ export async function adjustWallet(
     credentials: "include",
   });
   if (!res.ok) throw new Error(await errorMessage(res, "تعذّر تعديل الرصيد."));
+  return (await res.json()).message;
+}
+
+// --- Stock reconciliation ----------------------------------------------------
+
+export type StockWarehouseRow = {
+  warehouse: string;
+  storefront: number;
+  erpnext_available: number;
+  erpnext_actual: number;
+  reserved: number;
+};
+
+export type StockMismatch = {
+  product: string;
+  title: string;
+  item: string;
+  stock_qty: number;
+  warehouses: StockWarehouseRow[];
+  /** Set when a re-sync cannot clear this row (e.g. the ERPNext Item is disabled). */
+  blocked?: string | null;
+};
+
+/** Products whose ERPNext quantity disagrees with what the shop offers.
+ *  A healthy store returns an empty list. */
+export async function stockHealth(): Promise<{ mismatches: StockMismatch[]; count: number }> {
+  const empty = { mismatches: [], count: 0 };
+  if (!BASE) return empty;
+  try {
+    const res = await fetch(opUrl("stock_health"), {
+      headers: { Accept: "application/json" },
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      reportApiFailure("operator", `HTTP ${res.status}`);
+      return empty;
+    }
+    return ((await res.json()).message ?? empty) as { mismatches: StockMismatch[]; count: number };
+  } catch (err) {
+    reportApiFailure("operator", err);
+    return empty;
+  }
+}
+
+/** Push the shop's quantities into ERPNext — one product, or everything drifted.
+ *  Idempotent: posts nothing where the two already agree. */
+export async function resyncStock(
+  product?: string,
+): Promise<{ product?: string; voucher?: string | null; remaining?: number }> {
+  if (!BASE) throw new Error("الخدمة غير متاحة حاليًا.");
+  const res = await fetch(opUrl("resync_stock"), {
+    method: "POST",
+    headers: writeHeaders(),
+    body: JSON.stringify(product ? { product } : {}),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await errorMessage(res, "تعذّرت إعادة المزامنة."));
   return (await res.json()).message;
 }

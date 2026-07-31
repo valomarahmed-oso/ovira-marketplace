@@ -5,6 +5,7 @@
 // accept; the stored value always wins.
 
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const NS = "ovira_marketplace.api.currencies";
@@ -66,9 +67,13 @@ export async function listCurrencies(): Promise<CurrencyList | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("currencies-api", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as CurrencyList;
-  } catch {
+  } catch (err) {
+    reportApiFailure("currencies-api", err);
     return null;
   }
 }

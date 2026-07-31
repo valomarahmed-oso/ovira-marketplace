@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.shipping";
@@ -20,9 +21,13 @@ export async function getShippingRates(): Promise<ShippingRate[]> {
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("shipping-rates-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as ShippingRate[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("shipping-rates-api", err);
     return [];
   }
 }
@@ -59,9 +64,13 @@ export async function listShippingRates(): Promise<ShippingRate[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("shipping-rates-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as ShippingRate[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("shipping-rates-api", err);
     return [];
   }
 }
@@ -108,9 +117,13 @@ export async function getShippingMethods(): Promise<ShippingMethod[]> {
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("shipping-rates-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as ShippingMethod[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("shipping-rates-api", err);
     return [];
   }
 }
@@ -129,9 +142,13 @@ export async function getShippingQuote(
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("shipping-rates-api", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as ShippingQuote | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("shipping-rates-api", err);
     return null;
   }
 }
@@ -144,9 +161,13 @@ export async function listShippingMethodsAdmin(): Promise<ShippingMethod[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("shipping-rates-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as ShippingMethod[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("shipping-rates-api", err);
     return [];
   }
 }

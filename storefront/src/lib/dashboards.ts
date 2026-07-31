@@ -1,4 +1,5 @@
 import {
+  Stethoscope,
   TrendingDown,
   Award,
   BarChart3,
@@ -76,6 +77,9 @@ export const DASHBOARDS: Record<DashboardRole, DashboardDef> = {
     can: (u) => !!u.isOperator,
     nav: [
       { href: "/admin", key: "adminNavSettings", icon: Settings, exact: true },
+      // High in the list on purpose: it answers "why is the store behaving
+      // oddly?", and every check behind it is a problem that stays silent.
+      { href: "/admin/health", key: "adminNavHealth", icon: Stethoscope },
       { href: "/admin/analytics", key: "adminNavAnalytics", icon: BarChart3 },
       { href: "/admin/reports", key: "adminNavReports", icon: FileBarChart },
       { href: "/admin/vendors", key: "adminNavVendors", icon: Store, badge: "pending-vendors" },

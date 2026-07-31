@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.push";
@@ -21,9 +22,13 @@ export async function getVapidPublicKey(): Promise<string | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("push", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as string | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("push", err);
     return null;
   }
 }

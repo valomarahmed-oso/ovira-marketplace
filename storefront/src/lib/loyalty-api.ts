@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.loyalty";
@@ -58,9 +59,13 @@ export async function getMyPoints(): Promise<LoyaltyState | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("loyalty-api", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as LoyaltyState | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("loyalty-api", err);
     return null;
   }
 }

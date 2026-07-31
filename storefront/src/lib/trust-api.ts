@@ -1,3 +1,4 @@
+import { reportApiFailure } from "@/lib/api-errors";
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
 export type VendorTrust = {
@@ -22,9 +23,13 @@ export async function getVendorTrust(vendor: string): Promise<VendorTrust | null
       `${BASE}/api/method/ovira_marketplace.api.trust.vendor_trust?${qs}`,
       { headers: { Accept: "application/json" }, next: { revalidate: 300 } },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("trust-api", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as VendorTrust | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("trust-api", err);
     return null;
   }
 }

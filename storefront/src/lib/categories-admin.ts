@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.categories";
@@ -36,7 +37,10 @@ export async function listAllCategories(): Promise<AdminCategory[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("categories-admin", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as AdminCategory[];
   } catch {
     return [];

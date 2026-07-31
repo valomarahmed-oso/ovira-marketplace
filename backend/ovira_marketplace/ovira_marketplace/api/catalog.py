@@ -253,8 +253,11 @@ def _catalog_filters(
     if min_rating not in (None, ""):
         filters.append(["rating", ">=", flt(min_rating)])
     if category:
-        # Accept either a category slug (storefront URLs) or a docname.
-        docname = frappe.db.get_value("Marketplace Category", {"slug": category}, "name")
+        # Accept a category slug (storefront URLs), its pre-Latinisation form, or
+        # a docname.
+        from ovira_marketplace.slugs import resolve
+
+        docname, _canonical = resolve("Marketplace Category", category)
         filters.append(["category", "=", docname or category])
     if vendor:
         filters.append(["vendor", "=", vendor])
@@ -419,10 +422,37 @@ def _attach_deals(products):
 
 
 @frappe.whitelist(allow_guest=True)
+def resolve_category(slug):
+    """Canonical category for a slug, accepting the pre-Latinisation form.
+
+    Exists so the storefront can redirect an old shared link WITHOUT carrying a
+    second copy of the transliteration table in TypeScript — two implementations
+    of the same mapping drift, and the day they disagree the redirect loops.
+    """
+    from ovira_marketplace.slugs import resolve
+
+    name, canonical = resolve("Marketplace Category", slug)
+    if not name:
+        return None
+    return {
+        "name": name,
+        "slug": canonical,
+        "category_name": frappe.db.get_value("Marketplace Category", name, "category_name"),
+    }
+
+
+@frappe.whitelist(allow_guest=True)
 def get_product(slug):
-    """Public product detail by slug, with media and specs."""
-    name = frappe.db.get_value(
-        "Marketplace Product", {"slug": slug, "approval_status": "Approved", "published": 1}, "name"
+    """Public product detail by slug, with media and specs.
+
+    A pre-Latinisation (Arabic) slug still resolves — see `slugs.resolve` — and
+    the response carries the canonical `slug`, so the page can redirect an old
+    shared link rather than 404 it.
+    """
+    from ovira_marketplace.slugs import resolve
+
+    name, _canonical = resolve(
+        "Marketplace Product", slug, {"approval_status": "Approved", "published": 1}
     )
     if not name:
         frappe.throw(_("Product not found."), frappe.DoesNotExistError)

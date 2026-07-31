@@ -1,3 +1,4 @@
+import { permanentRedirect } from "next/navigation";
 import { Package, ShoppingBag, Store } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { StoreProducts } from "@/components/store-products";
@@ -16,6 +17,8 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   // Route params arrive percent-encoded in Next 15 — decode before lookup.
   const slug = decodeSlug((await params).slug);
   const [store, locale] = await Promise.all([getVendorStore(slug), getLocale()]);
+  // Pre-Latinisation link → canonical address (see slugs.resolve on the backend).
+  if (store?.slug && store.slug !== slug) permanentRedirect(`/store/${store.slug}`);
   const t = getDict(locale);
 
   if (!store) {

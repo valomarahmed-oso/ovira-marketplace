@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { RotateCcw, ShieldCheck, Store, Truck } from "lucide-react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { ProductGallery } from "@/components/product-gallery";
@@ -15,7 +15,7 @@ import { TrustBadge } from "@/components/trust-badge";
 import { VendorTrust } from "@/components/vendor-trust";
 import { ShareButton } from "@/components/share-button";
 import { DeliveryEstimate } from "@/components/delivery-estimate";
-import { getFrequentlyBoughtTogether, getProduct, getRelatedProducts } from "@/lib/api";
+import { decodeSlug, getFrequentlyBoughtTogether, getProduct, getRelatedProducts } from "@/lib/api";
 import { toViewed } from "@/lib/recently-viewed-store";
 import { t } from "@/lib/dict";
 
@@ -38,6 +38,12 @@ export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
   const p = await getProduct(slug);
   if (!p) notFound();
+  // Links shared before slugs were Latinised still resolve (the backend retries
+  // the transliterated form), but they should land on the canonical address —
+  // one URL per product, for search engines and for anyone copying the bar.
+  if (p.slug && decodeSlug(slug) !== p.slug) {
+    permanentRedirect(`/product/${p.slug}`);
+  }
 
   const [related, boughtTogether] = await Promise.all([
     getRelatedProducts(p.slug, 8).then((r) => r.slice(0, 4)),

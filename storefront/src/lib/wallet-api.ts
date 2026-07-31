@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
@@ -29,9 +30,13 @@ export async function getWallet(): Promise<Wallet | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("wallet-api", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as Wallet | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("wallet-api", err);
     return null;
   }
 }

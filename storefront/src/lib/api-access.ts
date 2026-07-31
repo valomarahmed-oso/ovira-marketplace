@@ -5,6 +5,7 @@
 // it immediately and offer rotation, not recovery.
 
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const NS = "ovira_marketplace.api.api_access";
@@ -56,9 +57,13 @@ async function get<T>(method: string): Promise<T | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("api-access", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as T;
-  } catch {
+  } catch (err) {
+    reportApiFailure("api-access", err);
     return null;
   }
 }

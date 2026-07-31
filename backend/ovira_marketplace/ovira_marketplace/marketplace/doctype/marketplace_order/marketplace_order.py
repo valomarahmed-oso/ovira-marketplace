@@ -53,12 +53,12 @@ class MarketplaceOrder(Document):
             return
         if self.status != "Shipped":
             return
-        try:
+        from ovira_marketplace.failures import DEFERRABLE, guard
+
+        with guard("delivery notes on ship", DEFERRABLE, ref=self.name):
             from ovira_marketplace.inventory import deliver_order
 
             deliver_order(self)
-        except Exception:
-            frappe.log_error(title="Ovira: delivery notes on ship failed")
 
     def _maybe_restock_on_cancel(self):
         """When an order becomes Cancelled, return its quantities to marketplace
@@ -69,12 +69,15 @@ class MarketplaceOrder(Document):
             return
         if self.status != "Cancelled":
             return
-        try:
+        # Deferrable: a cancellation that doesn't put the stock back leaves the
+        # store unable to sell goods it still has. Not worth blocking the
+        # cancellation over, but it must not disappear either.
+        from ovira_marketplace.failures import DEFERRABLE, guard
+
+        with guard("restock on cancel", DEFERRABLE, ref=self.name):
             from ovira_marketplace.api.checkout import restock_order
 
             restock_order(self)
-        except Exception:
-            frappe.log_error(title="Ovira: restock on cancel failed")
 
     def _maybe_award_loyalty(self):
         """When an order reaches Completed, award loyalty points to the buyer

@@ -5,6 +5,7 @@
 // no single vendor to address.
 
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const NS = "ovira_marketplace.api.support";
@@ -85,9 +86,13 @@ async function get<T>(method: string, params?: Record<string, string>): Promise<
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("support-api", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as T;
-  } catch {
+  } catch (err) {
+    reportApiFailure("support-api", err);
     return null;
   }
 }

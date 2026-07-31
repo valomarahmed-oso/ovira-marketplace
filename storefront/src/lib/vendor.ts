@@ -1,4 +1,5 @@
 import { writeHeaders } from "@/lib/frappe-client";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
@@ -30,9 +31,13 @@ export async function getMyStore(): Promise<VendorStore | null> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("vendor", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as VendorStore | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("vendor", err);
     return null;
   }
 }
@@ -59,9 +64,13 @@ async function getList<T>(method: string): Promise<T[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("vendor", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as T[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("vendor", err);
     return [];
   }
 }
@@ -193,9 +202,13 @@ export async function getMyProduct(name: string): Promise<ProductDetail | null> 
       `${BASE}/api/method/ovira_marketplace.api.products.get_my_product?name=${encodeURIComponent(name)}`,
       { headers: { Accept: "application/json" }, credentials: "include", cache: "no-store" },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("vendor", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as ProductDetail | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("vendor", err);
     return null;
   }
 }
@@ -256,9 +269,13 @@ export async function getVendorAnalytics(days = 30): Promise<VendorAnalytics | n
       `${BASE}/api/method/ovira_marketplace.api.vendor.vendor_analytics?days=${days}`,
       { headers: { Accept: "application/json" }, credentials: "include", cache: "no-store" },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("vendor", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as VendorAnalytics | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("vendor", err);
     return null;
   }
 }

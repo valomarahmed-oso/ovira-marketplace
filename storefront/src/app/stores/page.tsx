@@ -1,11 +1,16 @@
+import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { StoresBrowser } from "@/components/stores-browser";
-import { getStores } from "@/lib/api";
+import { getAppConfig, getStores } from "@/lib/api";
 import { getDict } from "@/lib/i18n";
 import { getLocale } from "@/lib/locale";
 
 export default async function StoresPage() {
-  const [stores, locale] = await Promise.all([getStores(), getLocale()]);
+  const [stores, locale, config] = await Promise.all([getStores(), getLocale(), getAppConfig()]);
+  // Hiding the link is not the same as closing the route: a single-company store
+  // has no seller directory, and this page would otherwise still be reachable by
+  // typing the address or following an old link.
+  if (!config.multiVendor) notFound();
   const t = getDict(locale);
 
   return (

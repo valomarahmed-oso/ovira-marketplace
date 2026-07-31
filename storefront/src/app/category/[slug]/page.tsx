@@ -2,11 +2,13 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { ProductFilters } from "@/components/product-filters";
 import { ProductGrid } from "@/components/product-grid";
 import { SponsoredStrip } from "@/components/sponsored-strip";
+import { permanentRedirect } from "next/navigation";
 import {
   decodeSlug,
   getCategories,
   getFacets,
   getProducts,
+  resolveCategory,
   searchParamsToQuery,
 } from "@/lib/api";
 import { getDict } from "@/lib/i18n";
@@ -32,7 +34,15 @@ export default async function CategoryPage({
     getLocale(),
   ]);
   const t = getDict(locale);
-  const name = categories.find((c) => c.slug === slug)?.category_name ?? slug;
+  const category = categories.find((c) => c.slug === slug);
+  // A link shared before slugs were Latinised: the backend still finds the
+  // category from the transliterated form, so send the visitor to its canonical
+  // address rather than showing them a page titled with an escape sequence.
+  if (!category) {
+    const canonical = await resolveCategory(slug);
+    if (canonical && canonical.slug !== slug) permanentRedirect(`/category/${canonical.slug}`);
+  }
+  const name = category?.category_name ?? slug;
 
   return (
     <div className="container-ovira space-y-6 py-6">

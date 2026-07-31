@@ -47,10 +47,16 @@ def list_all_categories():
         ignore_permissions=True,
         limit_page_length=0,
     )
+    # Counted through the same visibility rule the storefront uses. Counting
+    # approved+published alone told an operator a category held products that
+    # no shopper could actually see — a suspended seller's, or another vendor's
+    # in Single Company mode.
+    from ovira_marketplace.api.catalog import visibility_filters
+
     counts = {}
     for r in frappe.get_all(
         "Marketplace Product",
-        filters={"approval_status": "Approved", "published": 1},
+        filters=visibility_filters(),
         fields=["category"],
         ignore_permissions=True,
         limit_page_length=0,

@@ -1,3 +1,4 @@
+import { reportApiFailure } from "@/lib/api-errors";
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 
 export type FullReport = {
@@ -33,9 +34,13 @@ async function fetchReport<T>(method: string, fromDate: string, toDate: string):
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("reports-api", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as T | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("reports-api", err);
     return null;
   }
 }

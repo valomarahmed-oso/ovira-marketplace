@@ -208,6 +208,15 @@ export default function AdminReturnsPage() {
                         {acting && <Loader2 className="h-4 w-4 animate-spin" />} {t.rtnMarkComplete}
                       </button>
                       <p className="w-full text-xs text-ink-400">{t.rtnRefundAmountHint}</p>
+                      {/* Every completed return on this store once sat at zero,
+                          silently skipping the wallet credit, the chargeback and
+                          the notification. Say it before the click, not after. */}
+                      {Number(amounts[r.name] ?? r.refund_amount ?? 0) <= 0 && (
+                        <p className="flex w-full items-center gap-1.5 text-xs text-coral">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                          {t.rtnZeroWarning}
+                        </p>
+                      )}
                     </div>
                   </>
                 ) : r.status === "Completed" ? (

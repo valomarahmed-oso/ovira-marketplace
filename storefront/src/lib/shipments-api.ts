@@ -1,5 +1,6 @@
 import { writeHeaders } from "@/lib/frappe-client";
 import type { Dict } from "@/lib/i18n";
+import { reportApiFailure } from "@/lib/api-errors";
 
 const BASE = process.env.NEXT_PUBLIC_FRAPPE_URL?.replace(/\/$/, "") ?? "";
 const M = "ovira_marketplace.api.shipping";
@@ -79,9 +80,13 @@ async function getShipments(method: string, order: string): Promise<Shipment[]> 
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("shipments-api", `HTTP ${res.status}`);
+      return [];
+    }
     return (((await res.json()).message ?? {}).shipments ?? []) as Shipment[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("shipments-api", err);
     return [];
   }
 }
@@ -171,9 +176,13 @@ export async function getCarrierOptions(): Promise<Carrier[]> {
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("shipments-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as Carrier[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("shipments-api", err);
     return [];
   }
 }
@@ -187,9 +196,13 @@ export async function listCarriers(): Promise<Carrier[]> {
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportApiFailure("shipments-api", `HTTP ${res.status}`);
+      return [];
+    }
     return ((await res.json()).message ?? []) as Carrier[];
-  } catch {
+  } catch (err) {
+    reportApiFailure("shipments-api", err);
     return [];
   }
 }
@@ -222,9 +235,13 @@ export async function getShipmentLabel(shipment: string): Promise<ShipmentLabel 
       `${BASE}/api/method/${M}.shipment_label?shipment=${encodeURIComponent(shipment)}`,
       { headers: { Accept: "application/json" }, credentials: "include", cache: "no-store" },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("shipments-api", `HTTP ${res.status}`);
+      return null;
+    }
     return ((await res.json()).message ?? null) as ShipmentLabel | null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("shipments-api", err);
     return null;
   }
 }
@@ -271,9 +288,13 @@ export async function getVendorShipmentStatuses(): Promise<Record<string, string
       credentials: "include",
       cache: "no-store",
     });
-    if (!res.ok) return {};
+    if (!res.ok) {
+      reportApiFailure("shipments-api", `HTTP ${res.status}`);
+      return {};
+    }
     return ((await res.json()).message ?? {}) as Record<string, string>;
-  } catch {
+  } catch (err) {
+    reportApiFailure("shipments-api", err);
     return {};
   }
 }
