@@ -20,8 +20,13 @@ from ovira_marketplace.tests import fixtures as fx
 class TestReturnRefund(IntegrationTestCase):
     def setUp(self):
         frappe.set_user("Administrator")
-        self.email = "return.buyer@ovira.test"
+        # Own shopper per test: the code under test commits, so frappe's
+        # per-test rollback has nothing left to undo (see test_support).
+        self.email = "return.%s@ovira.test" % self._testMethodName
         fx.buyer(self.email, "Return Buyer")
+        self.item = fx.product(
+            "Returnable %s" % self._testMethodName, price=500, stock=100
+        )
         self.order = self._order(total=500)
 
     def tearDown(self):
@@ -30,7 +35,14 @@ class TestReturnRefund(IntegrationTestCase):
     def _order(self, total, wallet_applied=0):
         """A delivered order, built directly — this suite is about what happens
         AFTER delivery, and routing it through checkout would drag ERPNext's
-        whole accounting chain into a test about store credit."""
+        whole accounting chain into a test about store credit.
+
+        It carries a real line item because `MarketplaceOrder.validate`
+        recomputes `subtotal` from the lines: an order with none is an order
+        worth zero, whatever the field was set to. (That cost me a confusing
+        "earned no points" failure, and it is the correct behaviour — the total
+        of an order is the sum of what's in it.)
+        """
         doc = frappe.new_doc("Marketplace Order")
         doc.customer_name = "Return Buyer"
         doc.email = self.email
@@ -38,7 +50,17 @@ class TestReturnRefund(IntegrationTestCase):
         doc.status = "Completed"
         doc.payment_status = "Paid"
         doc.currency = "EGP"
-        doc.subtotal = total
+        doc.append(
+            "items",
+            {
+                "marketplace_product": self.item.name,
+                "title": self.item.title,
+                "vendor": self.item.vendor,
+                "qty": 1,
+                "rate": total,
+                "amount": total,
+            },
+        )
         doc.total = total
         doc.wallet_applied = wallet_applied
         doc.flags.ignore_permissions = True
@@ -125,9 +147,8 @@ class TestReturnRefund(IntegrationTestCase):
 
         fx.settings(loyalty_enabled=1, loyalty_earn_rate=1, loyalty_redeem_value=0.01)
         order = self._order(total=400)
-        frappe.get_doc("Marketplace Order", order.name).run_method("_maybe_award_loyalty")
-        # Award directly: the hook only fires on a status TRANSITION into
-        # Completed, and this order was created Completed.
+        # Awarded directly: the hook fires on a status TRANSITION into Completed,
+        # and this order was created Completed.
         from ovira_marketplace.api.loyalty import award_for_order
 
         award_for_order(frappe.get_doc("Marketplace Order", order.name))
