@@ -10,7 +10,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { cartTotals, goodsTotal, splitTax, subtotal, walletToSpend } from "../dist/pricing.js";
+import {
+  cartTotals,
+  goodsTotal,
+  nextTier,
+  splitTax,
+  subtotal,
+  tierUnitRate,
+  walletToSpend,
+} from "../dist/pricing.js";
 
 const INCLUSIVE = { rate: 14, inclusive: true, label: "VAT 14%" };
 const EXCLUSIVE = { rate: 14, inclusive: false, label: "VAT 14%" };
@@ -52,6 +60,56 @@ describe("walletToSpend", () => {
 
   it("is capped at what is owed, so credit is never handed back as change", () => {
     assert.equal(walletToSpend(500, 30), 30);
+  });
+});
+
+describe("tierUnitRate", () => {
+  // The tiers live on رواكول on the live site: 250 base, 220 from 5 up.
+  const tiers = [{ min_qty: 5, price: 220 }];
+
+  it("leaves a single unit at the shelf price", () => {
+    assert.equal(tierUnitRate(250, 1, tiers), 250);
+  });
+
+  it("does not apply below the tier's quantity", () => {
+    assert.equal(tierUnitRate(250, 4, tiers), 250);
+  });
+
+  it("applies once the quantity reaches it", () => {
+    assert.equal(tierUnitRate(250, 5, tiers), 220);
+  });
+
+  it("takes the cheapest reached tier, not the last one listed", () => {
+    // Deliberately out of order: reading them in sequence would answer 240.
+    const messy = [
+      { min_qty: 10, price: 200 },
+      { min_qty: 5, price: 240 },
+    ];
+    assert.equal(tierUnitRate(250, 12, messy), 200);
+  });
+
+  it("ignores a tier that is not actually cheaper", () => {
+    assert.equal(tierUnitRate(250, 10, [{ min_qty: 5, price: 300 }]), 250);
+  });
+
+  it("never applies at qty 1, whatever the tier says", () => {
+    assert.equal(tierUnitRate(250, 1, [{ min_qty: 1, price: 10 }]), 250);
+  });
+});
+
+describe("nextTier", () => {
+  const tiers = [
+    { min_qty: 5, price: 220 },
+    { min_qty: 10, price: 200 },
+  ];
+
+  it("points at the nearest tier still ahead", () => {
+    assert.deepEqual(nextTier(2, tiers), { min_qty: 5, price: 220 });
+    assert.deepEqual(nextTier(6, tiers), { min_qty: 10, price: 200 });
+  });
+
+  it("has nothing to offer past the last one", () => {
+    assert.equal(nextTier(20, tiers), null);
   });
 });
 

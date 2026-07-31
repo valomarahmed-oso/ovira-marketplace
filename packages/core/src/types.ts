@@ -34,21 +34,33 @@ export type ProductCard = {
   deal_remaining?: number | null;
 };
 
-export type ProductMedia = { image: string; is_primary?: 0 | 1 };
+export type ProductMedia = { image: string; is_primary?: 0 | 1; alt_text?: string | null };
 
 export type ProductVariant = {
   name: string;
   option_value: string;
+  /** Second axis, when the seller defined one (colour × size). */
+  option_value2?: string | null;
   sku?: string | null;
   price?: number;
   stock_qty: number;
+  image?: string | null;
 };
+
+/** "Buy 5 or more and the unit price drops to this." */
+export type PriceTier = { min_qty: number; price: number };
+
+export type ProductAttribute = { attribute: string; value: string };
 
 export type Product = ProductCard & {
   short_description?: string | null;
   description?: string | null;
   media?: ProductMedia[];
   variants?: ProductVariant[];
+  price_tiers?: PriceTier[];
+  attributes?: ProductAttribute[];
+  variant_option_name?: string | null;
+  variant_option_name2?: string | null;
   video_url?: string | null;
   vendor_slug?: string | null;
   track_inventory?: 0 | 1;

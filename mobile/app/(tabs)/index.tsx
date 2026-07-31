@@ -1,39 +1,54 @@
-import { listProducts, storeConfig, type ProductCard, type StoreConfig } from "@ovira/core";
-import { Image } from "expo-image";
+import { listCategories, listProducts, type Category, type ProductCard } from "@ovira/core";
+import { Ionicons } from "@expo/vector-icons";
+import { Link, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 
 import { Logo } from "../../src/components/logo";
-import { Card, Pill, Row, Screen, Txt, VStack } from "../../src/components/ui";
-import { dict, money, num } from "../../src/i18n";
-import { SITE_LABEL } from "../../src/ovira";
+import { ProductTile } from "../../src/components/product-card";
+import { ProductGrid } from "../../src/components/product-grid";
+import { SearchBar } from "../../src/components/search-bar";
+import { Failed, Loading } from "../../src/components/states";
+import { Row, Screen, Txt, VStack } from "../../src/components/ui";
+import { dict } from "../../src/i18n";
+import { categoryIcon } from "../../src/icons";
 import { useTheme } from "../../src/theme-context";
 
-/**
- * Home, at shell stage.
- *
- * The screen a shopper eventually gets is slice 3's job. What this one has to
- * prove is that the whole chain works on a real device: `configure()` → core's
- * HTTP layer → the live Frappe site → the shared types → this theme. If a
- * product from the real store renders here with the right price, everything
- * underneath it is wired correctly, and slice 3 is only layout.
- */
+type Feed = {
+  categories: Category[];
+  offers: ProductCard[];
+  topRated: ProductCard[];
+  latest: ProductCard[];
+};
+
+const EMPTY: Feed = { categories: [], offers: [], topRated: [], latest: [] };
+
 export default function HomeScreen() {
-  const { c, space, radius } = useTheme();
+  const { c, space } = useTheme();
+  const router = useRouter();
   const t = dict();
 
-  const [config, setConfig] = useState<StoreConfig | null>(null);
-  const [products, setProducts] = useState<ProductCard[]>([]);
-  const [state, setState] = useState<"loading" | "ready" | "offline">("loading");
+  const [feed, setFeed] = useState<Feed>(EMPTY);
+  const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    // Both reads degrade to a default rather than throwing, so "offline" is
-    // inferred from an empty catalogue rather than from a caught error.
-    const [cfg, rows] = await Promise.all([storeConfig(), listProducts({ limit: 8 })]);
-    setConfig(cfg);
-    setProducts(rows);
-    setState(rows.length ? "ready" : "offline");
+    const [categories, latest, topRated] = await Promise.all([
+      listCategories(),
+      listProducts({ sort: "latest", limit: 12 }),
+      listProducts({ sort: "rating", limit: 10 }),
+    ]);
+
+    // The store has no dedicated "deals" endpoint, and inventing one for a rail
+    // would mean a round trip that returns the same rows. A genuine discount is
+    // a compare-at price above the price — the same test the tile's badge uses,
+    // so a product can never appear here without showing why.
+    const offers = latest.filter((p) => (p.compare_at_price ?? 0) > p.price).slice(0, 10);
+
+    setFeed({ categories, offers, topRated, latest });
+    // Categories can legitimately be empty on a new store; products failing to
+    // load at all is the signal that something is actually wrong.
+    setState(latest.length || categories.length ? "ready" : "failed");
   }, []);
 
   useEffect(() => {
@@ -48,142 +63,131 @@ export default function HomeScreen() {
 
   return (
     <Screen scroll={false}>
+      <VStack gap="lg" style={{ paddingBottom: space.md }}>
+        <Row gap="md">
+          <Logo size={40} />
+          <View style={{ flex: 1 }}>
+            <Txt variant="heading">{t.brand}</Txt>
+            <Txt variant="caption" tone="faint">
+              {t.tagline}
+            </Txt>
+          </View>
+        </Row>
+        <SearchBar readOnly onPress={() => router.push("/search")} />
+      </VStack>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: space.xxl, gap: space.xl }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.blue} />
         }
       >
-        <VStack gap="xl">
-          <Row gap="md">
-            <Logo size={44} />
-            <View style={{ flex: 1 }}>
-              <Txt variant="title">{t.brand}</Txt>
-              <Txt variant="label" tone="faint">
-                {t.tagline}
-              </Txt>
-            </View>
-          </Row>
+        {state === "loading" && <Loading />}
+        {state === "failed" && <Failed onRetry={() => void load()} />}
 
-          <ConnectionCard state={state} config={config} />
+        {state === "ready" && (
+          <>
+            {feed.categories.length > 0 && (
+              <VStack gap="md">
+                <SectionHead title={t.categories} />
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: space.md }}
+                >
+                  {feed.categories.map((cat) => (
+                    <CategoryChip key={cat.name} category={cat} />
+                  ))}
+                </ScrollView>
+              </VStack>
+            )}
 
-          {state === "loading" ? (
-            <ActivityIndicator color={c.blue} style={{ marginTop: space.xl }} />
-          ) : null}
+            {feed.offers.length > 0 && (
+              <Rail title={t.offers} products={feed.offers} accent />
+            )}
 
-          {products.length > 0 && (
+            {feed.topRated.length > 0 && <Rail title={t.topRated} products={feed.topRated} />}
+
             <VStack gap="md">
-              <Txt variant="heading">من متجرك دلوقتي</Txt>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: space.md, paddingBottom: space.xs }}
-              >
-                {products.map((p) => (
-                  <Pressable key={p.name} style={{ width: 156 }}>
-                    <Card padded={false}>
-                      <Image
-                        source={p.image}
-                        style={{ width: "100%", height: 132, backgroundColor: c.blue050 }}
-                        contentFit="cover"
-                        transition={180}
-                      />
-                      <View style={{ padding: space.md, gap: space.xs }}>
-                        <Txt variant="label" numberOfLines={2} style={{ minHeight: 40 }}>
-                          {p.title}
-                        </Txt>
-                        <Txt variant="heading" tone="blue">
-                          {money(p.price)}
-                        </Txt>
-                        {p.stock_qty <= 0 ? (
-                          <Txt variant="caption" tone="coral">
-                            نفدت الكمية
-                          </Txt>
-                        ) : (
-                          <Txt variant="caption" tone="faint">
-                            متاح {num(p.stock_qty)}
-                          </Txt>
-                        )}
-                      </View>
-                    </Card>
-                  </Pressable>
-                ))}
-              </ScrollView>
+              <SectionHead title={t.newArrivals} />
+              <ProductGrid products={feed.latest} />
             </VStack>
-          )}
-
-          <View
-            style={{
-              borderRadius: radius.lg,
-              borderWidth: 1,
-              borderColor: c.line,
-              borderStyle: "dashed",
-              padding: space.lg,
-              gap: space.xs,
-            }}
-          >
-            <Txt variant="label" tone="muted">
-              الشرائح الجاية
-            </Txt>
-            <Txt variant="caption" tone="faint">
-              شاشات التصفّح والمنتج · السلة والدفع · الإشعارات والبصمة والباركود
-            </Txt>
-          </View>
-        </VStack>
+          </>
+        )}
       </ScrollView>
     </Screen>
   );
 }
 
-function ConnectionCard({
-  state,
-  config,
-}: {
-  state: "loading" | "ready" | "offline";
-  config: StoreConfig | null;
-}) {
-  const { space } = useTheme();
+function SectionHead({ title, href }: { title: string; href?: string }) {
   const t = dict();
-  const label = state === "ready" ? t.connected : state === "loading" ? t.connecting : t.offline;
-
   return (
-    <Card>
-      <VStack gap="md">
-        <Row justify="space-between">
-          <Pill label={label} tone={state === "offline" ? "coral" : "mint"} />
-          <Txt variant="caption" tone="faint">
-            {SITE_LABEL}
-          </Txt>
-        </Row>
-        {config && (
-          <Row gap="lg" style={{ flexWrap: "wrap", rowGap: space.sm }}>
-            <Fact label="الوضع" value={config.multiVendor ? "متعدّد البائعين" : "متجر فردي"} />
-            <Fact label="العملة" value={config.currency} />
-            <Fact
-              label="الضريبة"
-              // The figure the whole tax investigation turned on. Reading it off
-              // the live site here means the app can never quietly disagree
-              // with the invoice about whether VAT is already in the price.
-              value={
-                config.tax
-                  ? `${config.tax.rate}% ${config.tax.inclusive ? "شاملة" : "مضافة"}`
-                  : "بدون"
-              }
-            />
-          </Row>
-        )}
-      </VStack>
-    </Card>
+    <Row justify="space-between">
+      <Txt variant="heading">{title}</Txt>
+      {href && (
+        <Link href={href as never} asChild>
+          <Pressable>
+            <Txt variant="label" tone="blue">
+              {t.seeAll}
+            </Txt>
+          </Pressable>
+        </Link>
+      )}
+    </Row>
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+function Rail({
+  title,
+  products,
+  accent = false,
+}: {
+  title: string;
+  products: ProductCard[];
+  accent?: boolean;
+}) {
+  const { c, space } = useTheme();
   return (
-    <View style={{ gap: 2 }}>
-      <Txt variant="caption" tone="faint">
-        {label}
-      </Txt>
-      <Txt variant="label">{value}</Txt>
-    </View>
+    <VStack gap="md">
+      <Row gap="sm">
+        {accent && <Ionicons name="flame" size={16} color={c.coral} />}
+        <Txt variant="heading">{title}</Txt>
+      </Row>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: space.md, paddingBottom: space.xs }}
+      >
+        {products.map((p) => (
+          <ProductTile key={p.name} product={p} width={158} />
+        ))}
+      </ScrollView>
+    </VStack>
+  );
+}
+
+function CategoryChip({ category }: { category: Category }) {
+  const { c, space, radius } = useTheme();
+  return (
+    <Link href={{ pathname: "/category/[slug]", params: { slug: category.slug } }} asChild>
+      <Pressable style={{ alignItems: "center", width: 76, gap: space.xs }}>
+        <View
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: radius.xl,
+            backgroundColor: c.blue050,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name={categoryIcon(category.icon)} size={26} color={c.blue} />
+        </View>
+        <Txt variant="caption" numberOfLines={2} style={{ textAlign: "center" }}>
+          {category.category_name}
+        </Txt>
+      </Pressable>
+    </Link>
   );
 }

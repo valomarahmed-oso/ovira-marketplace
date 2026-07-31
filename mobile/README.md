@@ -64,18 +64,33 @@ development tool.
 app/                    routes (expo-router; file = screen)
   _layout.tsx           RTL, core config, theme, splash
   (tabs)/               الرئيسية · البحث · السلة · حسابي
+  category/[slug].tsx   listing with sort, in-stock filter, paging
+  product/[slug].tsx    gallery, variants, bulk tiers, seller, related
 src/
   theme.ts              palette, spacing, type scale — mirrors the storefront
   theme-context.tsx     useTheme(), follows the system light/dark setting
-  i18n.ts               shell strings; ar and en stay key-parallel
+  i18n.ts               strings + num()/money(); ar and en stay key-parallel
   ovira.ts              the only file that knows a network exists
   rtl.ts                direction
-  components/           Txt · Screen · Card · Row · VStack · Pill · Logo
+  icons.ts              category icons: lucide names (from the web) → Ionicons
+  cart-store.ts         local cart, persisted; prices here are display only
+  store-config.ts       currency / tax / mode, fetched once per run
+  components/           Txt · Screen · Card · Row · VStack · Pill · Logo ·
+                        ProductTile · ProductGrid · Price · Rating · Gallery ·
+                        SearchBar · Empty/Failed/Loading
 ```
+
+## The cart is not a price
+
+`cart-store.ts` holds what the shopper picked and what they were *shown*.
+`api/checkout.place_order` recomputes every figure from the database and ignores
+what the client sends — bulk tiers, coupons, shipping and tax included. Keep it
+that way: the cart is the one place a client is tempted to become the authority
+on money.
 
 ## Where this is going
 
-Shipped: the shell — navigation, theme, RTL, and a live connection to the store.
-Next: browse screens, then cart and checkout, then the native layer (push,
+Shipped: the shell, and browsing — home, search, category, product, and a cart
+that totals correctly. Next: checkout and accounts, then the native layer (push,
 biometrics, barcode, deep links) that is the actual reason for building this
 rather than wrapping the website.

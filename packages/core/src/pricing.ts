@@ -19,7 +19,35 @@
  *   3. store credit comes off last
  */
 
-import type { CartLine, TaxDisclosure } from "./types.js";
+import type { CartLine, PriceTier, TaxDisclosure } from "./types.js";
+
+/**
+ * Unit price for a quantity once bulk tiers are considered.
+ *
+ * Mirrors `api/pricing.tier_unit_rate`, which is what checkout actually charges,
+ * including its three guards: nothing applies below qty 2, a tier priced at or
+ * above the base is ignored, and the cheapest reached tier wins rather than the
+ * last one read. Showing "5 for 220 each" and then billing 250 is the kind of
+ * discrepancy a shopper notices on the invoice and never forgives.
+ */
+export function tierUnitRate(basePrice: number, qty: number, tiers?: PriceTier[] | null): number {
+  const base = round(basePrice);
+  if (!tiers?.length || qty < 2) return base;
+  let rate = base;
+  for (const tier of tiers) {
+    const price = Number(tier?.price) || 0;
+    if (price > 0 && qty >= Number(tier.min_qty) && price < rate) rate = price;
+  }
+  return round(rate);
+}
+
+/** The next tier a shopper hasn't reached yet — "add 2 more and save". */
+export function nextTier(qty: number, tiers?: PriceTier[] | null): PriceTier | null {
+  const ahead = (tiers ?? [])
+    .filter((t) => Number(t?.price) > 0 && Number(t.min_qty) > qty)
+    .sort((a, b) => Number(a.min_qty) - Number(b.min_qty));
+  return ahead[0] ?? null;
+}
 
 export function lineTotal(line: Pick<CartLine, "price" | "qty">): number {
   return round(line.price * line.qty);

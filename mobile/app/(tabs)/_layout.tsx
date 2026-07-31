@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
 
-import { dict } from "../../src/i18n";
+import { cartCount, useCart } from "../../src/cart-store";
+import { dict, num } from "../../src/i18n";
 import { useTheme } from "../../src/theme-context";
 
 /**
@@ -15,6 +16,7 @@ import { useTheme } from "../../src/theme-context";
 export default function TabsLayout() {
   const { c, typography } = useTheme();
   const t = dict();
+  const units = useCart((s) => cartCount(s.lines));
 
   return (
     <Tabs
@@ -61,6 +63,10 @@ export default function TabsLayout() {
         name="cart"
         options={{
           title: t.tabCart,
+          // Zero is deliberately no badge rather than a badge reading "0" — an
+          // empty cart should look empty at a glance.
+          tabBarBadge: units > 0 ? num(units) : undefined,
+          tabBarBadgeStyle: { backgroundColor: c.coral, color: "#ffffff", fontSize: 10 },
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons name={focused ? "cart" : "cart-outline"} color={color} size={size} />
           ),

@@ -28,8 +28,10 @@ export {
   cartTotals,
   goodsTotal,
   lineTotal,
+  nextTier,
   splitTax,
   subtotal,
+  tierUnitRate,
   walletToSpend,
 } from "./pricing.js";
 export type { CartTotals } from "./pricing.js";
@@ -41,9 +43,16 @@ export {
   listCategories,
   listProducts,
   relatedProducts,
+  resolveCategory,
   searchSuggestions,
 } from "./catalog.js";
-export type { Facets, ProductQuery, SearchSuggestions } from "./catalog.js";
+export type {
+  Facets,
+  ProductQuery,
+  ResolvedCategory,
+  SearchSuggestions,
+  SuggestedProduct,
+} from "./catalog.js";
 
 export {
   checkoutAttemptKey,

@@ -127,6 +127,8 @@ costs someone real money:
 | `vendor/chargeback.py` | who funds a refund, and the clamp that stops a small refund paying the vendor |
 | `api/trust.py` | `rates()` / `blend_score()` — the denominators are the easy thing to get wrong |
 | `inventory.py` | `reconciliation_targets()` — target = offered **+ reserved**, always |
+| `api/pricing.py` | `tier_unit_rate()` — bulk tiers; never below qty 2, cheapest reached tier wins |
+| `packages/core/src/pricing.ts` | the clients' copy of all of the above — mirrors it function for function, same test cases |
 
 ## How this app is allowed to fail
 

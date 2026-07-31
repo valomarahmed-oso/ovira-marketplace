@@ -42,6 +42,22 @@ export async function listCategories(): Promise<Category[]> {
   return rows.map((c) => ({ ...c, image: fileUrl(c.image) ?? null }));
 }
 
+export type ResolvedCategory = { name: string; slug: string; category_name: string };
+
+/**
+ * A category's real name and canonical slug, from a slug of either vintage.
+ *
+ * Needed because a listing can be legitimately empty, and a screen that titles
+ * itself from its first product then has nothing to title itself with — which
+ * is how the web store ended up showing shoppers a raw
+ * "alkmbywtr-w-mstlzmath" as a heading. The transliteration table stays on the
+ * server: a second copy in TypeScript would drift, and the day the two disagree
+ * the redirect loops.
+ */
+export async function resolveCategory(slug: string): Promise<ResolvedCategory | null> {
+  return get<ResolvedCategory>(`${NS}.resolve_category`, { slug: decodeSlug(slug) });
+}
+
 export async function getProduct(slug: string): Promise<Product | null> {
   const product = await get<Product>(`${NS}.get_product`, { slug: decodeSlug(slug) });
   if (!product) return null;
@@ -56,7 +72,23 @@ export async function relatedProducts(slug: string, limit = 8): Promise<ProductC
   return withImages(await get<ProductCard[]>(`${NS}.related_products`, { slug, limit }));
 }
 
-export type SearchSuggestions = { products: ProductCard[]; categories: Category[] };
+/**
+ * What `search_suggestions` actually returns per product — not a `ProductCard`.
+ *
+ * The endpoint builds a deliberately slim row (title, slug, price, currency,
+ * image) because a type-ahead list runs on every keystroke. Typing it as a full
+ * card was a lie with teeth: `stock_qty` would arrive `undefined`, read as 0,
+ * and every suggestion would render with an "out of stock" veil over it.
+ */
+export type SuggestedProduct = {
+  title: string;
+  slug: string;
+  price: number;
+  currency?: string;
+  image?: string | null;
+};
+
+export type SearchSuggestions = { products: SuggestedProduct[]; categories: Category[] };
 
 /**
  * Type-ahead. Takes an `AbortSignal` because a suggestion for a query the

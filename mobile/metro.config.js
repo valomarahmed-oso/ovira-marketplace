@@ -12,9 +12,31 @@
 // and every production build ignore this file's proxy entirely.
 
 const { getDefaultConfig } = require("expo/metro-config");
+const path = require("node:path");
 const { URL } = require("node:url");
 
 const config = getDefaultConfig(__dirname);
+
+/**
+ * `@ovira/core` is a `file:` dependency, so npm links it rather than copying it.
+ * Metro does not follow that link out of `node_modules` on its own: it kept
+ * serving whichever build of the package it saw first, so rebuilding core
+ * changed nothing on screen and the app called functions that "did not exist".
+ *
+ * Naming the real directory as a watch folder makes an edit there behave like an
+ * edit anywhere else in this app.
+ */
+const CORE = path.resolve(__dirname, "..", "packages", "core");
+config.watchFolders = [...(config.watchFolders ?? []), CORE];
+config.resolver = {
+  ...config.resolver,
+  // Both roots, in this order: the app's own copy of react/react-native must
+  // win, or a second React instance loads and every hook throws.
+  nodeModulesPaths: [
+    path.resolve(__dirname, "node_modules"),
+    path.resolve(CORE, "node_modules"),
+  ],
+};
 
 const TARGET = new URL(process.env.EXPO_PUBLIC_FRAPPE_URL || "https://demo.ovira.cloud");
 const client = TARGET.protocol === "https:" ? require("node:https") : require("node:http");
