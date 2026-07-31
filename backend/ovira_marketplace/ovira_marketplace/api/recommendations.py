@@ -53,16 +53,35 @@ def _cards(names, exclude=None):
     return ordered
 
 
+# How fast a co-purchase stops counting. A pairing from two years ago says less
+# about what to show today than one from last month; without decay the strongest
+# signals are simply the oldest, and the strip slowly freezes.
+HALF_LIFE_DAYS = 90
+
+# A pair seen once is a coincidence. Requiring a second sighting before a
+# co-purchase outranks a plain best-seller is what stops one odd basket
+# ("phone case + dog food") becoming a permanent recommendation.
+MIN_CO_ORDERS = 2
+
+
 def _co_purchased(products, limit, exclude=None):
-    """Products most frequently bought in the same orders as any of `products`,
-    ranked by number of distinct co-orders. Returns [(product, freq), ...]."""
+    """Products bought alongside `products`, scored by how often AND how recently.
+
+    Raw co-occurrence counts — what this used to be — have two failure modes that
+    both show up as a strip nobody clicks: an old pairing outranks a current one
+    forever, and a single freak basket becomes a permanent recommendation. The
+    score halves every `HALF_LIFE_DAYS`, so the ranking keeps moving with the
+    catalogue, and `freq` is still returned so the caller can tell a
+    twice-confirmed pairing from a one-off.
+    """
     products = [p for p in set(products or []) if p]
     if not products:
         return []
     rows = frappe.db.sql(
         """
         SELECT oi2.marketplace_product AS product,
-               COUNT(DISTINCT oi2.parent) AS freq
+               COUNT(DISTINCT oi2.parent) AS freq,
+               SUM(POW(0.5, DATEDIFF(NOW(), o.creation) / %(half_life)s)) AS score
         FROM `tabMarketplace Order Item` oi1
         JOIN `tabMarketplace Order Item` oi2
           ON oi2.parent = oi1.parent
@@ -73,12 +92,13 @@ def _co_purchased(products, limit, exclude=None):
           AND o.status NOT IN %(excluded)s
           AND oi2.marketplace_product IS NOT NULL
         GROUP BY oi2.marketplace_product
-        ORDER BY freq DESC
+        ORDER BY score DESC
         LIMIT %(limit)s
         """,
         {
             "products": tuple(products),
             "excluded": _EXCLUDED_STATUSES,
+            "half_life": HALF_LIFE_DAYS,
             "limit": cint(limit) or 8,
         },
         as_dict=True,
@@ -193,8 +213,12 @@ def recommended_for_you(limit=12):
     if not owned:
         return popular_products(limit)
 
-    pairs = _co_purchased(owned, limit * 2, exclude=owned)
-    cards = _cards([p for p, _ in pairs], exclude=owned)
+    pairs = _co_purchased(owned, limit * 3, exclude=owned)
+    # A pairing seen once is a coincidence; below the threshold it ranks no
+    # higher than a plain best-seller, which is what it is worth.
+    confident = [p for p, freq in pairs if freq >= MIN_CO_ORDERS]
+    weak = [p for p, freq in pairs if freq < MIN_CO_ORDERS]
+    cards = _diversify(_cards(confident + weak, exclude=owned), limit)
     if len(cards) >= limit:
         return cards[:limit]
 
@@ -202,3 +226,34 @@ def recommended_for_you(limit=12):
     have = {c.name for c in cards} | set(owned)
     extra = [p for p in popular_products(limit * 2) if p.name not in have]
     return (cards + extra)[:limit]
+
+
+# At most this many from one seller before the strip starts looking like an
+# advert for that seller rather than a recommendation.
+MAX_PER_VENDOR = 3
+
+
+def _diversify(cards, limit):
+    """Keep the ranking, but stop one vendor or category filling the strip.
+
+    Co-purchase data concentrates: a shopper who bought three things from one
+    seller gets a "recommended for you" strip that is entirely that seller's
+    catalogue. That reads as a promotion, not a recommendation, and it hides the
+    rest of the marketplace from the person most likely to buy from it. Anything
+    held back is appended rather than dropped, so a thin catalogue still fills
+    the strip.
+    """
+    kept, held = [], []
+    per_vendor, per_category = {}, {}
+    for card in cards:
+        vendor = card.get("vendor")
+        category = card.get("category")
+        if per_vendor.get(vendor, 0) >= MAX_PER_VENDOR or per_category.get(category, 0) >= MAX_PER_VENDOR:
+            held.append(card)
+            continue
+        per_vendor[vendor] = per_vendor.get(vendor, 0) + 1
+        per_category[category] = per_category.get(category, 0) + 1
+        kept.append(card)
+        if len(kept) >= limit:
+            break
+    return kept + held
