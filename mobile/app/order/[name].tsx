@@ -1,5 +1,12 @@
 import type { Order, Shipment } from "@ovira/core";
-import { cancelOrder, getOrder, getProduct, orderTracking, reorderItems } from "@ovira/core";
+import {
+  cancelOrder,
+  getOrder,
+  getProduct,
+  orderTracking,
+  reorderItems,
+  trackOrder,
+} from "@ovira/core";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -11,7 +18,9 @@ import { PrimaryButton } from "../../src/components/form";
 import { OrderStatusPill, PaymentPill, statusLabel } from "../../src/components/order-status";
 import { Empty, Loading } from "../../src/components/states";
 import { Card, Row, Screen, Txt, VStack } from "../../src/components/ui";
+import { useGuestOrders } from "../../src/guest-orders";
 import { dict, fill, formatDate, money, num } from "../../src/i18n";
+import { useSession } from "../../src/session";
 import { useTheme } from "../../src/theme-context";
 
 export default function OrderScreen() {
@@ -19,6 +28,8 @@ export default function OrderScreen() {
   const { c, space, radius } = useTheme();
   const router = useRouter();
   const addToCart = useCart((s) => s.add);
+  const token = useGuestOrders((s) => s.tokens[String(name ?? "")]);
+  const user = useSession((s) => s.user);
   const t = dict();
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -26,9 +37,18 @@ export default function OrderScreen() {
   const [state, setState] = useState<"loading" | "ready" | "missing">("loading");
   const [busy, setBusy] = useState(false);
 
+  /**
+   * Two ways to read an order, because there are two kinds of shopper.
+   *
+   * A signed-in buyer is recognised by their session. A guest is not — and
+   * `get_order` rightly refuses them, or any order would be readable by anyone
+   * who could guess an id. Their proof is the capability token the checkout
+   * handed back, which `track_order` accepts. Without this fallback the app
+   * told a guest their order did not exist one second after they placed it.
+   */
   const load = useCallback(async () => {
     const key = String(name ?? "");
-    const found = await getOrder(key);
+    const found = (await getOrder(key)) ?? (token ? await trackOrder({ name: key, token }) : null);
     if (!found) {
       setState("missing");
       return;
@@ -36,7 +56,7 @@ export default function OrderScreen() {
     setOrder(found);
     setState("ready");
     setShipments(await orderTracking(key));
-  }, [name]);
+  }, [name, token]);
 
   useEffect(() => {
     void load();
@@ -305,21 +325,39 @@ export default function OrderScreen() {
             )}
           </VStack>
 
-          <VStack gap="md">
-            <PrimaryButton
-              label={t.reorder}
-              icon="repeat-outline"
-              onPress={() => void doReorder()}
-              busy={busy}
-            />
-            {cancellable && (
-              <Pressable onPress={doCancel} disabled={busy} style={{ alignItems: "center" }}>
-                <Txt variant="label" tone="coral">
-                  {t.cancelOrder}
+          {/* Cancelling and re-ordering both need a session that owns the order.
+              For a guest they would fail every time, so they are not offered —
+              a button that cannot work is worse than no button. */}
+          {user ? (
+            <VStack gap="md">
+              <PrimaryButton
+                label={t.reorder}
+                icon="repeat-outline"
+                onPress={() => void doReorder()}
+                busy={busy}
+              />
+              {cancellable && (
+                <Pressable onPress={doCancel} disabled={busy} style={{ alignItems: "center" }}>
+                  <Txt variant="label" tone="coral">
+                    {t.cancelOrder}
+                  </Txt>
+                </Pressable>
+              )}
+            </VStack>
+          ) : (
+            <Card>
+              <VStack gap="md">
+                <Txt variant="body" tone="muted">
+                  {t.guestOrderHint}
                 </Txt>
-              </Pressable>
-            )}
-          </VStack>
+                <PrimaryButton
+                  label={t.signIn}
+                  icon="log-in-outline"
+                  onPress={() => router.push("/auth/sign-in")}
+                />
+              </VStack>
+            </Card>
+          )}
         </VStack>
       </Screen>
     </>

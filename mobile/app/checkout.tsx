@@ -19,6 +19,7 @@ import { KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
 import { useCart } from "../src/cart-store";
 import { ChoiceRow, Field, OptionCard, PrimaryButton, Toggle } from "../src/components/form";
 import { Card, Row, Screen, Txt, VStack } from "../src/components/ui";
+import { useGuestOrders } from "../src/guest-orders";
 import { dict, fill, money, num } from "../src/i18n";
 import { useSession } from "../src/session";
 import { useStoreConfig } from "../src/store-config";
@@ -36,6 +37,7 @@ export default function CheckoutScreen() {
 
   const lines = useCart((s) => s.lines);
   const clearCart = useCart((s) => s.clear);
+  const rememberGuestOrder = useGuestOrders((s) => s.remember);
 
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState("");
@@ -180,6 +182,11 @@ export default function CheckoutScreen() {
         }).catch(() => {});
       }
 
+      // A guest has no session that owns this order; the token the server just
+      // handed back is their only way to look at it again. Kept before the
+      // cart is cleared so a failure here cannot lose both.
+      if (!user) rememberGuestOrder(order.name, order.token);
+
       clearCart();
       router.replace({ pathname: "/order/[name]", params: { name: order.name, placed: "1" } });
     } catch (err) {
@@ -191,8 +198,8 @@ export default function CheckoutScreen() {
     }
   }, [
     name, gov, address, phone, lines, user, payment, couponApplied, useWallet, method, carrier,
-    keepAddress, pickedAddress, saved.length, clearCart, router, t.requiredFields, t.invalidPhone,
-    t.loadFailed,
+    keepAddress, pickedAddress, saved.length, clearCart, rememberGuestOrder, router,
+    t.requiredFields, t.invalidPhone, t.loadFailed,
   ]);
 
   if (!lines.length) {

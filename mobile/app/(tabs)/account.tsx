@@ -7,6 +7,7 @@ import { Pressable, View } from "react-native";
 import { PrimaryButton } from "../../src/components/form";
 import { Logo } from "../../src/components/logo";
 import { Card, Row, Screen, Txt, VStack } from "../../src/components/ui";
+import { useGuestOrders } from "../../src/guest-orders";
 import { dict, fill, money, num } from "../../src/i18n";
 import { useSession } from "../../src/session";
 import { useTheme } from "../../src/theme-context";
@@ -19,6 +20,7 @@ export default function AccountScreen() {
   const user = useSession((s) => s.user);
   const ready = useSession((s) => s.ready);
   const logOut = useSession((s) => s.logOut);
+  const guestCount = useGuestOrders((s) => Object.keys(s.tokens).length);
 
   const [balance, setBalance] = useState<number | null>(null);
   const [points, setPoints] = useState<number | null>(null);
@@ -74,6 +76,18 @@ export default function AccountScreen() {
                 {t.register}
               </Txt>
             </Pressable>
+            {/* Someone who checked out as a guest still has orders to follow.
+                Hiding the list behind a login would strand them. */}
+            {guestCount > 0 && (
+              <Pressable
+                onPress={() => router.push("/account/orders")}
+                style={{ alignItems: "center", paddingVertical: space.sm }}
+              >
+                <Txt variant="label" tone="muted">
+                  {t.myOrders} ({num(guestCount)})
+                </Txt>
+              </Pressable>
+            )}
           </View>
         </VStack>
       </Screen>
