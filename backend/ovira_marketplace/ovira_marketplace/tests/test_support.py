@@ -42,8 +42,15 @@ class TestSupportTickets(IntegrationTestCase):
         created = create_ticket(subject="مرتجع", body="المنتج وصل تالف", category="Return")
 
         mine = my_tickets()
-        self.assertEqual([t["name"] for t in mine], [created["name"]])
+        # What the endpoint promises: the new ticket is there, it is newest
+        # first, and nothing belonging to anyone else is. NOT "this is the only
+        # row" — the code under test commits, so a second run of the suite
+        # against the same site would find the first run's ticket still there,
+        # and a test that only passes once is not a test.
+        self.assertIn(created["name"], [t["name"] for t in mine])
+        self.assertEqual(mine[0]["name"], created["name"])
         self.assertEqual(mine[0]["subject"], "مرتجع")
+        self.assertTrue(all(t["customer_email"] == self.email for t in mine))
 
     def test_the_operator_queue_shows_it_too(self):
         from ovira_marketplace.api.support import all_tickets, create_ticket
