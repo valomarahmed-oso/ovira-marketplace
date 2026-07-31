@@ -81,10 +81,26 @@ docs/             # architecture, data-model, roadmap
   (`totals`, `taxes`, `chargeback`, `trust`, `loyalty` guards, `inventory`
   targets, `slugs`). **If you change any of those, the test goes in the same
   commit.**
-- Anything DB-shaped (document hooks, permissions, submitted ERPNext vouchers,
-  `on_update` transitions) is deliberately NOT in that suite — a stub asserting
-  against itself proves nothing. Those need `bench --site <test-site> run-tests
-  --app ovira_marketplace`, which nothing is wired up for yet.
+- Anything DB-shaped (document hooks, permissions, ERPNext documents, `on_update`
+  transitions) runs against a real site:
+
+  ```bash
+  docker exec ovira-backend-1 bench --site ovira-test.local run-tests --app ovira_marketplace
+  ```
+
+  **`ovira-test.local`** is an isolated site on the same bench — not routed, no
+  DNS, nothing else installed on it. Rebuild it from scratch with `bench
+  new-site` + `install-app erpnext` + `install-app ovira_marketplace`, then
+  `bench --site ovira-test.local execute
+  ovira_marketplace.tests.bootstrap.prepare_test_site` (idempotent; creates the
+  company, an **inclusive** VAT template and the Marketplace Settings the suite
+  assumes). Never point the bootstrap at a real site — it refuses unless the site
+  name looks like a test site.
+- **These tests must be re-runnable.** The code under test commits, so frappe's
+  per-test rollback has nothing to undo and rows survive the run. Isolate by
+  identity (`"buyer.%s@ovira.test" % self._testMethodName`) and assert deltas and
+  membership, never absolute balances or exact list equality. A test that only
+  passes on a fresh database is a test that will be deleted.
 - Storefront types: `cd storefront && npx tsc --noEmit -p tsconfig.json`.
 - Backend syntax: `python -m py_compile <file.py>`; import smoke test on the
   server: `bench --site <site> execute frappe.get_attr --args "['<dotted.path>']"`.
