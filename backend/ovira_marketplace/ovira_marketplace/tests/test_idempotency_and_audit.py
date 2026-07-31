@@ -91,7 +91,7 @@ class TestAuditTrail(IntegrationTestCase):
         return frappe.get_all(
             "Marketplace Audit Log",
             filters={"action": action},
-            fields=["name", "actor", "amount", "reference_name", "after_value"],
+            fields=["name", "actor", "amount", "reference_name", "before_value", "after_value"],
             order_by="creation desc",
             limit_page_length=5,
         )
@@ -109,8 +109,12 @@ class TestAuditTrail(IntegrationTestCase):
         from ovira_marketplace.api.wallet import adjust_wallet
 
         adjust_wallet(self.email, 100, "Credit")
-        after = json.loads(self._entries("wallet.adjusted")[0].after_value)
-        self.assertEqual(flt(after["balance"]), 100)
+        row = self._entries("wallet.adjusted")[0]
+        before = json.loads(row.before_value)
+        after = json.loads(row.after_value)
+        # The DELTA, not the absolute: the suite runs against a persistent site,
+        # so a second run starts from whatever the first one left behind.
+        self.assertEqual(flt(after["balance"]) - flt(before["balance"]), 100)
         self.assertEqual(after["direction"], "Credit")
 
     def test_suspending_a_seller_is_traceable_to_a_person(self):
