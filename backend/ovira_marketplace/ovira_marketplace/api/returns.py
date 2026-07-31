@@ -370,6 +370,7 @@ def set_return_status(name, status, note=None, refund_amount=None, fault=None, n
     if status not in RETURN_STATUSES:
         frappe.throw(_("Unknown return status."))
     doc = frappe.get_doc("Marketplace Return", name)
+    was = {"status": doc.status, "refund_amount": flt(doc.refund_amount), "fault": doc.fault}
     doc.status = status
     if note is not None:
         doc.operator_note = note
@@ -384,6 +385,19 @@ def set_return_status(name, status, note=None, refund_amount=None, fault=None, n
     doc.flags.ignore_permissions = True
     doc.save(ignore_permissions=True)
     frappe.db.commit()
+
+    # Recorded before the money moves, so a decision that then fails halfway is
+    # still attributable to whoever made it.
+    from ovira_marketplace.audit import audit
+
+    audit(
+        "return.%s" % status.lower(),
+        "Marketplace Return", doc.name,
+        amount=flt(doc.refund_amount),
+        before=was,
+        after={"status": doc.status, "refund_amount": flt(doc.refund_amount), "fault": doc.fault},
+        note=doc.operator_note,
+    )
 
     # A completed return with an approved refund tops up the buyer's store
     # credit (once). Guests without a login just don't get a wallet.

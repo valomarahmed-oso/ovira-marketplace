@@ -23,6 +23,7 @@ FLAT_SHIPPING = 50
 def place_order(
     items, customer, payment_method="cod", coupon=None, attribution=None, use_wallet=False,
     payment_method_ref=None, shipping_method=None, preferred_carrier=None,
+    idempotency_key=None,
 ):
     """Create a Marketplace Order from the storefront cart and split it into
     per-vendor ERPNext Sales Orders.
@@ -40,11 +41,21 @@ def place_order(
     `preferred_carrier`: the courier the shopper would rather have. A request,
       not an instruction — the vendor books the shipment and may not hold an
       account with it — so it costs nothing and blocks nothing.
+    `idempotency_key`: one checkout ATTEMPT, minted by the client. Repeating it
+      returns the order that already exists instead of creating a second one.
     """
     items = _loads(items)
     customer = _loads(customer)
     if not items:
         frappe.throw(_("Your cart is empty."))
+
+    # A double tap on "confirm", a flaky connection the browser retried, a back
+    # button — all of them post the same cart twice, and without this the shopper
+    # gets two orders, two stock reservations and two charges. The architecture
+    # has called for this since Phase 0; it was never built.
+    existing = _order_for_key(idempotency_key)
+    if existing:
+        return existing
 
     settings = get_settings()
     order = frappe.new_doc("Marketplace Order")
@@ -55,6 +66,7 @@ def place_order(
     order.governorate = customer.get("gov")
     order.shipping_address = customer.get("address")
     order.payment_method = payment_method
+    order.idempotency_key = _clean_key(idempotency_key)
     if payment_method_ref:
         order.payment_method_ref = payment_method_ref
     order.status = "Pending Payment"
@@ -312,6 +324,41 @@ def place_order(
         "total": order.total,
         "status": order.status,
         "token": order.access_token,
+    }
+
+
+def _clean_key(value):
+    """A client-supplied key, bounded. `None` when absent, so the unique index
+    treats every keyless order as distinct rather than colliding on empty."""
+    key = (str(value).strip() if value else "")[:64]
+    return key or None
+
+
+def _order_for_key(idempotency_key):
+    """The order this key already created, in the shape `place_order` returns.
+
+    Deliberately returns the SAME payload as a fresh call — including the access
+    token — so the client cannot tell a retry from the original and doesn't need
+    to. Scoped to the caller for a logged-in shopper, so a guessed key can never
+    hand someone else's order (and its payment token) to a stranger.
+    """
+    key = _clean_key(idempotency_key)
+    if not key:
+        return None
+    row = frappe.db.get_value(
+        "Marketplace Order", {"idempotency_key": key},
+        ["name", "total", "status", "access_token", "email"], as_dict=True,
+    )
+    if not row:
+        return None
+    user = frappe.session.user
+    if user and user != "Guest":
+        mine = _session_email()
+        if row.email and mine and row.email != mine:
+            return None
+    return {
+        "name": row.name, "total": row.total, "status": row.status,
+        "token": row.access_token, "idempotent_replay": True,
     }
 
 

@@ -547,6 +547,22 @@ export type CheckoutPayload = {
   preferred_carrier?: string;
 };
 
+/** One checkout ATTEMPT. Held for the life of the page so a retry — a double
+ *  tap, a dropped connection the browser resent, a back button — carries the
+ *  same key and the server returns the order it already made instead of a
+ *  second one. Reset only once an order actually succeeds. */
+let checkoutAttemptKey: string | null = null;
+
+function attemptKey(): string {
+  if (!checkoutAttemptKey) {
+    checkoutAttemptKey =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `k${Date.now()}${Math.random().toString(36).slice(2)}`;
+  }
+  return checkoutAttemptKey;
+}
+
 export async function placeOrder(
   payload: CheckoutPayload,
 ): Promise<{ name: string; token?: string } | null> {
@@ -555,16 +571,28 @@ export async function placeOrder(
     // Attach first-touch marketing attribution (best-effort) so the order is
     // credited to the channel that acquired the shopper.
     const attribution = getAttribution();
+    const body = {
+      ...payload,
+      ...(attribution ? { attribution } : {}),
+      idempotency_key: attemptKey(),
+    };
     const res = await fetch(`${BASE}/api/method/ovira_marketplace.api.checkout.place_order`, {
       method: "POST",
       headers: writeHeaders(),
-      body: JSON.stringify(attribution ? { ...payload, attribution } : payload),
+      body: JSON.stringify(body),
       credentials: "include",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportApiFailure("checkout.place_order", `HTTP ${res.status}`);
+      return null;
+    }
     const data = await res.json();
+    // The cart this key stood for is now an order; the next checkout is a new
+    // attempt. Only cleared on success, so a failed try can safely be repeated.
+    if (data.message?.name) checkoutAttemptKey = null;
     return data.message ?? null;
-  } catch {
+  } catch (err) {
+    reportApiFailure("checkout.place_order", err);
     return null;
   }
 }

@@ -258,6 +258,22 @@ EVENTS = {
         Content("تذكرة دعم جديدة", ["{subject}", "التذكرة: {ticket}"]),
         Content("New support ticket", ["{subject}", "Ticket: {ticket}"]),
     ),
+    # Money came in and the books didn't close. This waited for someone to
+    # notice a red banner on a page they might not open for days, while the
+    # revenue went unrecorded and the vendor's payout unbooked.
+    "operator.accounting_failed": _ev(
+        OPERATOR, (INAPP, EMAIL),
+        Content("طلب حُصّل دفعه ولم تكتمل محاسبته 🚨", [
+            "الطلب: {order}", "القيمة: {total} {currency}",
+            "السبب: {reason}",
+            "الإيراد غير مسجَّل ومستحقات البائع غير محجوزة حتى تُعالج.",
+        ]),
+        Content("Payment taken, books incomplete 🚨", [
+            "Order: {order}", "Value: {total} {currency}",
+            "Reason: {reason}",
+            "Revenue is unrecorded and the vendor's payout unbooked until this is fixed.",
+        ]),
+    ),
 }
 
 

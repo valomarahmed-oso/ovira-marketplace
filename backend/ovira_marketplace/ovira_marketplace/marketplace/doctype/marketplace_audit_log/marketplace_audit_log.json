@@ -1,0 +1,124 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-07-31 09:00:00.000000",
+ "description": "One operator action that moved money, stock or an order's state — who did it, to what, and what the value was before and after.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "action",
+  "actor",
+  "col1",
+  "reference_doctype",
+  "reference_name",
+  "amount",
+  "sec_detail",
+  "note",
+  "before_value",
+  "after_value",
+  "ip_address"
+ ],
+ "fields": [
+  {
+   "description": "What was done, as a stable code (e.g. return.completed, wallet.adjusted).",
+   "fieldname": "action",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Action",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "description": "The login that did it — resolved from the session, never from the request.",
+   "fieldname": "actor",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Actor",
+   "search_index": 1
+  },
+  {
+   "fieldname": "col1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Data",
+   "label": "Reference doctype"
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reference",
+   "search_index": 1
+  },
+  {
+   "description": "The money involved, where the action had an amount. Blank when it didn't.",
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount"
+  },
+  {
+   "fieldname": "sec_detail",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note"
+  },
+  {
+   "description": "The state before the action, as JSON.",
+   "fieldname": "before_value",
+   "fieldtype": "Code",
+   "label": "Before",
+   "options": "JSON"
+  },
+  {
+   "description": "The state after the action, as JSON.",
+   "fieldname": "after_value",
+   "fieldtype": "Code",
+   "label": "After",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "ip_address",
+   "fieldtype": "Data",
+   "label": "IP address"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-31 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Audit Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Marketplace Operator",
+   "share": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

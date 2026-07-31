@@ -192,12 +192,21 @@ def adjust_wallet(user, amount, direction="Credit", note=None):
     if amount <= 0:
         frappe.throw(_("Enter a positive amount."))
 
+    was = balance(user)
     if direction == "Debit":
         doc = debit(user, amount, reason="Adjustment", note=note)
     else:
         doc = credit(user, amount, reason="Promotional", note=note)
     frappe.db.commit()
-    return {"balance": balance(user), "entry": doc.name if doc else None}
+    now = balance(user)
+    # Store credit created by hand is the easiest money in the system to move
+    # and the hardest to explain afterwards. Record who, how much, and why.
+    from ovira_marketplace.audit import audit
+
+    audit("wallet.adjusted", "User", user, amount=amount,
+          before={"balance": was}, after={"balance": now, "direction": direction},
+          note=note)
+    return {"balance": now, "entry": doc.name if doc else None}
 
 
 @frappe.whitelist()

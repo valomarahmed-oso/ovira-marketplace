@@ -235,10 +235,29 @@ def book_order_accounting(order, reference=None):
             title="Ovira: order accounting incomplete",
             message=f"Order {order.name}\n" + "\n".join(errors),
         )
+        _alert_operators(order, errors)
     else:
         order.db_set("accounting_status", "Booked")
         order.db_set("accounting_error", None)
     return not errors
+
+
+def _alert_operators(order, errors):
+    """Tell someone. The customer's money is in and the books are not closed.
+
+    This used to write a red banner onto `/admin/orders` and wait to be noticed —
+    two such orders sat there for days with the revenue unrecorded and the
+    vendor's payout unbooked. The dedupe key is the order, so a retry that fails
+    the same way doesn't nag; a NEW failure on the same order still gets through
+    because the reason changes the content, not the key — which is the trade
+    worth making for an alert that must not become noise.
+    """
+    from ovira_marketplace.notifications.dispatch import emit
+
+    ctx = order.notification_context() if hasattr(order, "notification_context") else {}
+    ctx["reason"] = ("; ".join(errors))[:300]
+    emit("operator.accounting_failed", ctx,
+         reference={"doctype": "Marketplace Order", "name": order.name})
 
 
 def _invoice_and_pay(order, reference, errors):
@@ -327,6 +346,12 @@ def rebuild_vendor_orders(order_name):
 
     booked = book_order_accounting(order, order.payment_reference)
     frappe.db.commit()
+    from ovira_marketplace.audit import audit
+
+    audit("order.vendor_orders_rebuilt", "Marketplace Order", order.name,
+          amount=flt(order.total), before={"dangling_links": cleared},
+          after={"accounting_status": frappe.db.get_value(
+              "Marketplace Order", order.name, "accounting_status")})
     return {
         "order": order.name,
         "relinked": cleared,
@@ -492,4 +517,8 @@ def refund_to_source(return_name, amount=None):
         update_modified=False,
     )
     frappe.db.commit()
+    from ovira_marketplace.audit import audit
+
+    audit("refund.to_source", "Marketplace Return", return_name, amount=value,
+          after={"provider": order.payment_method, "reference": result.get("reference")})
     return {"ok": True, "reference": result.get("reference"), "amount": value}

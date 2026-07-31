@@ -78,9 +78,16 @@ def set_vendor_status(name, status):
     if status not in VENDOR_STATUSES:
         frappe.throw(_("حالة غير صالحة."))
     vendor = frappe.get_doc("Marketplace Vendor", name)
+    was = vendor.status
     vendor.status = status
     vendor.save(ignore_permissions=True)
     frappe.db.commit()
+    # Suspending a seller takes their whole catalogue off sale; that is a
+    # decision someone should be able to trace back to a person and a moment.
+    from ovira_marketplace.audit import audit
+
+    audit("vendor.status_changed", "Marketplace Vendor", vendor.name,
+          before={"status": was}, after={"status": vendor.status})
     return {"name": vendor.name, "status": vendor.status}
 
 
@@ -208,6 +215,11 @@ def restock_product(product, qty, supplier=None, rate=None):
     doc.reload()
     doc.refresh_stock()
     frappe.db.commit()
+    from ovira_marketplace.audit import audit
+
+    audit("stock.received", "Marketplace Product", doc.name, amount=flt(rate) * flt(qty),
+          after={"qty": flt(qty), "voucher": voucher, "supplier": supplier,
+                 "stock_qty": doc.stock_qty})
     return {"voucher": voucher, "bin_qty": item_bin_qty(doc.item), "stock_qty": doc.stock_qty}
 
 

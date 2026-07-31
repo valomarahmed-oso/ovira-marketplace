@@ -48,6 +48,7 @@
   "tax_label",
   "total",
   "access_token",
+  "idempotency_key",
   "source_section",
   "source",
   "utm_source",
@@ -342,6 +343,17 @@
    "no_copy": 1,
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "description": "One checkout attempt, from the client. A repeat of the same key returns the order that already exists instead of creating a second one — a double tap, a flaky connection retried, or a back button.",
+   "fieldname": "idempotency_key",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Idempotency key",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1,
+   "unique": 1
   },
   {
    "fieldname": "source_section",
