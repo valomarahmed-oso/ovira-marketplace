@@ -136,7 +136,13 @@ def _book_wallet_je(entry):
         je.submit()
         return je.name
     except Exception:
-        frappe.log_error(title="Ovira: wallet GL entry failed")
+        # The shopper has the credit; the books don't show the liability. That
+        # gap is exactly what an auditor asks about, so it is deferred work, not
+        # a footnote in a log.
+        from ovira_marketplace.failures import DEFERRABLE, guard
+
+        with guard("store credit GL entry", DEFERRABLE, ref=getattr(entry, "name", None)):
+            raise
         return None
 
 

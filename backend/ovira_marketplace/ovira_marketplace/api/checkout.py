@@ -560,7 +560,15 @@ def _shipping_amount(subtotal, governorate=None):
 
         return flt(get_rate(subtotal, governorate))
     except Exception:
-        frappe.log_error(title="Ovira: shipping rate lookup failed")
+        # The fallback is a real price the customer will be charged, not a
+        # neutral default — a failed lookup silently replaces the operator's
+        # rate table with a flat rule. Recorded as deferred so a store whose
+        # rates have stopped being consulted finds out from the health screen
+        # rather than from its margins.
+        from ovira_marketplace.failures import DEFERRABLE, guard
+
+        with guard("shipping rate lookup", DEFERRABLE, ref=governorate or "?"):
+            raise
         return 0 if subtotal >= FREE_SHIPPING_THRESHOLD else FLAT_SHIPPING
 
 
@@ -582,12 +590,14 @@ def _resolve_variant(product_name, sku):
 
 
 def _redeem_coupon(name):
-    """Bump a coupon's redemption count (best-effort; never blocks the order)."""
-    try:
+    """Bump a coupon's redemption count. Never blocks the order — but never
+    silent either: a count that doesn't rise is a usage limit that isn't
+    enforced, and a "first 100 customers" coupon becomes unlimited."""
+    from ovira_marketplace.failures import DEFERRABLE, guard
+
+    with guard("coupon redemption count", DEFERRABLE, ref=name):
         used = int(frappe.db.get_value("Marketplace Coupon", name, "used_count") or 0)
         frappe.db.set_value("Marketplace Coupon", name, "used_count", used + 1)
-    except Exception:
-        frappe.log_error(title="Ovira: coupon redeem failed")
 
 
 def _session_email():

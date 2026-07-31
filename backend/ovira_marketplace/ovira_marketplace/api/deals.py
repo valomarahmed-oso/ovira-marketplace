@@ -82,12 +82,14 @@ def active_deal(product_name):
 
 
 def redeem_deal(name, qty):
-    """Bump a deal's sold count after an order (best-effort; never blocks it)."""
-    try:
+    """Bump a deal's sold count after an order. Never blocks it — but a count
+    that doesn't rise is a quantity cap that isn't enforced, so the store keeps
+    selling at the deal price past the number it agreed to."""
+    from ovira_marketplace.failures import DEFERRABLE, guard
+
+    with guard("flash deal sold count", DEFERRABLE, ref=name):
         sold = cint(frappe.db.get_value("Marketplace Flash Deal", name, "sold"))
         frappe.db.set_value("Marketplace Flash Deal", name, "sold", sold + cint(qty))
-    except Exception:
-        frappe.log_error(title="Ovira: flash deal redeem failed")
 
 
 @frappe.whitelist(allow_guest=True)

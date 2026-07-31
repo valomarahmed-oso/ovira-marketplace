@@ -200,7 +200,13 @@ def award_for_order(order):
         _notify_earned(user, points, order.name)
         return doc
     except Exception:
-        frappe.log_error(title="Ovira: loyalty award failed")
+        # The shopper earned these and doesn't have them. Deferred, not
+        # forgotten — points a customer was promised and never received are a
+        # complaint waiting to happen.
+        from ovira_marketplace.failures import DEFERRABLE, guard
+
+        with guard("loyalty award", DEFERRABLE, ref=getattr(order, "name", None)):
+            raise
         return None
 
 
@@ -260,7 +266,13 @@ def revoke_for_order(order_name, ratio=1.0):
         frappe.db.commit()
         return doc
     except Exception:
-        frappe.log_error(title="Ovira: loyalty revoke failed")
+        # The mirror image, and the costlier direction: points NOT clawed back
+        # after a refund are store credit the shopper keeps for a purchase that
+        # no longer exists.
+        from ovira_marketplace.failures import DEFERRABLE, guard
+
+        with guard("loyalty claw-back", DEFERRABLE, ref=order_name):
+            raise
         return None
 
 

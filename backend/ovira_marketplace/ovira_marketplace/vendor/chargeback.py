@@ -196,5 +196,12 @@ def book_chargeback(doc):
         frappe.db.commit()
         return je.name
     except Exception:
-        frappe.log_error(title="Ovira: vendor refund chargeback failed")
+        # The customer keeps their refund either way — that is the point of
+        # doing this after the wallet credit. But a chargeback that doesn't book
+        # is money the OPERATOR absorbs for a fault that was the vendor's, so it
+        # has to stay visible until someone deals with it.
+        from ovira_marketplace.failures import DEFERRABLE, guard
+
+        with guard("vendor refund chargeback", DEFERRABLE, ref=getattr(doc, "name", None)):
+            raise
         return None

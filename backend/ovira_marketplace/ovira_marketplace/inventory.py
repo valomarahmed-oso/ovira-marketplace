@@ -182,10 +182,14 @@ def sync_product_stock(product):
         sr.submit()
         return sr.name
     except Exception:
-        frappe.log_error(
-            title="Ovira: stock sync failed",
-            message="Product %s (item %s)\n%s" % (product.name, item, frappe.get_traceback()),
-        )
+        # ERPNext now disagrees with what the shop is selling. The nightly sweep
+        # will try again and `stock_health` lists it meanwhile, but it is
+        # recorded as deferred so "why is this product drifting" has an answer
+        # that predates someone noticing the drift.
+        from ovira_marketplace.failures import DEFERRABLE, guard
+
+        with guard("stock sync", DEFERRABLE, ref=product.name):
+            raise
         return None
 
 

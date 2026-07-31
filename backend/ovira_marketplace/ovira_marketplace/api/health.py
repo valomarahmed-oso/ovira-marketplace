@@ -213,10 +213,34 @@ def _check_operator_vendor(settings, out):
     ))
 
 
+def _check_deferred_work(out):
+    """Work that was put off and hasn't been picked up.
+
+    `failures.guard(..., DEFERRABLE)` records the things that didn't happen but
+    still should — a chargeback that didn't book, a payout that failed, points
+    not clawed back, a stock sync refused. Recording them is only worth anything
+    if somebody is shown the list.
+    """
+    from ovira_marketplace.failures import deferred_work
+
+    pending = deferred_work()
+    if not pending:
+        return
+    out.append(_finding(
+        "warning", "deferred_work",
+        "{0} عملية مؤجّلة لم تكتمل".format(len(pending)),
+        "عمليات فشلت ولم تُوقف ما كانت جزءًا منه — لكنها لم تحدث: {0}".format(
+            "، ".join(pending[:6])),
+        "راجع سجل الأخطاء للتفاصيل، ثم أعد تنفيذ العملية المعنية",
+        len(pending),
+    ))
+
+
 CHECKS_WITH_SETTINGS = (_check_loyalty, _check_tax, _check_operator_vendor)
 CHECKS = (
     _check_stock, _check_hidden_vendor_products, _check_slugs,
     _check_outgoing_email, _check_zero_refunds, _check_failed_accounting,
+    _check_deferred_work,
 )
 
 SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}

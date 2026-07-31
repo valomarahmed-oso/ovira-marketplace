@@ -208,13 +208,16 @@ def run_due_payouts(company=None):
         filters={"status": "Active", "supplier": ["is", "set"]},
         pluck="supplier",
     )
+    from ovira_marketplace.failures import DEFERRABLE, guard
+
     for supplier in set(suppliers):
-        try:
+        # One vendor's payout failing must not stop the rest — but a vendor who
+        # wasn't paid is the loudest kind of unfinished work in a marketplace,
+        # so it is recorded rather than logged and forgotten.
+        with guard("vendor payout", DEFERRABLE, ref=supplier):
             pe = pay_supplier(supplier, company, payable, paid_from)
             if pe:
                 paid.append(pe)
-        except Exception:
-            frappe.log_error(title="Ovira: vendor payout failed", message=frappe.get_traceback())
     frappe.db.commit()
     return paid
 
