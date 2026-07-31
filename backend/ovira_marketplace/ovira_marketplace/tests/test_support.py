@@ -18,8 +18,18 @@ from ovira_marketplace.tests import fixtures as fx
 
 
 class TestSupportTickets(IntegrationTestCase):
+    """Each test gets its OWN shopper.
+
+    Frappe rolls a test back at the end — but the code under test calls
+    `frappe.db.commit()` (a support ticket has to survive the request that
+    created it), so the rollback has nothing left to undo and rows accumulate
+    across methods. Isolating by identity rather than by transaction is the
+    honest way to test code that commits: the assertions then describe one
+    shopper's world, which is what the endpoint actually promises.
+    """
+
     def setUp(self):
-        self.email = "ticket.buyer@ovira.test"
+        self.email = "ticket.%s@ovira.test" % self._testMethodName
         fx.buyer(self.email, "Ticket Buyer")
 
     def tearDown(self):
@@ -86,7 +96,7 @@ class TestSupportTickets(IntegrationTestCase):
         frappe.set_user(self.email)
         created = create_ticket(subject="خاص", body="بيانات حسابي")
 
-        other = "other.buyer@ovira.test"
+        other = "other.%s@ovira.test" % self._testMethodName
         fx.buyer(other, "Other Buyer")
         frappe.set_user(other)
         self.assertEqual(my_tickets(), [])
