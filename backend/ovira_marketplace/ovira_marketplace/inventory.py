@@ -115,7 +115,14 @@ def sync_product_stock(product):
     if not product.get("track_inventory") or not product.get("item"):
         return None
     item = product.item
-    if not frappe.db.get_value("Item", item, "is_stock_item"):
+    row = frappe.db.get_value("Item", item, ["is_stock_item", "disabled"], as_dict=True)
+    if not row or not row.is_stock_item:
+        return None
+    # A disabled Item is deliberately out of the stock system — ERPNext refuses to
+    # reconcile it ("Item … is disabled"), and one such product used to abort the
+    # whole nightly sweep with a traceback. `stock_mismatches` still reports it,
+    # flagged, so it stays visible instead of silently skipped.
+    if row.disabled:
         return None
 
     settings = frappe.get_cached_doc("Marketplace Settings")
@@ -265,7 +272,10 @@ def stock_mismatches(limit=200):
         ignore_permissions=True,
     )
     for p in products:
-        if not p.item or not frappe.db.get_value("Item", p.item, "is_stock_item"):
+        if not p.item:
+            continue
+        item = frappe.db.get_value("Item", p.item, ["is_stock_item", "disabled"], as_dict=True)
+        if not item or not item.is_stock_item:
             continue
         wanted = desired_distribution(p)
         bins = _bins(p.item)
@@ -292,6 +302,8 @@ def stock_mismatches(limit=200):
                     "item": p.item,
                     "stock_qty": flt(p.stock_qty),
                     "warehouses": rows,
+                    # Why a re-sync won't clear this one, when that's the case.
+                    "blocked": "item disabled" if item.disabled else None,
                 }
             )
         if len(out) >= (limit or 200):
@@ -303,6 +315,8 @@ def reconcile_all_products():
     """Daily sweep: push any drifted product back into line. Cheap when healthy —
     `sync_product_stock` posts nothing when every warehouse already agrees."""
     for row in stock_mismatches():
+        if row.get("blocked"):
+            continue   # nothing a sync can do — reported, not retried forever
         try:
             product = frappe.get_doc("Marketplace Product", row["product"])
             sync_product_stock(product)
