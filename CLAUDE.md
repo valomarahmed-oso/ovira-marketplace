@@ -30,6 +30,8 @@ storefront/src/
   app/            # routes (products, checkout, account, vendor, admin, …)
   lib/            # api.ts, cart-store, orders-api, vendor.ts, frappe-client, i18n
   components/     # shared UI
+packages/core/    # @ovira/core — types, API client, pricing shared by both clients
+mobile/           # Expo (React Native) buyer app; expo-router, Arabic/RTL
 docs/             # architecture, data-model, roadmap
 ```
 
@@ -102,6 +104,13 @@ docs/             # architecture, data-model, roadmap
   membership, never absolute balances or exact list equality. A test that only
   passes on a fresh database is a test that will be deleted.
 - Storefront types: `cd storefront && npx tsc --noEmit -p tsconfig.json`.
+- Shared layer: `cd packages/core && npm test` (builds, then runs `node --test`).
+  `src/pricing.ts` mirrors `totals.py`/`taxes.py` **function for function** and
+  its tests use the same cases — change one, change the other, same commit, or
+  the cart shows a total the invoice disagrees with.
+- Mobile: `cd mobile && npm run typecheck`. `npm run web` serves the same bundle
+  in a browser for a quick look (Metro proxies `/api/*` in dev; a phone needs no
+  proxy). Rebuild `packages/core` after editing it — Metro loads its `dist/`.
 - Backend syntax: `python -m py_compile <file.py>`; import smoke test on the
   server: `bench --site <site> execute frappe.get_attr --args "['<dotted.path>']"`.
 - Doctype JSON edits are schema changes → require `bench migrate` on deploy.

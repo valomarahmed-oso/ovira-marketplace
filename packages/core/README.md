@@ -49,10 +49,25 @@ authority and recomputes everything; this copy exists only so the cart can show 
 total before the order is placed. When they drift, the shopper agrees to one
 number and is billed another.
 
+## Building
+
+Consumers import the built `dist/`, not the source, because Metro resolves
+`./config.js` literally and would never find `config.ts`. `npm test` builds
+first and then runs against `dist/`, so the tests exercise the artifact the apps
+actually load.
+
 ```bash
-npm test        # node --test, no build step
+npm run build       # once
+npm run dev         # tsc --watch, while working on a client
+npm test            # builds, then node --test
 npm run typecheck
 ```
+
+**An empty `baseUrl` is a valid setting** — it means same-origin, which is how
+the storefront is served and how the mobile app reaches Metro's dev proxy.
+`isConfigured()` is a separate flag for exactly this reason; treating an empty
+base URL as "not configured yet" silently returned `null` from every read, which
+is the failure mode this package was written to end.
 
 ## Not yet used by the storefront — and why
 

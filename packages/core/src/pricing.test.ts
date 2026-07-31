@@ -10,7 +10,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { cartTotals, goodsTotal, splitTax, subtotal, walletToSpend } from "./pricing.ts";
+import { cartTotals, goodsTotal, splitTax, subtotal, walletToSpend } from "../dist/pricing.js";
 
 const INCLUSIVE = { rate: 14, inclusive: true, label: "VAT 14%" };
 const EXCLUSIVE = { rate: 14, inclusive: false, label: "VAT 14%" };

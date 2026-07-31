@@ -17,7 +17,7 @@
  * ```
  */
 
-export { configure, fileUrl, getConfig, methodUrl } from "./config.js";
+export { configure, fileUrl, getConfig, isConfigured, methodUrl } from "./config.js";
 export type { AuthHeaders, CoreConfig } from "./config.js";
 
 export { errorMessage, get, post } from "./http.js";

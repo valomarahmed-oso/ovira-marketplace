@@ -13,7 +13,7 @@
  *    for both "empty" and "broken".
  */
 
-import { getConfig, methodUrl, report } from "./config.js";
+import { getConfig, isConfigured, methodUrl, report } from "./config.js";
 
 /** Frappe wraps every whitelisted response in `{message: ...}`. */
 type FrappeEnvelope<T> = { message?: T; exception?: string; _server_messages?: string };
@@ -57,8 +57,10 @@ export async function get<T>(
   params?: Record<string, string | number | undefined>,
   init?: { signal?: AbortSignal },
 ): Promise<T | null> {
-  const config = getConfig();
-  if (!config.baseUrl) return null;
+  if (!isConfigured()) {
+    report(method, "core used before configure()");
+    return null;
+  }
   try {
     const res = await fetch(methodUrl(method, params), {
       headers: await headers(false),
@@ -84,8 +86,7 @@ export async function post<T>(
   body?: unknown,
   fallbackError = "تعذّر تنفيذ العملية.",
 ): Promise<T> {
-  const config = getConfig();
-  if (!config.baseUrl) throw new Error("الخدمة غير متاحة حاليًا.");
+  if (!isConfigured()) throw new Error("الخدمة غير متاحة حاليًا.");
   const res = await fetch(methodUrl(method), {
     method: "POST",
     headers: await headers(true),

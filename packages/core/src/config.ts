@@ -39,13 +39,29 @@ export type CoreConfig = {
 };
 
 let config: CoreConfig = { baseUrl: "", useCookies: false, locale: "ar" };
+let configured = false;
 
 export function configure(next: Partial<CoreConfig>): void {
   config = { ...config, ...next };
+  configured = true;
 }
 
 export function getConfig(): CoreConfig {
   return config;
+}
+
+/**
+ * Whether a host has wired this package up yet.
+ *
+ * Tracked as its own flag rather than inferred from a non-empty `baseUrl`,
+ * because **an empty base URL is a legitimate configuration**: it means
+ * same-origin, which is how the storefront is served (`/shop` sits on the
+ * Frappe site itself) and how the mobile app talks to Metro's dev proxy on web.
+ * Reading emptiness as "not configured" silently answered `null` to every read
+ * in exactly those cases — a whole app of empty screens and nothing in the log.
+ */
+export function isConfigured(): boolean {
+  return configured;
 }
 
 /** Absolute URL for a Frappe whitelisted method. */
