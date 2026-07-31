@@ -347,15 +347,16 @@ def _order_for_key(idempotency_key):
         return None
     row = frappe.db.get_value(
         "Marketplace Order", {"idempotency_key": key},
-        ["name", "total", "status", "access_token", "email"], as_dict=True,
+        ["name", "total", "status", "access_token", "owner"], as_dict=True,
     )
     if not row:
         return None
-    user = frappe.session.user
-    if user and user != "Guest":
-        mine = _session_email()
-        if row.email and mine and row.email != mine:
-            return None
+    # Scoped by the record's OWNER — the login that created it — not by the
+    # `email` field, which the client supplies and can therefore be anything. A
+    # replay is only a replay when the same session is asking; otherwise a
+    # guessed key would hand over an order and its payment token.
+    if row.owner != frappe.session.user:
+        return None
     return {
         "name": row.name, "total": row.total, "status": row.status,
         "token": row.access_token, "idempotent_replay": True,
