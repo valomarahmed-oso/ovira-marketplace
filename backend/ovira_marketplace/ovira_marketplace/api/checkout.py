@@ -76,6 +76,16 @@ def place_order(
         )
         if not product:
             continue
+        # Approved and published is not the same as buyable. A suspended
+        # seller's product is hidden from every listing, and in Single Company
+        # mode so is every other vendor's — but checkout resolved by slug alone,
+        # so an old cart, a stale tab or a direct POST could still buy one. The
+        # store would then owe goods on behalf of a seller it has switched off.
+        from ovira_marketplace.api.catalog import is_visible_vendor
+
+        if not is_visible_vendor(product.vendor):
+            shortages.append(_("{0} is no longer available.").format(product.title))
+            continue
         # Never trust the client-supplied quantity: clamp to a positive integer
         # so a negative qty can't be used to drive the order total down.
         try:
