@@ -13,6 +13,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { dict } from "../src/i18n";
 import { configureOvira } from "../src/ovira";
 import { ensureRtl } from "../src/rtl";
+import { useSession } from "../src/session";
 import { ThemeProvider, useTheme } from "../src/theme-context";
 
 // Both of these decide how the first frame is drawn, so they run while the
@@ -40,9 +41,15 @@ function Shell() {
   const { c, scheme } = useTheme();
   const t = dict();
 
+  const refreshSession = useSession((s) => s.refresh);
+
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {});
-  }, []);
+    // Ask who is signed in before the splash goes, so no screen has to render a
+    // guest state it is about to replace.
+    void refreshSession().finally(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    });
+  }, [refreshSession]);
 
   /**
    * React Navigation paints the frame *around* our screens — the space behind a
@@ -77,6 +84,9 @@ function Shell() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* Checkout is a modal-ish push: it is a task with a beginning and an
+            end, not a place in the app you browse to and stay. */}
+        <Stack.Screen name="checkout" options={{ title: t.checkout }} />
         <Stack.Screen name="+not-found" options={{ title: t.notFound }} />
       </Stack>
     </NavigationThemeProvider>

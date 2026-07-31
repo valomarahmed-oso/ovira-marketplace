@@ -13,6 +13,8 @@ import { describe, it } from "node:test";
 import {
   cartTotals,
   goodsTotal,
+  lineTotal,
+  lineUnitPrice,
   nextTier,
   splitTax,
   subtotal,
@@ -94,6 +96,35 @@ describe("tierUnitRate", () => {
 
   it("never applies at qty 1, whatever the tier says", () => {
     assert.equal(tierUnitRate(250, 1, [{ min_qty: 1, price: 10 }]), 250);
+  });
+});
+
+describe("a cart line's own price", () => {
+  const tiers = [{ min_qty: 5, price: 220 }];
+
+  it("re-prices when the quantity crosses a tier", () => {
+    assert.equal(lineTotal({ price: 250, qty: 4, tiers }), 1000);
+    assert.equal(lineTotal({ price: 250, qty: 5, tiers }), 1100);
+  });
+
+  it("keeps the discount when a sixth unit is added", () => {
+    // The regression this exists for: a line that banked the 220 tier at five
+    // units, then had one more added, was billed 6 × 250 = 1,500. The discount
+    // was earned and then silently taken away.
+    assert.equal(lineUnitPrice({ price: 250, qty: 6, tiers }), 220);
+    assert.equal(lineTotal({ price: 250, qty: 6, tiers }), 1320);
+  });
+
+  it("gives the discount back when the quantity drops below the tier", () => {
+    assert.equal(lineUnitPrice({ price: 250, qty: 3, tiers }), 250);
+  });
+
+  it("prices a line with no tiers at its plain price", () => {
+    assert.equal(lineTotal({ price: 250, qty: 6 }), 1500);
+  });
+
+  it("carries tiers through the cart subtotal", () => {
+    assert.equal(subtotal([{ price: 250, qty: 6, tiers }, { price: 100, qty: 2 }]), 1520);
   });
 });
 

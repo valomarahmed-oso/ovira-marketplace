@@ -81,6 +81,8 @@ const ar = {
   noReviews: "لا توجد تقييمات بعد",
   taxIncluded: "شامل ضريبة {label}",
   taxAdded: "يُضاف {label}",
+  taxInclusiveShort: "شاملة",
+  taxExclusiveShort: "مضافة",
   productMissing: "المنتج غير متاح",
   productMissingBody: "يمكن يكون اتشال أو البائع وقف البيع.",
 
@@ -92,9 +94,93 @@ const ar = {
   shipping: "الشحن",
   shippingAtCheckout: "يُحسب عند الدفع",
   tax: "الضريبة",
+  discountLabel: "الخصم",
   total: "الإجمالي",
   remove: "حذف",
-  checkoutSoon: "الدفع من التطبيق جاي في التحديث الجاي — دلوقتي كمّل من الموقع.",
+  checkout: "إتمام الطلب",
+
+  // identity
+  signIn: "تسجيل الدخول",
+  signOut: "تسجيل الخروج",
+  register: "حساب جديد",
+  email: "البريد الإلكتروني",
+  password: "كلمة المرور",
+  fullName: "الاسم بالكامل",
+  phone: "رقم الموبايل",
+  noAccount: "معندكش حساب؟",
+  haveAccount: "عندك حساب؟",
+  signInToContinue: "سجّل دخولك عشان تكمّل",
+  guestCheckout: "أكمل كضيف",
+  signInBenefit: "سجّل دخولك عشان تتابع طلباتك وتستخدم رصيدك ونقاطك.",
+
+  // checkout
+  deliveryDetails: "بيانات التوصيل",
+  governorate: "المحافظة",
+  address: "العنوان بالتفصيل",
+  addressHint: "الشارع والمبنى والدور والشقة",
+  savedAddresses: "عناوينك المحفوظة",
+  newAddress: "عنوان جديد",
+  saveAddress: "احفظ العنوان ده",
+  deliveryMethod: "طريقة التوصيل",
+  etaDays: "خلال {min}–{max} يوم",
+  etaOneDay: "خلال يوم واحد",
+  preferredCarrier: "شركة الشحن المفضّلة",
+  carrierNote: "طلب مش إلزام — البائع بيحجز الشحنة.",
+  noPreference: "من غير تفضيل",
+  paymentMethod: "طريقة الدفع",
+  cod: "الدفع عند الاستلام",
+  card: "بطاقة إلكترونية",
+  cardUnavailable: "الدفع الإلكتروني مش مفعّل حاليًا",
+  couponCode: "كود الخصم",
+  apply: "تفعيل",
+  couponApplied: "الكود اتفعّل",
+  useWallet: "استخدم رصيد المحفظة",
+  walletBalance: "رصيدك: {amount}",
+  placeOrder: "تأكيد الطلب",
+  placing: "بنأكّد الطلب…",
+  orderPlaced: "تم استلام طلبك",
+  orderNumber: "رقم الطلب",
+  viewOrder: "تفاصيل الطلب",
+  keepShopping: "كمّل تسوّق",
+  requiredFields: "اكتب الاسم والموبايل والمحافظة والعنوان.",
+  invalidPhone: "رقم الموبايل مش مظبوط.",
+
+  // orders
+  myOrders: "طلباتي",
+  noOrders: "مفيش طلبات لسه",
+  noOrdersBody: "أول ما تطلب حاجة هتلاقيها هنا.",
+  orderItems: "{n} منتج",
+  cancelOrder: "إلغاء الطلب",
+  cancelConfirm: "متأكد إنك عايز تلغي الطلب؟",
+  reorder: "اطلب تاني",
+  reordered: "اتضافوا للسلة",
+  reorderNothing: "مفيش حاجة من الطلب ده لسه متاحة للبيع.",
+  tracking: "تتبّع الشحنة",
+  noTracking: "لسه مفيش شحنة مسجّلة",
+  paymentStatus: "حالة الدفع",
+  orderDate: "تاريخ الطلب",
+
+  // account
+  account: "حسابي",
+  addresses: "العناوين",
+  wallet: "المحفظة",
+  points: "نقاط الولاء",
+  pointsBalance: "{n} نقطة",
+  pointsWorth: "قيمتها {amount}",
+  redeem: "استبدال",
+  redeemAll: "استبدل الكل",
+  pointsMin: "أقل عدد للاستبدال {n} نقطة",
+  pointsExpiring: "{n} نقطة هتنتهي في {date}",
+  pointsOff: "برنامج النقاط مش مفعّل حاليًا",
+  pointsRedeemed: "تم إضافة {amount} لرصيد محفظتك",
+  walletUnknown: "تعذّر قراءة الرصيد",
+  walletBalanceLabel: "الرصيد المتاح",
+  noEntries: "مفيش حركات",
+  setDefault: "اجعله الافتراضي",
+  defaultAddress: "افتراضي",
+  save: "حفظ",
+  cancel: "إلغاء",
+  deleteConfirm: "متأكد؟",
 };
 
 export type Dict = typeof ar;
@@ -167,6 +253,8 @@ const en: Dict = {
   noReviews: "No reviews yet",
   taxIncluded: "{label} included",
   taxAdded: "{label} added at checkout",
+  taxInclusiveShort: "included",
+  taxExclusiveShort: "added",
   productMissing: "Product unavailable",
   productMissingBody: "It may have been removed, or the seller stopped selling it.",
 
@@ -177,9 +265,89 @@ const en: Dict = {
   shipping: "Shipping",
   shippingAtCheckout: "Calculated at checkout",
   tax: "Tax",
+  discountLabel: "Discount",
   total: "Total",
   remove: "Remove",
-  checkoutSoon: "In-app checkout arrives in the next update — finish on the website for now.",
+  checkout: "Checkout",
+
+  signIn: "Sign in",
+  signOut: "Sign out",
+  register: "Create account",
+  email: "Email",
+  password: "Password",
+  fullName: "Full name",
+  phone: "Mobile number",
+  noAccount: "No account yet?",
+  haveAccount: "Already registered?",
+  signInToContinue: "Sign in to continue",
+  guestCheckout: "Continue as guest",
+  signInBenefit: "Sign in to track orders and use your credit and points.",
+
+  deliveryDetails: "Delivery details",
+  governorate: "Governorate",
+  address: "Full address",
+  addressHint: "Street, building, floor, flat",
+  savedAddresses: "Saved addresses",
+  newAddress: "New address",
+  saveAddress: "Save this address",
+  deliveryMethod: "Delivery method",
+  etaDays: "In {min}–{max} days",
+  etaOneDay: "Next day",
+  preferredCarrier: "Preferred courier",
+  carrierNote: "A request, not a guarantee — the seller books the shipment.",
+  noPreference: "No preference",
+  paymentMethod: "Payment method",
+  cod: "Cash on delivery",
+  card: "Card",
+  cardUnavailable: "Card payment is not enabled yet",
+  couponCode: "Coupon code",
+  apply: "Apply",
+  couponApplied: "Coupon applied",
+  useWallet: "Use store credit",
+  walletBalance: "Balance: {amount}",
+  placeOrder: "Place order",
+  placing: "Placing your order…",
+  orderPlaced: "Order received",
+  orderNumber: "Order number",
+  viewOrder: "Order details",
+  keepShopping: "Keep shopping",
+  requiredFields: "Name, mobile, governorate and address are required.",
+  invalidPhone: "That mobile number doesn't look right.",
+
+  myOrders: "My orders",
+  noOrders: "No orders yet",
+  noOrdersBody: "Anything you order will show up here.",
+  orderItems: "{n} items",
+  cancelOrder: "Cancel order",
+  cancelConfirm: "Cancel this order?",
+  reorder: "Order again",
+  reordered: "Added to cart",
+  reorderNothing: "Nothing from this order is still on sale.",
+  tracking: "Tracking",
+  noTracking: "No shipment recorded yet",
+  paymentStatus: "Payment",
+  orderDate: "Ordered on",
+
+  account: "Account",
+  addresses: "Addresses",
+  wallet: "Store credit",
+  points: "Loyalty points",
+  pointsBalance: "{n} points",
+  pointsWorth: "Worth {amount}",
+  redeem: "Redeem",
+  redeemAll: "Redeem all",
+  pointsMin: "Minimum redemption is {n} points",
+  pointsExpiring: "{n} points expire on {date}",
+  pointsOff: "The points programme is switched off",
+  pointsRedeemed: "{amount} added to your store credit",
+  walletUnknown: "Could not read your balance",
+  walletBalanceLabel: "Available balance",
+  noEntries: "No activity",
+  setDefault: "Make default",
+  defaultAddress: "Default",
+  save: "Save",
+  cancel: "Cancel",
+  deleteConfirm: "Are you sure?",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };
@@ -229,4 +397,24 @@ export function num(
 
 export function money(amount: number, locale: Locale = DEFAULT_LOCALE): string {
   return `${num(amount, { locale })} ${dict(locale).currency}`;
+}
+
+/**
+ * A Frappe timestamp as a readable date.
+ *
+ * Frappe sends "2026-07-31 01:05:03.951728", which is not ISO-8601: passing it
+ * to `new Date()` is read as local time by some engines and as invalid by
+ * others. The date part is therefore split out and rebuilt by hand — an order
+ * dated a day off, or "Invalid Date", is worse than a plain string.
+ */
+export function formatDate(value?: string | null, locale: Locale = DEFAULT_LOCALE): string {
+  if (!value) return "";
+  const [date] = value.split(" ");
+  const [y, m, d] = (date ?? "").split("-");
+  if (!y || !m || !d) return date ?? "";
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(Number(y), Number(m) - 1, Number(d)));
 }

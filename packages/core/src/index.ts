@@ -28,6 +28,7 @@ export {
   cartTotals,
   goodsTotal,
   lineTotal,
+  lineUnitPrice,
   nextTier,
   splitTax,
   subtotal,
@@ -68,3 +69,30 @@ export { cancelOrder, getOrder, myOrders, reorderItems, trackOrder } from "./ord
 
 export { me, register, signIn, signOut } from "./auth.js";
 export type { Session } from "./auth.js";
+
+export {
+  deleteAddress,
+  getWallet,
+  myAddresses,
+  myPoints,
+  redeemPoints,
+  saveAddress,
+  setDefaultAddress,
+} from "./account.js";
+export type {
+  AddressInput,
+  BuyerAddress,
+  LoyaltyAccount,
+  LoyaltyEntry,
+  Wallet,
+  WalletEntry,
+} from "./account.js";
+
+export {
+  GOVERNORATES,
+  listCarriers,
+  listShippingMethods,
+  orderTracking,
+  shippingQuote,
+} from "./shipping.js";
+export type { Carrier, Shipment, ShipmentEvent, ShippingMethod, ShippingQuote } from "./shipping.js";

@@ -49,12 +49,26 @@ export function nextTier(qty: number, tiers?: PriceTier[] | null): PriceTier | n
   return ahead[0] ?? null;
 }
 
-export function lineTotal(line: Pick<CartLine, "price" | "qty">): number {
-  return round(line.price * line.qty);
+type PricedLine = Pick<CartLine, "price" | "qty"> & { tiers?: PriceTier[] };
+
+/**
+ * What one unit of this line actually costs at its current quantity.
+ *
+ * Always derived, never read off the line. Storing an already-discounted unit
+ * price is how a cart came to bill six units at the full 250 each after five of
+ * them had qualified for the 220 tier — the discount was earned, banked into
+ * the line, and then silently lost when the quantity moved.
+ */
+export function lineUnitPrice(line: PricedLine): number {
+  return tierUnitRate(line.price, line.qty, line.tiers);
 }
 
-export function subtotal(lines: Array<Pick<CartLine, "price" | "qty">>): number {
-  return round(lines.reduce((sum, line) => sum + line.price * line.qty, 0));
+export function lineTotal(line: PricedLine): number {
+  return round(lineUnitPrice(line) * line.qty);
+}
+
+export function subtotal(lines: PricedLine[]): number {
+  return round(lines.reduce((sum, line) => sum + lineUnitPrice(line) * line.qty, 0));
 }
 
 /** Value of the items after both kinds of coupon, floored at zero. */
@@ -97,7 +111,7 @@ export type CartTotals = {
 };
 
 export function cartTotals(input: {
-  lines: Array<Pick<CartLine, "price" | "qty">>;
+  lines: PricedLine[];
   shipping?: number;
   discount?: number;
   vendorDiscount?: number;

@@ -1,10 +1,11 @@
-import { cartTotals } from "@ovira/core";
+import { cartTotals, lineTotal, lineUnitPrice } from "@ovira/core";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { cartKey, useCart } from "../../src/cart-store";
+import { PrimaryButton } from "../../src/components/form";
 import { Empty } from "../../src/components/states";
 import { Card, Row, Screen, Txt, VStack } from "../../src/components/ui";
 import { dict, money, num } from "../../src/i18n";
@@ -88,8 +89,16 @@ export default function CartScreen() {
                     </Txt>
                   )}
                   <Txt variant="heading" tone="blue">
-                    {money(line.price * line.qty)}
+                    {money(lineTotal(line))}
                   </Txt>
+                  {lineUnitPrice(line) < line.price && (
+                    // Say why it is cheaper than the shelf price, or a shopper
+                    // comparing against the product page thinks one of the two
+                    // is wrong.
+                    <Txt variant="caption" tone="mint">
+                      {money(lineUnitPrice(line))} × {num(line.qty)} · {t.bulkPricing}
+                    </Txt>
+                  )}
 
                   <Row justify="space-between" style={{ marginTop: space.xs }}>
                     <Row
@@ -176,9 +185,11 @@ export default function CartScreen() {
           </VStack>
         </Card>
 
-        <Txt variant="caption" tone="faint" style={{ textAlign: "center" }}>
-          {t.checkoutSoon}
-        </Txt>
+        <PrimaryButton
+          label={`${t.checkout} · ${money(totals.total)}`}
+          icon="arrow-back"
+          onPress={() => router.push("/checkout")}
+        />
       </ScrollView>
     </Screen>
   );

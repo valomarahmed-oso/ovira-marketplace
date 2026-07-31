@@ -66,6 +66,10 @@ app/                    routes (expo-router; file = screen)
   (tabs)/               الرئيسية · البحث · السلة · حسابي
   category/[slug].tsx   listing with sort, in-stock filter, paging
   product/[slug].tsx    gallery, variants, bulk tiers, seller, related
+  checkout.tsx          address · delivery · courier · payment · coupon · credit
+  auth/                 sign-in · register
+  account/              orders · addresses · wallet · points
+  order/[name].tsx      items, totals, tracking, cancel, re-order
 src/
   theme.ts              palette, spacing, type scale — mirrors the storefront
   theme-context.tsx     useTheme(), follows the system light/dark setting
@@ -74,6 +78,7 @@ src/
   rtl.ts                direction
   icons.ts              category icons: lucide names (from the web) → Ionicons
   cart-store.ts         local cart, persisted; prices here are display only
+  session.ts            who is signed in; pushes the CSRF token into the API layer
   store-config.ts       currency / tax / mode, fetched once per run
   components/           Txt · Screen · Card · Row · VStack · Pill · Logo ·
                         ProductTile · ProductGrid · Price · Rating · Gallery ·
@@ -88,9 +93,18 @@ what the client sends — bulk tiers, coupons, shipping and tax included. Keep i
 that way: the cart is the one place a client is tempted to become the authority
 on money.
 
+A line stores the **base** unit price plus the product's tiers; the effective
+price is derived from the quantity by `lineUnitPrice()`. Storing an already
+discounted figure is how a cart came to bill six units at full price after five
+of them had earned the bulk rate.
+
+Shipping is never computed here either — `shippingQuote()` asks the server on
+every change of governorate or method, because this store prices delivery two
+incompatible ways depending on a setting.
+
 ## Where this is going
 
-Shipped: the shell, and browsing — home, search, category, product, and a cart
-that totals correctly. Next: checkout and accounts, then the native layer (push,
-biometrics, barcode, deep links) that is the actual reason for building this
-rather than wrapping the website.
+Shipped: the shell, browsing, and buying — checkout, sign-in, orders, addresses,
+store credit and points. Next: the native layer (push, biometrics, barcode, deep
+links) that is the actual reason for building this rather than wrapping the
+website.

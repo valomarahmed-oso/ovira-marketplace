@@ -40,11 +40,17 @@ export const useCart = create<CartState>()(
           const existing = state.lines.find((l) => keyOf(l) === key);
           if (!existing) return { lines: [...state.lines, line] };
           // Adding the same thing twice tops up the line rather than stacking a
-          // duplicate the shopper then has to reconcile by hand.
+          // duplicate the shopper then has to reconcile by hand. `price` and
+          // `tiers` are refreshed from the newer read because they are the
+          // *base* figures — the effective unit price is derived from the
+          // quantity by `lineUnitPrice`, so a top-up can never cost a shopper a
+          // bulk discount they had already earned.
           const capped = cap(existing.qty + line.qty, line.stock_qty ?? existing.stock_qty);
           return {
             lines: state.lines.map((l) =>
-              keyOf(l) === key ? { ...l, qty: capped, price: line.price } : l,
+              keyOf(l) === key
+                ? { ...l, qty: capped, price: line.price, tiers: line.tiers, stock_qty: line.stock_qty }
+                : l,
             ),
           };
         }),
@@ -63,7 +69,17 @@ export const useCart = create<CartState>()(
     {
       name: "ovira-cart",
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      /**
+       * Bumped when `price` stopped meaning "what we charge" and started
+       * meaning "the base rate".
+       *
+       * Old lines are kept rather than discarded: they carry no `tiers`, so
+       * they price at exactly the figure they were saved with, and the server
+       * recomputes the charge regardless. Throwing away someone's cart to
+       * tidy up a field's meaning would cost more than it fixes.
+       */
+      version: 2,
+      migrate: (state) => state as CartState,
     },
   ),
 );

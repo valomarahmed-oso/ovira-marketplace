@@ -82,7 +82,17 @@ export type Category = {
 export type CartLine = {
   slug: string;
   title: string;
+  /**
+   * The **base** unit price — the shelf price, or the chosen variant's.
+   *
+   * Deliberately not "the price we charge": bulk tiers depend on quantity, and
+   * a line that stored an already-discounted figure would carry it into a
+   * quantity that no longer earns it. Effective price is always derived by
+   * `lineUnitPrice()`, never stored.
+   */
   price: number;
+  /** Bulk tiers as the product carries them, so a quantity change re-prices. */
+  tiers?: PriceTier[];
   qty: number;
   image?: string | null;
   /** Chosen variant SKU, when the product has options. */

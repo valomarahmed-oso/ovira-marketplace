@@ -76,7 +76,7 @@ export function Screen({
   scroll = true,
   style,
 }: {
-  children: ReactNode;
+  children?: ReactNode;
   scroll?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {

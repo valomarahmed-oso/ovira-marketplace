@@ -69,7 +69,11 @@ export default function ProductScreen() {
     addToCart({
       slug: product.slug,
       title: product.title,
-      price: unit,
+      // The BASE rate plus the tiers, not the discounted figure on screen. The
+      // cart re-derives the effective price from the quantity, so the discount
+      // follows the line instead of being frozen into it.
+      price: unitBase,
+      tiers,
       qty,
       image: product.image,
       variant: variant?.sku ?? variant?.name ?? null,
