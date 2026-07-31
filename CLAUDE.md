@@ -103,6 +103,29 @@ costs someone real money:
 | `api/trust.py` | `rates()` / `blend_score()` — the denominators are the easy thing to get wrong |
 | `inventory.py` | `reconciliation_targets()` — target = offered **+ reserved**, always |
 
+## How this app is allowed to fail
+
+`failures.py` replaces `except Exception: log_error` as a blanket policy. State
+the category at the call site:
+
+```python
+with guard("stock adjustment", CRITICAL, product=name):   # raise — money/stock is wrong
+with guard("return credit note", DEFERRABLE, ref=so):     # log + record, a sweep retries
+with guard("abandoned-cart recovery", IGNORABLE):         # swallow, the user is unaffected
+```
+
+`IGNORABLE` is right for messages and counters. It is **wrong** for stock,
+refunds and accounting — applying it there is how this store sold 98 units of an
+item ERPNext held 1 of, and completed returns that refunded nothing.
+
+On the storefront, `lib/api-errors.ts` does the same job: every module still
+degrades a failed read to `null`/`[]`, but calls `reportApiFailure` first. A 500
+used to be indistinguishable from an empty result at every call site.
+
+**`/admin/health` (`api/health.py`) is the check-first screen.** Every finding it
+reports is a condition that was live here and announced itself to nobody. Add a
+check whenever you fix a bug that a store could not have noticed on its own.
+
 ## Deploy
 
 Deployed to **demo.ovira.cloud** (the marketplace lives on that site only; the
