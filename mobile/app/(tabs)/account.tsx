@@ -11,6 +11,7 @@ import { useGuestOrders } from "../../src/guest-orders";
 import { dict, fill, money, num } from "../../src/i18n";
 import { useSession } from "../../src/session";
 import { useTheme } from "../../src/theme-context";
+import { useVendorAccess } from "../../src/vendor-access";
 
 export default function AccountScreen() {
   const { c, space, radius } = useTheme();
@@ -21,6 +22,7 @@ export default function AccountScreen() {
   const ready = useSession((s) => s.ready);
   const logOut = useSession((s) => s.logOut);
   const guestCount = useGuestOrders((s) => Object.keys(s.tokens).length);
+  const vendorAccess = useVendorAccess();
 
   const [balance, setBalance] = useState<number | null>(null);
   const [points, setPoints] = useState<number | null>(null);
@@ -134,6 +136,16 @@ export default function AccountScreen() {
         </Row>
 
         <VStack gap="sm">
+          {/* Only for an actual seller, and only when the store runs as a
+              marketplace — in Single Company mode there are no vendors and
+              offering "my store" invents one. */}
+          {vendorAccess.show && (
+            <MenuItem
+              icon="storefront-outline"
+              label={t.vendorArea}
+              onPress={() => router.push("/vendor")}
+            />
+          )}
           <MenuItem
             icon="receipt-outline"
             label={t.myOrders}

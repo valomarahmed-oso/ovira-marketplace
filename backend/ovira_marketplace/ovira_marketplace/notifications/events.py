@@ -213,13 +213,17 @@ EVENTS = {
         Content("New order 🛍️", ["Order: {order}", "Total: {total} {currency}", "Please prepare it soon."]),
     ),
 
+    # Push was added to these three once the seller had an app to receive it on.
+    # The test is whether a seller would want to be interrupted: money arriving,
+    # stock about to cost them sales, and a rating that will follow their store
+    # around all pass it. An in-app badge they see next Tuesday does not.
     "vendor.payout_settled": _ev(
-        VENDOR, (INAPP, EMAIL, WHATSAPP),
+        VENDOR, (INAPP, PUSH, EMAIL, WHATSAPP),
         Content("تم تحويل مستحقاتك 💰", ["المبلغ: {total} {currency}", "المرجع: {reference}"]),
         Content("Your payout was sent 💰", ["Amount: {total} {currency}", "Reference: {reference}"]),
     ),
     "vendor.low_stock": _ev(
-        VENDOR, (INAPP, EMAIL),
+        VENDOR, (INAPP, PUSH, EMAIL),
         Content("منتجات قرب تخلص ⚠️", [
             "عندك {count} منتج كميته وصلت {threshold} أو أقل.", "{products}",
         ]),
@@ -228,7 +232,7 @@ EVENTS = {
         ]),
     ),
     "vendor.review_received": _ev(
-        VENDOR, (INAPP, EMAIL),
+        VENDOR, (INAPP, PUSH, EMAIL),
         Content("تقييم جديد على منتجك ⭐", ["{product}", "التقييم: {rating}/5"]),
         Content("New review on your product ⭐", ["{product}", "Rating: {rating}/5"]),
     ),

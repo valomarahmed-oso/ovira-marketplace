@@ -67,6 +67,20 @@ export type { CustomerInfo, PlacedOrder } from "./checkout.js";
 
 export { cancelOrder, getOrder, myOrders, reorderItems, trackOrder } from "./orders.js";
 
+export {
+  myStore,
+  shipVendorOrder,
+  vendorAnalytics,
+  vendorOrders,
+  vendorShipmentStatuses,
+} from "./vendor.js";
+export type {
+  VendorAnalytics,
+  VendorOrder,
+  VendorStore,
+  VendorTotals,
+} from "./vendor.js";
+
 export { registerDevice, unregisterDevice } from "./push.js";
 export type { DeviceInfo } from "./push.js";
 

@@ -46,7 +46,32 @@ def send_inapp(rcpt, title, lines, reference=None, **_):
         return _fail(e)
 
 
-# ── web push ────────────────────────────────────────────────────────────────
+# ── push (browser + app) ────────────────────────────────────────────────────
+def push_url(rcpt, reference=None):
+    """Where tapping this notification should land.
+
+    The same event means different work to different people: "new order" is a
+    receipt to the shopper who placed it and a parcel to pack for the seller who
+    has to fill it. Sending both to the buyer's tracking page is how a seller
+    taps a notification about their own sale and is told the order isn't theirs.
+
+    Kept pure so the routing can be tested without sending anything.
+    """
+    ref = reference or {}
+    is_order = ref.get("doctype") == "Marketplace Order" and ref.get("name")
+    audience = rcpt.get("audience")
+
+    if audience == "vendor":
+        # A vendor reads an order through their own slice of it, never through
+        # the buyer's page.
+        return "/shop/vendor/orders" if is_order else "/shop/vendor"
+    if audience == "operator":
+        return "/shop/admin/orders" if is_order else "/shop/admin"
+    if is_order:
+        return "/shop/account/orders/" + ref["name"]
+    return "/shop/account/notifications"
+
+
 def send_push(rcpt, title, lines, reference=None, **_):
     user = rcpt.get("user")
     if not user or user == "Guest":
@@ -54,10 +79,7 @@ def send_push(rcpt, title, lines, reference=None, **_):
     try:
         from ovira_marketplace.api.push import send_to_user
 
-        url = "/shop/account/notifications"
-        ref = reference or {}
-        if ref.get("doctype") == "Marketplace Order" and ref.get("name"):
-            url = "/shop/track?order=" + ref["name"]
+        url = push_url(rcpt, reference)
         count = send_to_user(user, title, (lines[0] if lines else title), url=url)
         return _sent() if count else _skip("no push subscription")
     except Exception as e:

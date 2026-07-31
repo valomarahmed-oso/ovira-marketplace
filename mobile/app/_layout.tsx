@@ -9,11 +9,12 @@ import { useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { Linking } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AppLock } from "../src/app-lock";
-import { routeFor } from "../src/deep-links";
+import { isExternal, routeFor } from "../src/deep-links";
 import { dict } from "../src/i18n";
 import { urlFromNotification } from "../src/notifications";
 import { configureOvira } from "../src/ovira";
@@ -76,7 +77,15 @@ function Shell() {
   useEffect(() => {
     const go = (url: string | null) => {
       if (!url) return;
-      router.push(routeFor(url) as never);
+      const route = routeFor(url);
+      // Some destinations are the website's, not the app's — the operator
+      // console above all. Handing those to the browser is better than
+      // silently dropping an alert someone was meant to act on.
+      if (isExternal(route)) {
+        void Linking.openURL(route.external).catch(() => {});
+        return;
+      }
+      router.push(route as never);
     };
 
     void Notifications.getLastNotificationResponseAsync().then((response) => {

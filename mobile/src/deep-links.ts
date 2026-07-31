@@ -15,8 +15,20 @@
  * worse than one that opens the shop.
  */
 
+/**
+ * Some destinations belong to the website, not the app.
+ *
+ * The operator console is a desk tool — twelve screens of tables that would be
+ * a lie on a phone. Rather than swallow an operator's notification and show
+ * them the shop, the app hands the URL to the browser and lets the real console
+ * open. "We don't do this here, but here's what does" beats a dead end.
+ */
+export type ExternalRoute = { external: string };
+
 export type AppRoute =
   | { pathname: "/"; params?: Record<string, string> }
+  | { pathname: "/vendor"; params?: Record<string, string> }
+  | { pathname: "/vendor/orders"; params?: Record<string, string> }
   | { pathname: "/search"; params?: Record<string, string> }
   | { pathname: "/cart"; params?: Record<string, string> }
   | { pathname: "/account"; params?: Record<string, string> }
@@ -28,6 +40,12 @@ export type AppRoute =
   | { pathname: "/order/[name]"; params: { name: string } };
 
 const HOME: AppRoute = { pathname: "/" };
+
+/** Where an app-less destination opens. Same origin the API talks to. */
+const STOREFRONT = (process.env.EXPO_PUBLIC_FRAPPE_URL ?? "https://demo.ovira.cloud").replace(
+  /\/+$/,
+  "",
+);
 
 /** Everything the storefront serves lives under `/shop`; the app does not. */
 function stripBase(path: string): string[] {
@@ -41,7 +59,11 @@ function stripBase(path: string): string[] {
  * `ovira://product/x`, `https://demo.ovira.cloud/shop/products/x`, or a bare
  * `/shop/products/x` — all resolve the same way.
  */
-export function routeFor(url?: string | null): AppRoute {
+export function isExternal(route: AppRoute | ExternalRoute): route is ExternalRoute {
+  return "external" in route;
+}
+
+export function routeFor(url?: string | null): AppRoute | ExternalRoute {
   if (!url) return HOME;
 
   let path = url;
@@ -104,6 +126,12 @@ export function routeFor(url?: string | null): AppRoute {
       if (tail === "wallet") return { pathname: "/account/wallet" };
       if (tail === "points" || tail === "loyalty") return { pathname: "/account/points" };
       return { pathname: "/account" };
+    case "vendor":
+      return tail === "orders" ? { pathname: "/vendor/orders" } : { pathname: "/vendor" };
+    case "admin":
+      // The console is a desk tool. Hand it to the browser rather than
+      // swallowing an operator's alert.
+      return { external: `${STOREFRONT}${path.startsWith("/") ? path : `/${path}`}` };
     default:
       return HOME;
   }

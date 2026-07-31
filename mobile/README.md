@@ -70,6 +70,8 @@ app/                    routes (expo-router; file = screen)
   auth/                 sign-in · register
   account/              orders · addresses · wallet · points
   order/[name].tsx      items, totals, tracking, cancel, re-order
+  vendor/               seller: what needs packing, what it earned, ship it
+  scan.tsx              barcode → product
 src/
   theme.ts              palette, spacing, type scale — mirrors the storefront
   theme-context.tsx     useTheme(), follows the system light/dark setting
@@ -79,6 +81,11 @@ src/
   icons.ts              category icons: lucide names (from the web) → Ionicons
   cart-store.ts         local cart, persisted; prices here are display only
   session.ts            who is signed in; pushes the CSRF token into the API layer
+  notifications.ts      push permission, Expo token, tap payloads
+  deep-links.ts         one URL→screen map, with tests
+  app-lock.tsx          biometric gate
+  device-prefs.ts       push + app-lock switches, per device
+  vendor-access.ts      who may see the seller area (and why not)
   store-config.ts       currency / tax / mode, fetched once per run
   components/           Txt · Screen · Card · Row · VStack · Pill · Logo ·
                         ProductTile · ProductGrid · Price · Rating · Gallery ·
@@ -102,9 +109,20 @@ Shipping is never computed here either — `shippingQuote()` asks the server on
 every change of governorate or method, because this store prices delivery two
 incompatible ways depending on a setting.
 
+## The seller area is deliberately small
+
+`vendor/` answers the two questions a seller has while standing in a stockroom —
+*what do I owe someone today* and *what am I earning* — and books a shipment.
+Product editing, coupons, reports and settlement statements stay on the web,
+linked and named as such. A 6-inch port of a twelve-screen console is worse than
+a link to the real one.
+
+It is gated on **two** conditions, and the second is the easy one to forget: the
+person must be a vendor, **and** the store must be running as a marketplace. In
+Single Company mode there are no sellers, and offering "my store" invents one.
+
 ## Where this is going
 
-Shipped: the shell, browsing, and buying — checkout, sign-in, orders, addresses,
-store credit and points. Next: the native layer (push, biometrics, barcode, deep
-links) that is the actual reason for building this rather than wrapping the
-website.
+Shipped: the shell, browsing, buying, the native layer (push, biometrics,
+barcode, deep links) and the seller view. Next: bringing the same polish back to
+the PWA.

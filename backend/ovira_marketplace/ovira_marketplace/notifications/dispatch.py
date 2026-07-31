@@ -67,6 +67,11 @@ def _emit(event_id, context, doc, recipients, reference, force=False):
     salt = frappe.utils.now() if force else ""
     queued = []
     for rcpt in people:
+        # Stamped here rather than in each resolver so explicit `recipients=`
+        # callers get it too. A channel needs it to answer "where should tapping
+        # this take them" — the same new-order event points a buyer at their
+        # receipt and a seller at the order they have to pack.
+        rcpt.setdefault("audience", event.audience)
         for channel in event.channels:
             row = _queue(event_id, event, channel, rcpt, context, reference, salt)
             if row:

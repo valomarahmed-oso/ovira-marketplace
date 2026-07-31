@@ -67,12 +67,31 @@ describe("the custom scheme", () => {
   });
 });
 
+describe("seller and operator destinations", () => {
+  it("sends a seller to their own order list, not the buyer's page", () => {
+    assert.deepEqual(routeFor("/shop/vendor/orders"), { pathname: "/vendor/orders" });
+    assert.deepEqual(routeFor("/shop/vendor"), { pathname: "/vendor" });
+  });
+
+  it("hands the operator console to the browser instead of swallowing it", () => {
+    const route = routeFor("/shop/admin/orders");
+    assert.ok("external" in route);
+    assert.equal(route.external, "https://demo.ovira.cloud/shop/admin/orders");
+  });
+});
+
 describe("anything else goes home", () => {
   it("never returns a route that does not exist", () => {
     // A blank screen is a worse outcome than the shop front, so unknown paths
     // resolve rather than fail.
-    for (const url of ["", null, undefined, "/shop/vendor/dashboard", "not a url", "/shop/products"]) {
+    for (const url of ["", null, undefined, "/shop/careers", "not a url", "/shop/products"]) {
       assert.deepEqual(routeFor(url), { pathname: "/" });
     }
+  });
+
+  it("keeps a seller inside the seller area even for a screen the app lacks", () => {
+    // /shop/vendor/reports has no app equivalent. The seller's own home is a
+    // far better landing than the shop front they were not looking at.
+    assert.deepEqual(routeFor("/shop/vendor/reports"), { pathname: "/vendor" });
   });
 });
