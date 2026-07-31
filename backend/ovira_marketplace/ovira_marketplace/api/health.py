@@ -130,12 +130,12 @@ def _check_hidden_vendor_products(out):
 
 
 def _check_slugs(out):
-    from ovira_marketplace.slugs import is_ascii_slug
+    from ovira_marketplace.slugs import is_web_slug
 
     bad = []
     for doctype in ("Marketplace Product", "Marketplace Category", "Marketplace Vendor"):
         for row in frappe.get_all(doctype, fields=["name", "slug"], limit_page_length=0):
-            if row.get("slug") and not is_ascii_slug(row["slug"]):
+            if row.get("slug") and not is_web_slug(row["slug"]):
                 bad.append("%s %s" % (doctype.split()[-1], row["name"]))
     if bad:
         out.append(_finding(

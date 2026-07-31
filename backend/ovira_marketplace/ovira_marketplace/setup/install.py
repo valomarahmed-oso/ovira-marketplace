@@ -53,9 +53,9 @@ def _repair_non_ascii_slugs():
     router still encoded, so those pages were already unreachable — rewriting
     them breaks no working URL. Every link is generated from the database, so
     the storefront picks up the new address on the next render. Idempotent:
-    only non-ASCII slugs are touched.
+    only slugs that are unsafe in a URL are touched.
     """
-    from ovira_marketplace.slugs import is_ascii_slug, unique_slug
+    from ovira_marketplace.slugs import is_web_slug, unique_slug
 
     for doctype, label_field in SLUGGED:
         if not frappe.db.exists("DocType", doctype):
@@ -65,7 +65,7 @@ def _repair_non_ascii_slugs():
         except Exception:
             continue
         for row in rows:
-            if is_ascii_slug(row.get("slug")):
+            if is_web_slug(row.get("slug")):
                 continue
             fixed = unique_slug(
                 doctype, row.get(label_field) or row["name"],

@@ -32,16 +32,16 @@ class MarketplaceProduct(Document):
             )
 
     def _ensure_slug(self):
-        """Mint a URL-safe slug once, and never let a non-ASCII one through.
+        """Mint a URL-safe slug once, and never let a URL-breaking one through.
 
         `frappe.scrub` keeps Arabic letters, which produced slugs that
         percent-encode in every link and come back from Next's router still
         encoded — a product page that can't find its own product. See
         `ovira_marketplace.slugs`.
         """
-        from ovira_marketplace.slugs import is_ascii_slug, unique_slug
+        from ovira_marketplace.slugs import is_web_slug, unique_slug
 
-        if not self.slug or not is_ascii_slug(self.slug):
+        if not self.slug or not is_web_slug(self.slug):
             source = self.slug or self.title
             self.slug = unique_slug(
                 "Marketplace Product", source, fallback=self.name, exclude=self.name

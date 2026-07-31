@@ -86,8 +86,21 @@ def unique_slug(doctype, text, fallback=None, exclude=None):
         candidate = f"{base}-{n}"
 
 
-def is_ascii_slug(slug):
-    return bool(slug) and str(slug).isascii()
+_VALID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+
+
+def is_web_slug(slug):
+    """True only for a slug that is actually safe in a URL.
+
+    Stricter than "is it ASCII", which was the first version of this check and
+    let through `????-????????` — a real row on this store, where an early write
+    on a non-utf8mb4 connection replaced every Arabic letter with a literal `?`.
+    That passes an ASCII test and still destroys the URL, because `?` starts the
+    query string. Spaces, `%`, `#` and a trailing hyphen fail for the same
+    reason: the address has to survive being pasted somewhere.
+    """
+    return bool(slug) and bool(_VALID.match(str(slug)))
+
 
 
 def resolve(doctype, slug, extra_filters=None):

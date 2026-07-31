@@ -6,7 +6,7 @@ lock the transliteration down — including the fallback, because a title with n
 Latinisable characters at all still needs a working address.
 """
 
-from ovira_marketplace.slugs import is_ascii_slug, transliterate, web_slug
+from ovira_marketplace.slugs import is_web_slug, transliterate, web_slug
 
 
 class TestWebSlug:
@@ -59,11 +59,33 @@ class TestTransliterate:
         assert web_slug("مُحَمَّد") == web_slug("محمد")
 
 
-class TestIsAsciiSlug:
+class TestIsWebSlug:
     def test_detects_the_broken_ones(self):
-        assert not is_ascii_slug("رواكول")
-        assert is_ascii_slug("rwakwl")
+        assert not is_web_slug("رواكول")
+        assert is_web_slug("rwakwl")
 
     def test_empty_is_not_a_slug(self):
-        assert not is_ascii_slug("")
-        assert not is_ascii_slug(None)
+        assert not is_web_slug("")
+        assert not is_web_slug(None)
+
+    def test_question_marks_are_not_a_valid_slug(self):
+        # A real row on this store: an early write on a non-utf8mb4 connection
+        # turned every Arabic letter into a literal `?`. That is ASCII, and it
+        # still destroys the URL — `?` starts the query string.
+        assert not is_web_slug("????-????????")
+
+    def test_other_url_breaking_characters_are_rejected(self):
+        for bad in ["has space", "hash#tag", "percent%20", "slash/es", "q?uery"]:
+            assert not is_web_slug(bad), bad
+
+    def test_stray_hyphens_are_rejected(self):
+        # `testtest-` and `سماعة-بلوتوث-` were both live, from titles typed with
+        # a trailing space.
+        assert not is_web_slug("testtest-")
+        assert not is_web_slug("-leading")
+        assert not is_web_slug("double--hyphen")
+
+    def test_everything_web_slug_produces_passes(self):
+        for title in ["الكمبيوتر و مستلزماته", "Testtest ", "65W  GaN --- Charger!!", "🎧"]:
+            slug = web_slug(title, fallback="PRD-1")
+            assert is_web_slug(slug), slug
