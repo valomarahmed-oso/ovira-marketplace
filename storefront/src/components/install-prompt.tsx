@@ -103,7 +103,10 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 p-3 sm:inset-x-auto sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2">
-      <div className="mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-lg">
+      {/* `card` rather than `bg-white`: the text is `text-ink`, which is a LIGHT
+          colour in dark mode — on a hardcoded white panel the whole banner read
+          as blank. */}
+      <div className="card mx-auto flex max-w-md items-center gap-3 p-3 shadow-lg">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50">
           <Download className="h-5 w-5 text-blue-600" />
         </span>

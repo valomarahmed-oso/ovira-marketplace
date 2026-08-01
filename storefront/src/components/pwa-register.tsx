@@ -68,7 +68,10 @@ export function PwaRegister() {
   if (!waiting) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center p-4">
+    // Anchored to the TOP on purpose. The install banner owns the bottom of the
+    // screen, and two fixed panels at `bottom-0` simply cover each other — the
+    // shopper then sees one of them and never knows the other was there.
+    <div className="fixed inset-x-0 top-0 z-50 flex justify-center p-3">
       <div className="card flex items-center gap-3 px-4 py-3 shadow-lg">
         <RefreshCw className="h-4 w-4 shrink-0 text-blue-600" />
         <span className="text-sm text-ink">في نسخة جديدة من المتجر</span>

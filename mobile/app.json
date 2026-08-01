@@ -88,6 +88,18 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "//": "Not a secret — this id ships inside every build and only names the project. `getExpoPushTokenAsync` refuses to mint a token without it, which is why notifications stayed silent until it was set.",
+        "projectId": "34330bf5-b8e9-4228-be04-2896f2f84d36"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/34330bf5-b8e9-4228-be04-2896f2f84d36"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
