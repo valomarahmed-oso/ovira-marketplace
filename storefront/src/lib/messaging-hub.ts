@@ -24,6 +24,12 @@ export type HubChannel = {
 
 export type HubStatus = {
   installed: boolean;
+  /** The gateway runs on its own site; this bench only forwards to it. When
+   *  true there is nothing here to configure and the counts are absent rather
+   *  than zero — zero would read as "nothing set up" on a working server. */
+  remote?: boolean;
+  /** Where that gateway's own console is. */
+  console?: string | null;
   channels: HubChannel[];
   senders: number;
   enabled_senders: number;

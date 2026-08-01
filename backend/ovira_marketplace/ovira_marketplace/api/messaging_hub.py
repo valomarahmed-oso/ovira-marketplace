@@ -88,11 +88,66 @@ def hub_installed():
         return False
 
 
+def hub_is_remote():
+    """True when the hub runs on its OWN SITE and this bench only forwards to it.
+
+    That is the deployed shape now, and it changes what this module can honestly
+    do. Everything below that reads `Ovira Message Sender`, `Ovira Message Log`
+    or `Ovira Messaging Settings` reads tables that live on this bench — and in
+    remote mode they are EMPTY, because the numbers, the credentials and the log
+    are all on the hub's site. Those reads do not fail; they return nothing,
+    which is worse. An operator would see "0 senders" on a server that is
+    sending fine.
+    """
+    try:
+        from ovira_messaging import remote
+
+        return bool(remote.enabled())
+    except Exception:
+        return False
+
+
+def hub_console_url():
+    """Where the hub's own operator console is, asked for rather than assumed."""
+    try:
+        from ovira_messaging import api as hub_api
+
+        return (hub_api.console_url() or {}).get("console")
+    except Exception:
+        return None
+
+
+@frappe.whitelist()
+def where_is_the_hub():
+    """For the admin screen: is configuration here, or somewhere else entirely?"""
+    _require_operator()
+    return {"installed": hub_installed(), "remote": hub_is_remote(),
+            "console": hub_console_url()}
+
+
 def _require_hub():
     if not hub_installed():
         frappe.throw(
             _("تطبيق الرسائل (Ovira Messaging) غير مثبّت على هذا الخادم."),
             frappe.DoesNotExistError,
+        )
+
+
+def _require_local_config():
+    """Guard for every endpoint that READS OR WRITES the hub's tables.
+
+    Refuses in remote mode instead of quietly reporting an empty server. Two
+    screens editing one set of records drift, and the one nobody opens is the one
+    that rots — so this points at the single screen that is now authoritative
+    rather than offering a second, emptier copy of it.
+    """
+    _require_hub()
+    if hub_is_remote():
+        url = hub_console_url() or ""
+        frappe.throw(
+            _("الأرقام والقنوات بقت على بوابة الرسائل نفسها، مش على هذا الخادم.")
+            + (" " + url if url else ""),
+            title=_("البوابة انتقلت"),
         )
 
 
@@ -190,6 +245,20 @@ def hub_status():
     if not hub_installed():
         return {"installed": False, "channels": [], "senders": 0, "enabled_senders": 0}
 
+    if hub_is_remote():
+        # REPORTS the move rather than throwing, because this is the first call
+        # the admin page makes and an exception here is a blank screen. Every
+        # other endpoint refuses; this one explains, and hands over the address
+        # of the screen that is now authoritative.
+        #
+        # `senders: 0` would be a lie of the most annoying kind — the numbers
+        # exist, they are just not here — so the counts are omitted entirely and
+        # `remote` tells the page not to draw them.
+        return {
+            "installed": True, "remote": True, "console": hub_console_url(),
+            "channels": _channel_catalog(), "app": HUB_APP,
+        }
+
     settings = {}
     try:
         doc = frappe.get_single(SETTINGS_DT)
@@ -226,7 +295,7 @@ def hub_status():
 def list_senders():
     """Every configured sender, secrets stripped."""
     _require_operator()
-    _require_hub()
+    _require_local_config()
     rows = frappe.get_all(
         SENDER_DT,
         fields=SENDER_FIELDS,
@@ -259,7 +328,7 @@ def upsert_sender(
     round-trips masked values, and we must not persist the mask itself.
     """
     _require_operator()
-    _require_hub()
+    _require_local_config()
 
     incoming = config if isinstance(config, dict) else _parse_config(config)
 
@@ -313,7 +382,7 @@ def upsert_sender(
 @frappe.whitelist()
 def delete_sender(name):
     _require_operator()
-    _require_hub()
+    _require_local_config()
     if not frappe.db.exists(SENDER_DT, name):
         frappe.throw(_("المرسِل غير موجود."), frappe.DoesNotExistError)
     frappe.delete_doc(SENDER_DT, name, ignore_permissions=True, force=True)
@@ -493,7 +562,7 @@ def probe_sender(name):
     only the facts the provider reports about itself.
     """
     _require_operator()
-    _require_hub()
+    _require_local_config()
     row = frappe.db.get_value(
         SENDER_DT, name, ["name", "channel", "config_json"], as_dict=True
     )
@@ -528,15 +597,19 @@ def probe_sender(name):
 def _hub_dispatch(channel, recipient, body, subject, company):
     """Send through the hub, naming the channel explicitly (no fallback).
 
-    NOTE: this reaches for the hub's internal `_dispatch` rather than its public
-    `api.send`, because `api.send` re-authenticates as System Manager or the hub
-    API key — neither of which a Marketplace Operator has. Authorization already
-    happened here, and more strictly. If the hub ever drops `_dispatch` we fall
-    back to the public call, which still works for a System Manager.
+    Uses the hub's internal `_dispatch` ONLY when the hub is in this process.
+    `api.send` re-authenticates, and a Marketplace Operator is neither a System
+    Manager nor a holder of the hub key — authorization already happened here,
+    and more strictly.
+
+    When the hub is remote there is no `_dispatch` worth calling: it looks up a
+    sender in a local table that is empty and calls a provider that is not here.
+    The public path is the only one that crosses the network, and it carries the
+    site's own key, so it authenticates as the site rather than as the operator.
     """
     from ovira_messaging import api as hub_api
 
-    dispatch = getattr(hub_api, "_dispatch", None)
+    dispatch = None if hub_is_remote() else getattr(hub_api, "_dispatch", None)
     if callable(dispatch):
         return dispatch(channel, None, recipient, body, subject, None, company, HUB_APP, None, None)
     return hub_api.send(
@@ -554,21 +627,30 @@ def has_sender(family=None, channel=None):
 
     Callers use it to decide whether to route through the hub at all, so a
     marketplace notification never waits on a hub that has nothing configured.
+
+    ASKS THE HUB rather than counting rows in `Ovira Message Sender`. That table
+    is on this bench and is now EMPTY: the hub moved to its own site, and the
+    app installed here forwards over HTTP instead of holding any configuration.
+    Counting it returned 0, `has_sender` returned False, and every marketplace
+    notification stopped going out — silently, because a False here is the
+    documented way of saying "nothing is configured, don't wait on it".
+
+    `available_channels` is the hub's supported answer to this exact question and
+    works the same whether the hub is in this process or across the network.
     """
     if not hub_installed():
         return False
-    filters = {"enabled": 1}
-    if channel:
-        filters["channel"] = channel
-    elif family:
-        channels = _family_channels(family)
-        if not channels:
-            return False
-        filters["channel"] = ["in", channels]
     try:
-        return bool(frappe.db.count(SENDER_DT, filters))
+        from ovira_messaging import api as hub_api
+
+        available = hub_api.available_channels() or []
     except Exception:
         return False
+    if channel:
+        return any(c.get("channel") == channel for c in available)
+    if family:
+        return any(c.get("family") == family for c in available)
+    return bool(available)
 
 
 def deliver(recipient, body, subject=None, family="whatsapp", company=None,
@@ -582,14 +664,19 @@ def deliver(recipient, body, subject=None, family="whatsapp", company=None,
     if not (recipient and body) or not has_sender(family=family):
         return False
     try:
-        from ovira_messaging import api as hub_api
+        from ovira_messaging import client as hub_client
 
-        dispatch = getattr(hub_api, "_dispatch", None)
-        if not callable(dispatch):
-            return False
-        result = dispatch(
-            None, family, recipient, body, subject, None, company, HUB_APP,
-            reference_doctype, reference_name,
+        # `client.send`, not `api._dispatch`. `_dispatch` is the hub's internal
+        # routing step: it looks up a sender in a local table and calls the
+        # provider in this process. With the hub on its own site there is no
+        # local table and no provider here, so it found nothing and every
+        # notification quietly failed. `client.send` is the public entry point
+        # and forwards over HTTP when the hub is remote — same call, same
+        # result shape, wherever the hub happens to be.
+        result = hub_client.send(
+            recipient, body, subject=subject, family=family, company=company,
+            app=HUB_APP, reference_doctype=reference_doctype,
+            reference_name=reference_name,
         )
         return bool(result and result.get("ok"))
     except Exception:
@@ -606,7 +693,7 @@ def send_test(recipient, body=None, sender=None, channel=None, subject=None, com
     attempt is written to the hub's log like any other send.
     """
     _require_operator()
-    _require_hub()
+    _require_local_config()
 
     recipient = (recipient or "").strip()
     if not recipient:
@@ -640,7 +727,7 @@ def message_log(limit=50, status=None, channel=None, app_only=0):
     point of a shared hub.
     """
     _require_operator()
-    _require_hub()
+    _require_local_config()
 
     filters = {}
     if status:
@@ -695,7 +782,7 @@ def _mask_recipient(value):
 def _hub_provider(name):
     """(sender row, live provider) for a sender — or (row, None) when the hub's
     provider layer isn't importable on this bench."""
-    _require_hub()
+    _require_local_config()
     row = frappe.db.get_value(SENDER_DT, name, ["name", "channel", "config_json"], as_dict=True)
     if not row:
         frappe.throw(_("لا يوجد مُرسِل بهذا الاسم."))
@@ -777,7 +864,7 @@ def share_with_all_companies(name):
     """Clear a sender's company scope. A sender left scoped to one company simply
     disappears for the others, with nothing on screen to explain why."""
     _require_operator()
-    _require_hub()
+    _require_local_config()
     if not frappe.db.exists(SENDER_DT, name):
         frappe.throw(_("لا يوجد مُرسِل بهذا الاسم."))
     frappe.db.set_value(SENDER_DT, name, "company", None)
@@ -922,7 +1009,7 @@ def import_source(kind):
     """Create — or refresh — the hub sender for one server source. Secrets are
     copied server-side; nothing sensitive passes through the browser."""
     _require_operator()
-    _require_hub()
+    _require_local_config()
     meta = SERVER_SOURCES.get(kind)
     if not meta:
         frappe.throw(_("مصدر غير معروف."))

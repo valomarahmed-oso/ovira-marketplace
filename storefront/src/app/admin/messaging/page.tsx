@@ -49,7 +49,11 @@ export default function AdminMessagingPage() {
     setLoading(true);
     const st = await getHubStatus();
     setStatus(st);
-    setSenders(st?.installed ? await listSenders() : []);
+    // `remote` means the gateway runs on its own site and every number, log and
+    // credential lives there. Asking this bench for senders would return an
+    // empty list from an empty table and read as "nothing is configured" on a
+    // server that is sending fine.
+    setSenders(st?.installed && !st?.remote ? await listSenders() : []);
     setLoading(false);
   }, []);
 
@@ -87,6 +91,8 @@ export default function AdminMessagingPage() {
           </div>
           <p className="text-sm text-ink-400">{t.mhNotInstalledHint}</p>
         </div>
+      ) : status.remote ? (
+        <HubMovedCard console={status.console} />
       ) : (
         <>
           <StatusCard status={status} onReload={load} />
@@ -142,6 +148,37 @@ export default function AdminMessagingPage() {
           <MessagingGuide />
         </>
       )}
+    </div>
+  );
+}
+
+/** The gateway moved to its own site, so this screen stops pretending to own it.
+ *
+ * Keeping a second console here meant two screens editing one set of records,
+ * and the one nobody opens is the one that rots. The store still SENDS through
+ * the hub exactly as before — only the configuring moved. */
+function HubMovedCard({ console: url }: { console?: string | null }) {
+  return (
+    <div className="card space-y-3 p-6">
+      <div className="flex items-center gap-2 font-medium text-ink">
+        <Info className="h-5 w-5 text-blue-600" />
+        بوابة الرسائل بقى ليها موقعها الخاص
+      </div>
+      <p className="text-sm text-ink-400">
+        الأرقام والقنوات وسجل الإرسال وصندوق الوارد كلهم هناك دلوقتي، بحساب مستقل
+        وواجهة مستقلة. المتجر لسه بيبعت من خلالها زي ما هو — اللي اتغيّر هو مكان
+        الإعدادات بس.
+      </p>
+      {url ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-fit items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          افتح بوابة الرسائل
+        </a>
+      ) : null}
     </div>
   );
 }
