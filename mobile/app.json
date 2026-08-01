@@ -7,15 +7,15 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "cloud.ovira.app",
-      "associatedDomains": ["applinks:demo.ovira.cloud"]
+      "associatedDomains": [
+        "applinks:demo.ovira.cloud"
+      ]
     },
     "android": {
       "package": "cloud.ovira.app",
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "adaptiveIcon": {
         "backgroundColor": "#0E8BFF",
@@ -27,13 +27,27 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "//": "The storefront's product route is SINGULAR — /shop/product/<slug>. /shop/products is the listing. Claiming the plural meant a shared product link opened the browser instead of the app, which is the whole point of the filter.",
           "data": [
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/product/" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/category/" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/account/orders" }
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/product/"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/category/"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/account/orders"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -73,7 +87,9 @@
           "imageWidth": 180,
           "resizeMode": "contain",
           "backgroundColor": "#0E8BFF",
-          "dark": { "backgroundColor": "#0A121F" }
+          "dark": {
+            "backgroundColor": "#0A121F"
+          }
         }
       ],
       [
@@ -81,10 +97,14 @@
         {
           "supportsRTL": true,
           "forcesRTL": true,
-          "supportedLocales": ["ar", "en"]
+          "supportedLocales": [
+            "ar",
+            "en"
+          ]
         }
       ],
-      "expo-image"
+      "expo-image",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
