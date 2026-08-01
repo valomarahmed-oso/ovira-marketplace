@@ -27,9 +27,10 @@
         {
           "action": "VIEW",
           "autoVerify": true,
+          "//": "The storefront's product route is SINGULAR — /shop/product/<slug>. /shop/products is the listing. Claiming the plural meant a shared product link opened the browser instead of the app, which is the whole point of the filter.",
           "data": [
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/products" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/category" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/product/" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/category/" },
             { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/account/orders" }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

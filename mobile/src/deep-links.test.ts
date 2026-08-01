@@ -13,7 +13,17 @@ import { describe, it } from "node:test";
 import { routeFor } from "./deep-links.ts";
 
 describe("shared web links", () => {
-  it("opens a product from a full storefront URL", () => {
+  it("opens a product from the storefront's real (singular) URL", () => {
+    // The route is /shop/product/<slug>. /shop/products is the listing — a
+    // distinction that quietly cost the Android intent filter its whole
+    // purpose until a deploy surfaced it.
+    assert.deepEqual(routeFor("https://demo.ovira.cloud/shop/product/rwakwl"), {
+      pathname: "/product/[slug]",
+      params: { slug: "rwakwl" },
+    });
+  });
+
+  it("still understands the plural, in case an old link is shared", () => {
     assert.deepEqual(routeFor("https://demo.ovira.cloud/shop/products/rwakwl"), {
       pathname: "/product/[slug]",
       params: { slug: "rwakwl" },
