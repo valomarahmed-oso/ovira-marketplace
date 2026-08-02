@@ -90,18 +90,118 @@ describe("seller and operator destinations", () => {
   });
 });
 
+/**
+ * These are not hypothetical URLs. Every one of them is a string the backend
+ * actually puts in a push payload — see `api/notifications.py` and
+ * `notifications/channels.py` — so a gap here is a notification that opens the
+ * wrong screen in production.
+ */
+describe("the URLs the backend actually sends", () => {
+  it("opens the notification centre, not the account tab", () => {
+    // `/shop/account/notifications` is the most common push destination there
+    // is, and it landed on the account tab until the centre existed.
+    assert.deepEqual(routeFor("/shop/account/notifications"), {
+      pathname: "/account/notifications",
+    });
+  });
+
+  it("carries the order and token through to tracking", () => {
+    // The whole identity of this link is in its query: the id says which order,
+    // the token is the only proof a signed-out shopper has.
+    assert.deepEqual(routeFor("/shop/track?order=OVR-000097&token=abc123"), {
+      pathname: "/track",
+      params: { order: "OVR-000097", token: "abc123" },
+    });
+  });
+
+  it("still tracks when the push carried only an order", () => {
+    assert.deepEqual(routeFor("/shop/track?order=OVR-000097"), {
+      pathname: "/track",
+      params: { order: "OVR-000097", token: "" },
+    });
+  });
+
+  it("keeps the query when the link arrives as a full URL", () => {
+    assert.deepEqual(routeFor("https://demo.ovira.cloud/shop/track?order=OVR-1&token=t"), {
+      pathname: "/track",
+      params: { order: "OVR-1", token: "t" },
+    });
+  });
+
+  it("opens an order from the buyer's own path", () => {
+    assert.deepEqual(routeFor("/shop/account/orders/OVR-000097"), {
+      pathname: "/order/[name]",
+      params: { name: "OVR-000097" },
+    });
+  });
+});
+
+describe("screens that used to be missing now resolve", () => {
+  it("routes the listings, saved items and content pages", () => {
+    const cases: Array<[string, string]> = [
+      ["/shop/products", "/products"],
+      ["/shop/deals", "/deals"],
+      ["/shop/stores", "/stores"],
+      ["/shop/wishlist", "/wishlist"],
+      ["/shop/compare", "/compare"],
+      ["/shop/careers", "/careers"],
+      ["/shop/terms", "/terms"],
+      ["/shop/privacy", "/privacy"],
+      ["/shop/about", "/about"],
+      ["/shop/sell", "/sell"],
+      ["/shop/account/returns", "/account/returns"],
+      ["/shop/account/support", "/account/support"],
+      ["/shop/account/messages", "/account/messages"],
+      ["/shop/account/alerts", "/account/alerts"],
+    ];
+    for (const [url, pathname] of cases) {
+      assert.deepEqual(routeFor(url), { pathname }, url);
+    }
+  });
+
+  it("sends a store link to that store", () => {
+    assert.deepEqual(routeFor("/shop/store/test"), {
+      pathname: "/store/[slug]",
+      params: { slug: "test" },
+    });
+  });
+});
+
 describe("anything else goes home", () => {
   it("never returns a route that does not exist", () => {
     // A blank screen is a worse outcome than the shop front, so unknown paths
     // resolve rather than fail.
-    for (const url of ["", null, undefined, "/shop/careers", "not a url", "/shop/products"]) {
+    for (const url of ["", null, undefined, "not a url", "/shop/nonsense"]) {
       assert.deepEqual(routeFor(url), { pathname: "/" });
     }
   });
 
-  it("keeps a seller inside the seller area even for a screen the app lacks", () => {
-    // /shop/vendor/reports has no app equivalent. The seller's own home is a
-    // far better landing than the shop front they were not looking at.
-    assert.deepEqual(routeFor("/shop/vendor/reports"), { pathname: "/vendor" });
+  it("keeps a seller inside the seller area for a screen the app lacks", () => {
+    // The app has every seller screen the web has *except* the operator
+    // console, so this is now about genuinely unknown segments. Their own home
+    // is a far better landing than the shop front they were not looking at.
+    assert.deepEqual(routeFor("/shop/vendor/payouts"), { pathname: "/vendor" });
+  });
+
+  it("routes every seller screen the app now has", () => {
+    // These used to all collapse to /vendor. Each one exists now, and a link a
+    // seller was sent should open the thing it names.
+    for (const segment of [
+      "orders",
+      "products",
+      "shipments",
+      "coupons",
+      "analytics",
+      "insights",
+      "reports",
+      "messages",
+      "settings",
+    ]) {
+      assert.deepEqual(
+        routeFor(`/shop/vendor/${segment}`),
+        { pathname: `/vendor/${segment}` },
+        segment,
+      );
+    }
   });
 });

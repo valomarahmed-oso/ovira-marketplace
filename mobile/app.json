@@ -28,21 +28,23 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            {
-              "scheme": "https",
-              "host": "demo.ovira.cloud",
-              "pathPrefix": "/shop/product/"
-            },
-            {
-              "scheme": "https",
-              "host": "demo.ovira.cloud",
-              "pathPrefix": "/shop/category/"
-            },
-            {
-              "scheme": "https",
-              "host": "demo.ovira.cloud",
-              "pathPrefix": "/shop/account/orders"
-            }
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/product/" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/products" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/category/" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/categories" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/deals" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/stores" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/store/" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/track" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/wishlist" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/compare" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/sell" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/about" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/careers" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/terms" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/privacy" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/account" },
+            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/vendor" }
           ],
           "category": [
             "BROWSABLE",
