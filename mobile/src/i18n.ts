@@ -523,6 +523,68 @@ const ar = {
   vcMax: "أقصى خصم",
   vcExpires: "ينتهي",
   vcUsed: "اتستخدم",
+
+  // seller: analytics
+  vaTitle: "تحليلات المتجر",
+  vaRevenue: "الإيراد",
+  vaTrend: "المبيعات اليومية",
+  vaPeak: "أعلى يوم",
+  vaLifetime: "من بداية المتجر",
+  vaAov: "متوسط الطلب",
+  vaTopProducts: "أكتر المنتجات مبيعًا",
+
+  // seller: benchmarks
+  viwTitle: "مقارنة بالسوق",
+  viwIntro: "أرقامك مقارنة بمتوسط {n} بائع بيبيعوا نفس نوع منتجاتك.",
+  viwMine: "متجرك",
+  viwPeerMedian: "متوسط المنافسين",
+  viwPercentile: "أحسن من {n}% من المنافسين",
+  viwNoPeers: "لسه مفيش مقارنة",
+  viwNoPeersBody: "محتاجين {need} بائع على الأقل في نفس أقسامك، ولسه فيه {have}.",
+  viwMetrics: {
+    orders: "عدد الطلبات",
+    gross: "إجمالي المبيعات",
+    aov: "متوسط الطلب",
+    trust_score: "تقييم الثقة",
+    return_rate: "نسبة المرتجع",
+  } as Record<string, string>,
+  viwStanding: {
+    ahead: "متقدّم",
+    typical: "في المتوسط",
+    behind: "متأخّر",
+    unknown: "—",
+  } as Record<string, string>,
+
+  // seller: statement
+  vrTitle: "تقارير المتجر",
+  vrLowStock: "منتجات كميتها خلصت تقريبًا",
+
+  // seller: inbox
+  vmTitle: "رسايل العملاء",
+  vmEmpty: "مفيش رسايل",
+  vmEmptyBody: "لما عميل يسأل عن طلب من متجرك هتلاقي رسالته هنا.",
+  vmBuyer: "عميل",
+
+  // seller: store settings
+  vstTitle: "إعدادات المتجر",
+  vstProfile: "بيانات المتجر",
+  vstName: "اسم المتجر",
+  vstAbout: "نبذة عن المتجر",
+  vstPolicies: "سياسات المتجر",
+  vstShippingPolicyHint: "بتشحن خلال كام يوم؟ لأي محافظات؟",
+  vstReturnPolicyHint: "بتقبل إرجاع خلال كام يوم؟ وإيه الشروط؟",
+  vstShipping: "شحن متجرك",
+  vstShippingHint: "السوق شغّال بنظام إن كل بائع بيحدد شحنه بنفسه.",
+  vstShippingTypes: {
+    Flat: "سعر ثابت",
+    "Free Over": "مجاني فوق مبلغ",
+    "Always Free": "مجاني دايمًا",
+  } as Record<string, string>,
+  vstFee: "سعر الشحن",
+  vstFreeOver: "مجاني لو الطلب فوق",
+  vstOperatorShipping: "أسعار الشحن بيحددها السوق مركزيًا، مش متجرك.",
+  vstSaved: "اتحفظ",
+  vstMediaOnWeb: "لوجو المتجر والبانر بترفعهم من لوحة التحكّم على الموقع.",
 };
 
 export type Dict = typeof ar;
@@ -1017,6 +1079,63 @@ const en: Dict = {
   vcMax: "Max discount",
   vcExpires: "Expires",
   vcUsed: "Used",
+
+  vaTitle: "Analytics",
+  vaRevenue: "Revenue",
+  vaTrend: "Daily sales",
+  vaPeak: "Best day",
+  vaLifetime: "Since you opened",
+  vaAov: "Average order",
+  vaTopProducts: "Best sellers",
+
+  viwTitle: "How you compare",
+  viwIntro: "Your numbers against the median of {n} sellers in your categories.",
+  viwMine: "You",
+  viwPeerMedian: "Peer median",
+  viwPercentile: "Ahead of {n}% of your peers",
+  viwNoPeers: "Not enough to compare yet",
+  viwNoPeersBody: "We need at least {need} sellers in your categories, and there are {have}.",
+  viwMetrics: {
+    orders: "Orders",
+    gross: "Gross sales",
+    aov: "Average order",
+    trust_score: "Trust score",
+    return_rate: "Return rate",
+  } as Record<string, string>,
+  viwStanding: {
+    ahead: "Ahead",
+    typical: "Typical",
+    behind: "Behind",
+    unknown: "—",
+  } as Record<string, string>,
+
+  vrTitle: "Reports",
+  vrLowStock: "Running low",
+
+  vmTitle: "Customer messages",
+  vmEmpty: "No messages",
+  vmEmptyBody: "When a customer asks about an order from your store, it appears here.",
+  vmBuyer: "Customer",
+
+  vstTitle: "Store settings",
+  vstProfile: "Store details",
+  vstName: "Store name",
+  vstAbout: "About the store",
+  vstPolicies: "Store policies",
+  vstShippingPolicyHint: "How many days do you ship in? To which governorates?",
+  vstReturnPolicyHint: "How long do you accept returns, and on what terms?",
+  vstShipping: "Your shipping",
+  vstShippingHint: "This marketplace lets each seller set their own shipping.",
+  vstShippingTypes: {
+    Flat: "Flat rate",
+    "Free Over": "Free over",
+    "Always Free": "Always free",
+  } as Record<string, string>,
+  vstFee: "Shipping fee",
+  vstFreeOver: "Free when the order is over",
+  vstOperatorShipping: "Shipping rates are set centrally by the marketplace, not by your store.",
+  vstSaved: "Saved",
+  vstMediaOnWeb: "Upload your logo and banner from the dashboard on the website.",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };

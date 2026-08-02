@@ -128,6 +128,7 @@ export { cancelOrder, getOrder, myOrders, reorderItems, trackOrder } from "./ord
 export {
   myStore,
   shipVendorOrder,
+  updateMyStore,
   vendorAnalytics,
   vendorOrders,
   vendorShipmentStatuses,
@@ -136,8 +137,12 @@ export type {
   VendorAnalytics,
   VendorOrder,
   VendorStore,
+  VendorStoreInput,
   VendorTotals,
 } from "./vendor.js";
+
+export { myBenchmarks } from "./benchmarks.js";
+export type { Benchmarks, BenchmarkMetric, Comparison, VendorMetrics } from "./benchmarks.js";
 
 export {
   deleteProduct,

@@ -22,10 +22,37 @@ export type VendorStore = {
   email?: string | null;
   phone?: string | null;
   logo?: string | null;
+  banner?: string | null;
+  description?: string | null;
+  return_policy?: string | null;
+  shipping_policy?: string | null;
+  /** Per-Vendor shipping mode only; ignored when the operator sets the rates. */
+  shipping_type?: "Flat" | "Free Over" | "Always Free" | null;
+  shipping_fee?: number;
+  shipping_free_over?: number;
   commission_rate?: number;
   trust_score?: number | null;
   trust_tier?: string | null;
 };
+
+/** Exactly what `VENDOR_EDITABLE_FIELDS` accepts — anything else is ignored. */
+export type VendorStoreInput = {
+  vendor_name?: string;
+  description?: string | null;
+  phone?: string | null;
+  return_policy?: string | null;
+  shipping_policy?: string | null;
+  shipping_type?: "Flat" | "Free Over" | "Always Free";
+  shipping_fee?: number;
+  shipping_free_over?: number;
+  logo?: string | null;
+  banner?: string | null;
+};
+
+/** Edit the store profile. Scoped server-side to the caller's own vendor. */
+export function updateMyStore(input: VendorStoreInput): Promise<VendorStore> {
+  return post(`${VENDOR}.update_my_store`, input, "تعذّر حفظ بيانات المتجر.");
+}
 
 /** One order, reduced to this vendor's share of it. */
 export type VendorOrder = {
