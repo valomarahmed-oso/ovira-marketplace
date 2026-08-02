@@ -83,12 +83,19 @@ export type ShipmentEvent = {
   event_time?: string | null;
 };
 
+/** As `_shipment_flat` builds it, not a subset — the vendor panel reads the rest. */
 export type Shipment = {
   name: string;
   status: string;
+  vendor?: string | null;
+  vendor_name?: string | null;
+  /** The integration that booked it (Manual when the seller ships themselves). */
+  provider?: string | null;
+  /** The courier the seller actually used; overrides whatever `provider` said. */
   carrier?: string | null;
   tracking_number?: string | null;
   tracking_url?: string | null;
+  shipping_cost?: number;
   events?: ShipmentEvent[];
 };
 

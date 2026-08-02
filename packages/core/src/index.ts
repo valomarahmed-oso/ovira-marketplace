@@ -157,6 +157,18 @@ export type {
   VendorProductDetail,
 } from "./vendor-products.js";
 
+export {
+  createMyShipment,
+  myOrderShipments,
+  shipmentLabel,
+  updateMyShipment,
+  SHIPMENT_STATUSES,
+} from "./vendor-shipping.js";
+export type { ShipmentLabel, ShipmentStatus } from "./vendor-shipping.js";
+
+export { deleteMyCoupon, myCoupons, upsertMyCoupon } from "./vendor-coupons.js";
+export type { Coupon, CouponInput, DiscountType } from "./vendor-coupons.js";
+
 export { registerDevice, unregisterDevice } from "./push.js";
 export type { DeviceInfo } from "./push.js";
 

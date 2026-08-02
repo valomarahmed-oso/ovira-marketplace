@@ -239,6 +239,8 @@ function VendorNav() {
 
   const items: Array<{ icon: keyof typeof Ionicons.glyphMap; label: string; to: string }> = [
     { icon: "cube-outline", label: t.vpTitle, to: "/vendor/products" },
+    { icon: "car-outline", label: t.vsTitle, to: "/vendor/shipments" },
+    { icon: "pricetag-outline", label: t.vcTitle, to: "/vendor/coupons" },
     { icon: "document-text-outline", label: t.viTitle, to: "/vendor/products/import" },
   ];
 
