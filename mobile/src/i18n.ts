@@ -385,6 +385,46 @@ const ar = {
   sellWhy1: "بتقبض مستحقاتك أول بأول، وكشف حساب واضح بالعمولة.",
   sellWhy2: "لوحة تحكّم بتوريك مبيعاتك وأكتر منتجاتك مبيعًا.",
   sellWhy3: "إحنا بنتولّى الشحن والتحصيل — إنت بس جهّز الطلب.",
+
+  // conversations
+  chatPlaceholder: "اكتب رسالتك…",
+  chatClosed: "المحادثة دي مقفولة",
+
+  support: "الدعم",
+  supportSignIn: "سجّل دخولك عشان تتكلّم مع الدعم.",
+  supportNew: "تذكرة جديدة",
+  supportEmpty: "مفيش تذاكر",
+  supportEmptyBody: "لو عندك مشكلة أو استفسار، افتح تذكرة وهنرد عليك.",
+  supportCategory: "نوع المشكلة",
+  supportSubject: "الموضوع",
+  supportSubjectHint: "اختصر المشكلة في سطر",
+  supportBody: "التفاصيل",
+  supportBodyHint: "اشرح المشكلة بالتفصيل",
+  supportSend: "ابعت",
+  ticketMissing: "التذكرة مش موجودة",
+  ticketClose: "اقفل التذكرة",
+
+  messages: "رسايل البائعين",
+  messagesSignIn: "سجّل دخولك عشان تشوف محادثاتك.",
+  messagesEmpty: "مفيش محادثات",
+  messagesEmptyBody: "تقدر تكلّم البائع من صفحة أي طلب.",
+  contactSeller: "كلّم {name}",
+  contactSellerOne: "كلّم البائع",
+
+  notificationsSignIn: "سجّل دخولك عشان تشوف إشعاراتك.",
+  notificationsEmpty: "مفيش إشعارات",
+  notificationsEmptyBody: "هنبلّغك هنا بأي جديد في طلباتك.",
+  notificationsMarkAll: "علّم الكل كمقروء",
+
+  // buyer report
+  reports: "ملخّص مشترياتي",
+  reportsSignIn: "سجّل دخولك عشان تشوف ملخّص مشترياتك.",
+  reportOrders: "عدد الطلبات",
+  reportPaid: "المدفوعة",
+  reportSpent: "إجمالي الإنفاق",
+  reportAov: "متوسط الطلب",
+  reportByStatus: "حسب الحالة",
+  reportTopProducts: "أكتر منتجات اشتريتها",
 };
 
 export type Dict = typeof ar;
@@ -744,6 +784,44 @@ const en: Dict = {
   sellWhy1: "Regular payouts, with a clear statement of what commission was taken.",
   sellWhy2: "A dashboard showing your sales and your best-selling products.",
   sellWhy3: "We handle shipping and collection — you just pack the order.",
+
+  chatPlaceholder: "Write a message…",
+  chatClosed: "This conversation is closed",
+
+  support: "Support",
+  supportSignIn: "Sign in to talk to support.",
+  supportNew: "New ticket",
+  supportEmpty: "No tickets",
+  supportEmptyBody: "If something's wrong or you have a question, open a ticket and we'll reply.",
+  supportCategory: "What is it about?",
+  supportSubject: "Subject",
+  supportSubjectHint: "Sum it up in one line",
+  supportBody: "Details",
+  supportBodyHint: "Tell us what happened",
+  supportSend: "Send",
+  ticketMissing: "Ticket not found",
+  ticketClose: "Close ticket",
+
+  messages: "Seller messages",
+  messagesSignIn: "Sign in to see your conversations.",
+  messagesEmpty: "No conversations",
+  messagesEmptyBody: "You can message a seller from any order.",
+  contactSeller: "Message {name}",
+  contactSellerOne: "Message the seller",
+
+  notificationsSignIn: "Sign in to see your notifications.",
+  notificationsEmpty: "No notifications",
+  notificationsEmptyBody: "We'll tell you here when something changes on your orders.",
+  notificationsMarkAll: "Mark all read",
+
+  reports: "My purchases",
+  reportsSignIn: "Sign in to see your purchase summary.",
+  reportOrders: "Orders",
+  reportPaid: "Paid",
+  reportSpent: "Total spent",
+  reportAov: "Average order",
+  reportByStatus: "By status",
+  reportTopProducts: "What you bought most",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };

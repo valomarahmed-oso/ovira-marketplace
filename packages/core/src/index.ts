@@ -61,6 +61,44 @@ export { listDeals } from "./deals.js";
 
 export { getServerWishlist, mergeWishlists, saveServerWishlist } from "./wishlist.js";
 
+export {
+  createTicket,
+  myTickets,
+  replyToTicket,
+  setTicketStatus,
+  supportUnreadTotal,
+  ticketThread,
+  TICKET_CATEGORIES,
+} from "./support.js";
+export type {
+  Ticket,
+  TicketCategory,
+  TicketMessage,
+  TicketStatus,
+  TicketThread,
+} from "./support.js";
+
+export {
+  buyerThreads,
+  messagesUnreadTotal,
+  messageThread,
+  orderVendors,
+  postMessage,
+  vendorThreads,
+} from "./messaging.js";
+export type { Message, MessageRole, ThreadSummary } from "./messaging.js";
+
+export {
+  markAllNotificationsRead,
+  markNotificationRead,
+  myNotifications,
+  notificationsUnread,
+} from "./notifications.js";
+export type { Notification } from "./notifications.js";
+
+export { buyerReport, reportDate, vendorReport } from "./reports.js";
+export type { BuyerReport, StatusCount, VendorReport } from "./reports.js";
+
 export { getSiteContent, localizeSiteContent, registerVendor } from "./cms.js";
 export type { SiteContent, VendorRegistration } from "./cms.js";
 

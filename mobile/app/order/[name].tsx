@@ -5,6 +5,7 @@ import {
   getProduct,
   orderReturn,
   orderTracking,
+  orderVendors,
   reorderItems,
   requestReturn,
   RETURN_REASONS,
@@ -353,6 +354,7 @@ export default function OrderScreen() {
                   </Txt>
                 </Row>
               </Pressable>
+              <ContactSellers order={order} />
               <ReturnAction order={order} />
               {cancellable && (
                 <Pressable onPress={doCancel} disabled={busy} style={{ alignItems: "center" }}>
@@ -547,5 +549,58 @@ function ReturnAction({ order }: { order: Order }) {
         </Pressable>
       </VStack>
     </Card>
+  );
+}
+
+/**
+ * A way to reach the seller who is actually holding this parcel.
+ *
+ * The server decides who that is: an order split across three vendors has
+ * three people who could answer, and which one depends on the item. Asking it
+ * rather than guessing from the line items also means a single-vendor order
+ * gets one button instead of a list of one.
+ */
+function ContactSellers({ order }: { order: Order }) {
+  const t = dict();
+  const { c } = useTheme();
+  const router = useRouter();
+  const [vendors, setVendors] = useState<Array<{ vendor: string; vendor_name?: string | null }>>([]);
+
+  useEffect(() => {
+    let alive = true;
+    void orderVendors(order.name).then((found) => {
+      if (alive) setVendors(found);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [order.name]);
+
+  if (!vendors.length) return null;
+
+  return (
+    <VStack gap="sm">
+      {vendors.map((seller) => (
+        <Pressable
+          key={seller.vendor}
+          onPress={() =>
+            router.push({
+              pathname: "/messages/[order]/[vendor]",
+              params: { order: order.name, vendor: seller.vendor },
+            })
+          }
+          style={{ alignItems: "center" }}
+        >
+          <Row gap="xs">
+            <Ionicons name="chatbubble-ellipses-outline" size={15} color={c.blue} />
+            <Txt variant="label" tone="blue">
+              {vendors.length > 1
+                ? fill(t.contactSeller, { name: seller.vendor_name || seller.vendor })
+                : t.contactSellerOne}
+            </Txt>
+          </Row>
+        </Pressable>
+      ))}
+    </VStack>
   );
 }

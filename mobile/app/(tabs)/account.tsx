@@ -189,6 +189,26 @@ export default function AccountScreen() {
           />
           <MenuItem
             icon="notifications-outline"
+            label={t.notifications}
+            onPress={() => router.push("/account/notifications")}
+          />
+          <MenuItem
+            icon="chatbubble-ellipses-outline"
+            label={t.messages}
+            onPress={() => router.push("/account/messages")}
+          />
+          <MenuItem
+            icon="chatbubbles-outline"
+            label={t.support}
+            onPress={() => router.push("/account/support")}
+          />
+          <MenuItem
+            icon="stats-chart-outline"
+            label={t.reports}
+            onPress={() => router.push("/account/reports")}
+          />
+          <MenuItem
+            icon="alarm-outline"
             label={t.alerts}
             onPress={() => router.push("/account/alerts")}
           />

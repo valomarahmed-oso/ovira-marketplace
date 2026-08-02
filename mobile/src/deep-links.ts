@@ -37,7 +37,8 @@ export type AppRoute =
   | { pathname: "/account/points"; params?: Record<string, string> }
   | { pathname: "/product/[slug]"; params: { slug: string } }
   | { pathname: "/category/[slug]"; params: { slug: string } }
-  | { pathname: "/order/[name]"; params: { name: string } };
+  | { pathname: "/order/[name]"; params: { name: string } }
+  | { pathname: "/support/[name]"; params: { name: string } };
 
 const HOME: AppRoute = { pathname: "/" };
 
@@ -134,5 +135,38 @@ export function routeFor(url?: string | null): AppRoute | ExternalRoute {
       return { external: `${STOREFRONT}${path.startsWith("/") ? path : `/${path}`}` };
     default:
       return HOME;
+  }
+}
+
+/**
+ * Where a notification's subject lives in the app.
+ *
+ * Notifications carry a Frappe doctype + name rather than a URL, because the
+ * server raising one does not know which client will read it. Mapping them here
+ * keeps that knowledge in the same file as the URL routing, so a destination
+ * added to one is not quietly missing from the other.
+ *
+ * `null` means "no useful destination" — the notification is still worth
+ * showing, it just isn't worth a navigation. Returning home instead would take
+ * someone away from the list they were reading for no reason.
+ */
+export function routeForNotification(
+  doctype?: string | null,
+  name?: string | null,
+): AppRoute | null {
+  if (!doctype || !name) return null;
+  switch (doctype) {
+    case "Marketplace Order":
+      return { pathname: "/order/[name]", params: { name } };
+    case "Marketplace Support Ticket":
+      return { pathname: "/support/[name]", params: { name } };
+    case "Marketplace Product":
+      // The reference is the product's id, and the route wants its slug. The
+      // product screen resolves either, so this is not the mismatch it looks.
+      return { pathname: "/product/[slug]", params: { slug: name } };
+    case "Marketplace Return Request":
+      return { pathname: "/account" };
+    default:
+      return null;
   }
 }
