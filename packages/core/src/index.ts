@@ -61,6 +61,9 @@ export { listDeals } from "./deals.js";
 
 export { getServerWishlist, mergeWishlists, saveServerWishlist } from "./wishlist.js";
 
+export { myReturns, orderReturn, requestReturn, RETURN_REASONS } from "./returns.js";
+export type { ReturnReason, ReturnRequest, ReturnStatus } from "./returns.js";
+
 export {
   alertStatus,
   myAlerts,

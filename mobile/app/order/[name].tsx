@@ -1,10 +1,13 @@
-import type { Order, Shipment } from "@ovira/core";
+import type { Order, ReturnReason, ReturnRequest, Shipment } from "@ovira/core";
 import {
   cancelOrder,
   getOrder,
   getProduct,
+  orderReturn,
   orderTracking,
   reorderItems,
+  requestReturn,
+  RETURN_REASONS,
   trackOrder,
 } from "@ovira/core";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,8 +17,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Linking, Pressable, View } from "react-native";
 
 import { useCart } from "../../src/cart-store";
-import { PrimaryButton } from "../../src/components/form";
+import { Field, PrimaryButton } from "../../src/components/form";
 import { OrderStatusPill, PaymentPill, statusLabel } from "../../src/components/order-status";
+import { returnReasonLabel, ReturnStatusPill } from "../../src/components/return-status";
 import { Empty, Loading } from "../../src/components/states";
 import { Card, Row, Screen, Txt, VStack } from "../../src/components/ui";
 import { useGuestOrders } from "../../src/guest-orders";
@@ -336,6 +340,20 @@ export default function OrderScreen() {
                 onPress={() => void doReorder()}
                 busy={busy}
               />
+              <Pressable
+                onPress={() =>
+                  router.push({ pathname: "/invoice/[name]", params: { name: order.name } })
+                }
+                style={{ alignItems: "center" }}
+              >
+                <Row gap="xs">
+                  <Ionicons name="document-text-outline" size={15} color={c.blue} />
+                  <Txt variant="label" tone="blue">
+                    {t.invoice}
+                  </Txt>
+                </Row>
+              </Pressable>
+              <ReturnAction order={order} />
               {cancellable && (
                 <Pressable onPress={doCancel} disabled={busy} style={{ alignItems: "center" }}>
                   <Txt variant="label" tone="coral">
@@ -382,5 +400,152 @@ function Line({
         {value}
       </Txt>
     </Row>
+  );
+}
+
+/**
+ * Ask to send this order back — or, once asked, what came of it.
+ *
+ * Deliberately one component for both: the request and its outcome are the
+ * same conversation, and a shopper who has already asked must not be shown a
+ * button that would file a second request. Only offered on an order that has
+ * actually arrived; there is nothing to return before then, and the server
+ * refuses it anyway.
+ */
+function ReturnAction({ order }: { order: Order }) {
+  const t = dict();
+  const { c, space } = useTheme();
+
+  const [existing, setExisting] = useState<ReturnRequest | null>(null);
+  const [checked, setChecked] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<ReturnReason | null>(null);
+  const [details, setDetails] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const returnable = order.status === "Completed";
+
+  useEffect(() => {
+    if (!returnable) {
+      setChecked(true);
+      return;
+    }
+    let alive = true;
+    void orderReturn(order.name).then((found) => {
+      if (!alive) return;
+      setExisting(found);
+      setChecked(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [order.name, returnable]);
+
+  if (!returnable || !checked) return null;
+
+  if (existing) {
+    return (
+      <Card>
+        <VStack gap="sm">
+          <Row justify="space-between">
+            <Txt variant="label">{t.returnRequested}</Txt>
+            <ReturnStatusPill status={existing.status} />
+          </Row>
+          <Txt variant="caption" tone="muted">
+            {returnReasonLabel(existing.reason)}
+          </Txt>
+          {!!existing.operator_note && (
+            <Txt variant="caption" tone="faint">
+              {existing.operator_note}
+            </Txt>
+          )}
+        </VStack>
+      </Card>
+    );
+  }
+
+  if (!open) {
+    return (
+      <Pressable onPress={() => setOpen(true)} style={{ alignItems: "center" }}>
+        <Row gap="xs">
+          <Ionicons name="refresh-outline" size={15} color={c.ink600} />
+          <Txt variant="label" tone="muted">
+            {t.returnRequest}
+          </Txt>
+        </Row>
+      </Pressable>
+    );
+  }
+
+  const submit = async () => {
+    if (!reason) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setExisting(await requestReturn(order.name, reason, details.trim() || undefined));
+      setOpen(false);
+    } catch (err) {
+      setError((err as Error)?.message ?? t.loadFailed);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <VStack gap="md">
+        <Txt variant="label">{t.returnRequest}</Txt>
+        <Txt variant="caption" tone="faint">
+          {t.returnReason}
+        </Txt>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+          {RETURN_REASONS.map((option) => (
+            <Pressable
+              key={option}
+              onPress={() => setReason(option)}
+              style={{
+                borderWidth: 1,
+                borderColor: reason === option ? c.blue : c.line,
+                backgroundColor: reason === option ? c.blue050 : c.surface,
+                borderRadius: 999,
+                paddingHorizontal: space.lg,
+                paddingVertical: space.sm,
+              }}
+            >
+              <Txt variant="caption" tone={reason === option ? "blue" : "muted"}>
+                {returnReasonLabel(option)}
+              </Txt>
+            </Pressable>
+          ))}
+        </View>
+
+        <Field
+          label={t.returnDetails}
+          value={details}
+          onChange={setDetails}
+          placeholder={t.returnDetailsHint}
+          multiline
+        />
+
+        {!!error && (
+          <Txt variant="caption" tone="coral">
+            {error}
+          </Txt>
+        )}
+
+        <PrimaryButton
+          label={t.returnSend}
+          onPress={() => void submit()}
+          busy={busy}
+          disabled={!reason}
+        />
+        <Pressable onPress={() => setOpen(false)} style={{ alignItems: "center" }}>
+          <Txt variant="label" tone="faint">
+            {t.cancel}
+          </Txt>
+        </Pressable>
+      </VStack>
+    </Card>
   );
 }

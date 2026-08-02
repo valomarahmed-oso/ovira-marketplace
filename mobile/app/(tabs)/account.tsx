@@ -92,6 +92,16 @@ export default function AccountScreen() {
                 </Txt>
               </Pressable>
             )}
+            {/* Tracking is the one thing a guest can do with no account at
+                all — the order's own token is the proof. */}
+            <Pressable
+              onPress={() => router.push("/track")}
+              style={{ alignItems: "center", paddingVertical: space.sm }}
+            >
+              <Txt variant="label" tone="muted">
+                {t.track}
+              </Txt>
+            </Pressable>
             {/* Someone who checked out as a guest still has orders to follow.
                 Hiding the list behind a login would strand them. */}
             {guestCount > 0 && (
@@ -164,6 +174,11 @@ export default function AccountScreen() {
             icon="receipt-outline"
             label={t.myOrders}
             onPress={() => router.push("/account/orders")}
+          />
+          <MenuItem
+            icon="refresh-outline"
+            label={t.returns}
+            onPress={() => router.push("/account/returns")}
           />
           <MenuItem
             icon="heart-outline"
