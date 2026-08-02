@@ -12,6 +12,7 @@ import { dict, fill, money, num } from "../../src/i18n";
 import { useSession } from "../../src/session";
 import { useTheme } from "../../src/theme-context";
 import { useVendorAccess } from "../../src/vendor-access";
+import { useWishlist } from "../../src/wishlist-store";
 
 export default function AccountScreen() {
   const { c, space, radius } = useTheme();
@@ -22,6 +23,7 @@ export default function AccountScreen() {
   const ready = useSession((s) => s.ready);
   const logOut = useSession((s) => s.logOut);
   const guestCount = useGuestOrders((s) => Object.keys(s.tokens).length);
+  const wishCount = useWishlist((s) => s.items.length);
   const vendorAccess = useVendorAccess();
 
   const [balance, setBalance] = useState<number | null>(null);
@@ -78,6 +80,18 @@ export default function AccountScreen() {
                 {t.register}
               </Txt>
             </Pressable>
+            {/* The wishlist lives on the device, so a guest has one — and the
+                heart on the product page has nowhere else to lead. */}
+            {wishCount > 0 && (
+              <Pressable
+                onPress={() => router.push("/wishlist")}
+                style={{ alignItems: "center", paddingVertical: space.sm }}
+              >
+                <Txt variant="label" tone="muted">
+                  {t.wishlist} ({num(wishCount)})
+                </Txt>
+              </Pressable>
+            )}
             {/* Someone who checked out as a guest still has orders to follow.
                 Hiding the list behind a login would strand them. */}
             {guestCount > 0 && (
@@ -150,6 +164,16 @@ export default function AccountScreen() {
             icon="receipt-outline"
             label={t.myOrders}
             onPress={() => router.push("/account/orders")}
+          />
+          <MenuItem
+            icon="heart-outline"
+            label={t.wishlist}
+            onPress={() => router.push("/wishlist")}
+          />
+          <MenuItem
+            icon="notifications-outline"
+            label={t.alerts}
+            onPress={() => router.push("/account/alerts")}
           />
           <MenuItem
             icon="location-outline"

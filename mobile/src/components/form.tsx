@@ -240,6 +240,7 @@ export function PrimaryButton({
   disabled = false,
   tone = "blue",
   icon,
+  small = false,
 }: {
   label: string;
   onPress: () => void;
@@ -247,6 +248,8 @@ export function PrimaryButton({
   disabled?: boolean;
   tone?: "blue" | "mint";
   icon?: keyof typeof Ionicons.glyphMap;
+  /** For buttons inside a dense row — a comparison cell, a list item. */
+  small?: boolean;
 }) {
   const { c, space, radius } = useTheme();
   const dead = disabled || busy;
@@ -257,10 +260,11 @@ export function PrimaryButton({
       style={{
         backgroundColor: dead ? c.line : tone === "mint" ? c.mint : c.blue,
         borderRadius: radius.pill,
-        paddingVertical: space.md,
+        paddingVertical: small ? space.sm : space.md,
+        paddingHorizontal: small ? space.sm : undefined,
         alignItems: "center",
         justifyContent: "center",
-        minHeight: 48,
+        minHeight: small ? 34 : 48,
       }}
     >
       {busy ? (
@@ -268,7 +272,11 @@ export function PrimaryButton({
       ) : (
         <Row gap="sm">
           {icon && <Ionicons name={icon} size={17} color={dead ? c.ink400 : "#ffffff"} />}
-          <Txt variant="label" tone={dead ? "faint" : "onBlue"}>
+          <Txt
+            variant={small ? "caption" : "label"}
+            tone={dead ? "faint" : "onBlue"}
+            numberOfLines={1}
+          >
             {label}
           </Txt>
         </Row>

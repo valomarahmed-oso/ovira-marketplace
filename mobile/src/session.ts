@@ -2,6 +2,18 @@ import { me, register, signIn, signOut, type SessionUser } from "@ovira/core";
 import { create } from "zustand";
 
 import { setCsrfToken } from "./ovira";
+import { syncWishlist } from "./wishlist-store";
+
+/**
+ * Reconcile saved items with the account, without letting that hold up — or
+ * break — signing in. A wishlist merge is a convenience; identity is not.
+ */
+function mergeSavedItems(user: SessionUser | null): void {
+  if (!user) return;
+  void syncWishlist().catch(() => {
+    /* the device's list is still correct; the next sign-in retries */
+  });
+}
 
 /**
  * Who is signed in.
@@ -42,18 +54,21 @@ export const useSession = create<SessionState>((set) => ({
     const session = await me();
     setCsrfToken(session.csrfToken ?? null);
     set({ user: session.user, ready: true });
+    mergeSavedItems(session.user);
   },
 
   logIn: async (email, password) => {
     const session = await signIn(email, password);
     setCsrfToken(session.csrfToken ?? null);
     set({ user: session.user, ready: true });
+    mergeSavedItems(session.user);
   },
 
   signUp: async (input) => {
     const session = await register(input);
     setCsrfToken(session.csrfToken ?? null);
     set({ user: session.user, ready: true });
+    mergeSavedItems(session.user);
   },
 
   logOut: async () => {

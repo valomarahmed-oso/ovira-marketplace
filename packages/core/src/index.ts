@@ -59,6 +59,16 @@ export { listStores, vendorStorefront } from "./stores.js";
 
 export { listDeals } from "./deals.js";
 
+export { getServerWishlist, mergeWishlists, saveServerWishlist } from "./wishlist.js";
+
+export {
+  alertStatus,
+  myAlerts,
+  subscribeStockAlert,
+  unsubscribeStockAlert,
+} from "./alerts.js";
+export type { AlertStatus, StockAlert } from "./alerts.js";
+
 export {
   checkoutAttemptKey,
   placeOrder,

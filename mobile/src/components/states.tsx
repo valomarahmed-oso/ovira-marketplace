@@ -23,11 +23,18 @@ export function Empty({
   title,
   body,
   onRetry,
+  actionLabel,
 }: {
   icon?: keyof typeof Ionicons.glyphMap;
   title: string;
   body?: string;
   onRetry?: () => void;
+  /**
+   * Overrides "retry". An empty wishlist has nothing to retry — the useful
+   * button there says "browse products", and offering to re-run a read that
+   * did not fail just tells the shopper something is broken.
+   */
+  actionLabel?: string;
 }) {
   const { c, space, radius } = useTheme();
   const t = dict();
@@ -67,7 +74,7 @@ export function Empty({
           }}
         >
           <Txt variant="label" tone="blue">
-            {t.retry}
+            {actionLabel ?? t.retry}
           </Txt>
         </Pressable>
       )}

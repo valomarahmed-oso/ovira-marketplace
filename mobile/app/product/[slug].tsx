@@ -1,11 +1,20 @@
 import type { Product, ProductCard, ProductVariant } from "@ovira/core";
-import { getProduct, nextTier, relatedProducts, tierUnitRate } from "@ovira/core";
+import {
+  alertStatus,
+  getProduct,
+  nextTier,
+  relatedProducts,
+  subscribeStockAlert,
+  tierUnitRate,
+  unsubscribeStockAlert,
+} from "@ovira/core";
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 
 import { useCart } from "../../src/cart-store";
+import { COMPARE_MAX, inCompare, useCompare } from "../../src/compare-store";
 import { Gallery } from "../../src/components/gallery";
 import { Price } from "../../src/components/price";
 import { ProductTile } from "../../src/components/product-card";
@@ -15,6 +24,7 @@ import { Card, Pill, Row, Screen, Txt, VStack } from "../../src/components/ui";
 import { dict, fill, money, num } from "../../src/i18n";
 import { useStoreConfig } from "../../src/store-config";
 import { useTheme } from "../../src/theme-context";
+import { inWishlist, pushWishlist, useWishlist } from "../../src/wishlist-store";
 
 export default function ProductScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -147,6 +157,8 @@ export default function ProductScreen() {
               )}
               <StockLine stock={stock} />
             </VStack>
+
+            <SaveActions product={product} soldOut={soldOut} />
 
             {!!product.variants?.length && (
               <VStack gap="sm">
@@ -429,5 +441,148 @@ function Stepper({
     >
       <Ionicons name={icon} size={18} color={c.ink} />
     </Pressable>
+  );
+}
+
+/**
+ * Save it, compare it, or ask to be told when it comes back.
+ *
+ * The three things a shopper does with a product they are not buying right
+ * now. Wishlist and compare are device-local and work signed out; the stock
+ * alert cannot be — there is nowhere to send the notification — so it says so
+ * instead of failing silently when tapped by a guest.
+ */
+function SaveActions({ product, soldOut }: { product: Product; soldOut: boolean }) {
+  const { c, space, radius } = useTheme();
+  const t = dict();
+  const router = useRouter();
+
+  const wishItems = useWishlist((s) => s.items);
+  const toggleWish = useWishlist((s) => s.toggle);
+  const saved = inWishlist(wishItems, product.slug);
+
+  const compareItems = useCompare((s) => s.items);
+  const toggleCompare = useCompare((s) => s.toggle);
+  const comparing = inCompare(compareItems, product.slug);
+
+  const [alerting, setAlerting] = useState<boolean | null>(null);
+  const [alertBusy, setAlertBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // Only asked when it matters. A product in stock has no alert to show, and
+  // the endpoint is login-gated — asking on every product page would be a
+  // round trip per view to answer a question nobody posed.
+  useEffect(() => {
+    if (!soldOut) return;
+    let alive = true;
+    void alertStatus(product.slug).then((status) => {
+      if (alive) setAlerting(status.authenticated ? status.subscribed : null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [product.slug, soldOut]);
+
+  const onWish = () => {
+    toggleWish(product);
+    if (!saved) setNotice(t.wishAdded);
+    // Mirrored after the local change, never before it: the shopper's own
+    // device is the copy that must be right.
+    void pushWishlist();
+  };
+
+  const onCompare = () => {
+    if (!comparing && compareItems.length >= COMPARE_MAX) {
+      setNotice(t.compareFull);
+      return;
+    }
+    toggleCompare(product);
+  };
+
+  const onAlert = async () => {
+    setAlertBusy(true);
+    try {
+      const on = alerting
+        ? await unsubscribeStockAlert(product.slug)
+        : await subscribeStockAlert(product.slug);
+      setAlerting(on);
+      if (on) setNotice(t.notifyOn);
+    } catch {
+      setNotice(t.signInFirst);
+    } finally {
+      setAlertBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!notice) return;
+    const id = setTimeout(() => setNotice(null), 1800);
+    return () => clearTimeout(id);
+  }, [notice]);
+
+  const chip = (on: boolean) => ({
+    flex: 1,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: space.sm,
+    borderWidth: 1,
+    borderColor: on ? c.blue : c.line,
+    backgroundColor: on ? c.blue050 : c.surface,
+    borderRadius: radius.pill,
+    paddingVertical: space.sm,
+  });
+
+  return (
+    <VStack gap="sm">
+      <Row gap="sm">
+        <Pressable onPress={onWish} style={chip(saved)}>
+          <Ionicons
+            name={saved ? "heart" : "heart-outline"}
+            size={17}
+            color={saved ? c.coral : c.ink600}
+          />
+          <Txt variant="label" tone={saved ? "blue" : "muted"}>
+            {t.wishlist}
+          </Txt>
+        </Pressable>
+
+        <Pressable onPress={onCompare} style={chip(comparing)}>
+          <Ionicons name="git-compare-outline" size={17} color={comparing ? c.blue : c.ink600} />
+          <Txt variant="label" tone={comparing ? "blue" : "muted"}>
+            {t.compare}
+          </Txt>
+        </Pressable>
+      </Row>
+
+      {/* Only for something that cannot be bought right now — offering to
+          notify someone about an item sitting in front of them is noise. */}
+      {soldOut && (
+        <Pressable onPress={() => void onAlert()} disabled={alertBusy} style={chip(!!alerting)}>
+          <Ionicons
+            name={alerting ? "notifications" : "notifications-outline"}
+            size={17}
+            color={alerting ? c.blue : c.ink600}
+          />
+          <Txt variant="label" tone={alerting ? "blue" : "muted"}>
+            {alerting ? t.alertWaiting : t.notifyMe}
+          </Txt>
+        </Pressable>
+      )}
+
+      {comparing && compareItems.length > 1 && (
+        <Pressable onPress={() => router.push("/compare")} style={{ alignItems: "center" }}>
+          <Txt variant="caption" tone="blue">
+            {t.compareOpen} ({num(compareItems.length)})
+          </Txt>
+        </Pressable>
+      )}
+
+      {!!notice && (
+        <Txt variant="caption" tone="mint" style={{ textAlign: "center" }}>
+          {notice}
+        </Txt>
+      )}
+    </VStack>
   );
 }

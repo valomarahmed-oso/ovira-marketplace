@@ -248,6 +248,39 @@ const ar = {
   storeNoProducts: "المتجر ده لسه مانزلش منتجات",
   shippingPolicy: "سياسة الشحن",
   returnPolicy: "سياسة الإرجاع",
+
+  // saved: wishlist, compare, back-in-stock
+  wishlist: "المفضّلة",
+  wishEmpty: "مفيش حاجة في المفضّلة",
+  wishEmptyBody: "دوس على القلب في أي منتج عشان تحفظه هنا.",
+  wishSaved: "منتج محفوظ",
+  wishBrowse: "تصفّح المنتجات",
+  wishAdded: "اتحفظ في المفضّلة",
+  clearAll: "امسح الكل",
+
+  compare: "مقارنة",
+  compareOpen: "قارن المحفوظات",
+  compareEmpty: "مفيش منتجات للمقارنة",
+  compareEmptyBody: "ضيف حتى ٤ منتجات وقارنهم جنب بعض.",
+  compareFull: "أقصى عدد للمقارنة ٤ منتجات",
+  compareAdd: "أضف للمقارنة",
+  compareProduct: "المنتج",
+  comparePrice: "السعر",
+  compareRating: "التقييم",
+  compareSeller: "البائع",
+  compareStock: "التوفّر",
+  compareInStock: "متاح",
+  compareChoose: "اختر الخيارات",
+
+  alerts: "تنبيهات التوفّر",
+  alertsEmpty: "مفيش تنبيهات",
+  alertsEmptyBody: "لما تلاقي منتج مش متاح، اطلب نبّهك أول ما يرجع.",
+  alertsSignIn: "سجّل دخولك عشان تتابع تنبيهاتك.",
+  alertBack: "رجع متاح",
+  alertWaiting: "في انتظار التوفّر",
+  notifyMe: "نبّهني لما يتوفّر",
+  notifyOn: "هنبّهك أول ما يتوفّر",
+  signInFirst: "محتاج تسجّل دخولك",
 };
 
 export type Dict = typeof ar;
@@ -477,6 +510,38 @@ const en: Dict = {
   storeNoProducts: "This store hasn't listed anything yet",
   shippingPolicy: "Shipping policy",
   returnPolicy: "Returns policy",
+
+  wishlist: "Wishlist",
+  wishEmpty: "Nothing saved yet",
+  wishEmptyBody: "Tap the heart on any product to keep it here.",
+  wishSaved: "saved",
+  wishBrowse: "Browse products",
+  wishAdded: "Saved to your wishlist",
+  clearAll: "Clear all",
+
+  compare: "Compare",
+  compareOpen: "Compare saved items",
+  compareEmpty: "Nothing to compare",
+  compareEmptyBody: "Add up to 4 products and see them side by side.",
+  compareFull: "You can compare up to 4 products",
+  compareAdd: "Add to compare",
+  compareProduct: "Product",
+  comparePrice: "Price",
+  compareRating: "Rating",
+  compareSeller: "Seller",
+  compareStock: "Availability",
+  compareInStock: "In stock",
+  compareChoose: "Choose options",
+
+  alerts: "Stock alerts",
+  alertsEmpty: "No alerts",
+  alertsEmptyBody: "When something is out of stock, ask us to tell you when it returns.",
+  alertsSignIn: "Sign in to see your alerts.",
+  alertBack: "Back in stock",
+  alertWaiting: "Waiting",
+  notifyMe: "Notify me when available",
+  notifyOn: "We'll tell you when it's back",
+  signInFirst: "Sign in first",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };
