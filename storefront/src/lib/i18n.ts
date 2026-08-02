@@ -1636,6 +1636,15 @@ const ar = {
   admCodMaxValue: "حد أقصى لقيمة الدفع عند الاستلام (0 = بلا حد)",
   admCodNewMax: "حد أول طلب لعميل جديد (0 = بلا حد)",
   admCodMaxRefusal: "أقصى نسبة رفض استلام (%)",
+
+  // The messaging gateway, mounted from `ovira_messaging` rather than rebuilt
+  // here. Only the frame around it needs words.
+  msgGwTitle: "المراسلة",
+  msgGwSub: "الأرقام والقنوات والوارد والصادر — كلها من هنا.",
+  msgGwOperatorOnly: "الصفحة دي للمشغّلين بس.",
+  msgGwFailed: "تعذّر تحميل بوابة الرسائل.",
+  msgGwOpening: "جارٍ الفتح…",
+  msgGwSignedOut: "انتهت الجلسة. سجّل دخول تاني عشان تدير الرسائل.",
 };
 
 export type Dict = typeof ar;
@@ -3277,6 +3286,13 @@ const en: Dict = {
   admCodMaxValue: "Hard COD value ceiling (0 = none)",
   admCodNewMax: "First-order ceiling for a new customer (0 = none)",
   admCodMaxRefusal: "Max refusal rate (%)",
+
+  msgGwTitle: "Messaging",
+  msgGwSub: "Numbers, channels, inbox and delivery — all from here.",
+  msgGwOperatorOnly: "This page is for operators only.",
+  msgGwFailed: "The messaging gateway could not be loaded.",
+  msgGwOpening: "Opening…",
+  msgGwSignedOut: "Your session ended. Sign in again to manage messaging.",
 };
 
 const DICTS: Record<Locale, Dict> = { ar, en };
