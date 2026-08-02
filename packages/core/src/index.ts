@@ -55,6 +55,10 @@ export type {
   SuggestedProduct,
 } from "./catalog.js";
 
+export { listStores, vendorStorefront } from "./stores.js";
+
+export { listDeals } from "./deals.js";
+
 export {
   checkoutAttemptKey,
   placeOrder,

@@ -19,6 +19,7 @@ export function SearchBar({
   onPress,
   readOnly = false,
   autoFocus = false,
+  placeholder,
 }: {
   value?: string;
   onChange?: (text: string) => void;
@@ -26,9 +27,12 @@ export function SearchBar({
   onPress?: () => void;
   readOnly?: boolean;
   autoFocus?: boolean;
+  /** Overrides the catalogue wording — a seller directory isn't searching products. */
+  placeholder?: string;
 }) {
   const { c, space, radius } = useTheme();
   const t = dict();
+  const hint = placeholder ?? t.searchPlaceholder;
 
   const frame = {
     flexDirection: "row" as const,
@@ -47,7 +51,7 @@ export function SearchBar({
       <Pressable onPress={onPress} style={frame}>
         <Ionicons name="search" size={18} color={c.ink400} />
         <Txt variant="body" tone="faint">
-          {t.searchPlaceholder}
+          {hint}
         </Txt>
       </Pressable>
     );
@@ -60,7 +64,7 @@ export function SearchBar({
         value={value}
         onChangeText={onChange}
         onSubmitEditing={onSubmit}
-        placeholder={t.searchPlaceholder}
+        placeholder={hint}
         placeholderTextColor={c.ink400}
         autoFocus={autoFocus}
         returnKeyType="search"

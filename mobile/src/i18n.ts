@@ -228,6 +228,26 @@ const ar = {
   save: "حفظ",
   cancel: "إلغاء",
   deleteConfirm: "متأكد؟",
+
+  // browse — all products, departments, deals
+  allProducts: "كل المنتجات",
+  deals: "العروض",
+  dealsLive: "عروض شغّالة دلوقتي",
+  dealsEmpty: "مفيش عروض دلوقتي",
+  dealsEmptyBody: "تعالى بصّ تاني قريب — العروض بتتجدّد.",
+
+  // sellers
+  stores: "المتاجر",
+  storesBrowse: "تصفّح متاجر البائعين",
+  storesSearch: "دوّر على متجر…",
+  storesEmpty: "مفيش متاجر مطابقة",
+  storeProducts: "{n} منتج",
+  storeRating: "{r} ({n} تقييم)",
+  storeMissing: "المتجر ده مش موجود",
+  storeMissingBody: "يمكن يكون اتقفل أو الرابط قديم.",
+  storeNoProducts: "المتجر ده لسه مانزلش منتجات",
+  shippingPolicy: "سياسة الشحن",
+  returnPolicy: "سياسة الإرجاع",
 };
 
 export type Dict = typeof ar;
@@ -439,6 +459,24 @@ const en: Dict = {
   save: "Save",
   cancel: "Cancel",
   deleteConfirm: "Are you sure?",
+
+  allProducts: "All products",
+  deals: "Deals",
+  dealsLive: "Live right now",
+  dealsEmpty: "No deals right now",
+  dealsEmptyBody: "Check back soon — deals refresh often.",
+
+  stores: "Stores",
+  storesBrowse: "Browse seller stores",
+  storesSearch: "Search for a store…",
+  storesEmpty: "No matching stores",
+  storeProducts: "{n} products",
+  storeRating: "{r} ({n} ratings)",
+  storeMissing: "That store isn't here",
+  storeMissingBody: "It may have closed, or the link is out of date.",
+  storeNoProducts: "This store hasn't listed anything yet",
+  shippingPolicy: "Shipping policy",
+  returnPolicy: "Returns policy",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };

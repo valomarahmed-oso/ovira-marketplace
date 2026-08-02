@@ -76,6 +76,35 @@ export type Category = {
   display_order?: number;
 };
 
+// -- sellers ---------------------------------------------------------------
+
+/** A seller as the directory lists them. */
+export type StoreCard = {
+  name: string;
+  vendor_name: string;
+  slug: string;
+  logo?: string | null;
+  rating?: number;
+  ratings_count?: number;
+  /** Blended seller score — see `api/trust.py`. Absent until enough signal. */
+  trust_score?: number | null;
+  trust_tier?: string | null;
+  orders_count?: number;
+  product_count: number;
+};
+
+/** One seller's public storefront: the card, plus what a shopper wants before buying. */
+export type StoreProfile = StoreCard & {
+  banner?: string | null;
+  description?: string | null;
+  return_policy?: string | null;
+  shipping_policy?: string | null;
+  /** Ratings of the *store*, as distinct from the average of its products. */
+  store_rating?: number | null;
+  store_reviews_count?: number | null;
+  creation?: string;
+};
+
 // -- cart ------------------------------------------------------------------
 
 /** A line as the app holds it locally, before the server re-prices anything. */

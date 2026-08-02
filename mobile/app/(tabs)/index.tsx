@@ -12,6 +12,7 @@ import { Failed, Loading } from "../../src/components/states";
 import { Row, Screen, Txt, VStack } from "../../src/components/ui";
 import { dict } from "../../src/i18n";
 import { categoryIcon } from "../../src/icons";
+import { useStoreConfig } from "../../src/store-config";
 import { useTheme } from "../../src/theme-context";
 
 type Feed = {
@@ -90,7 +91,7 @@ export default function HomeScreen() {
           <>
             {feed.categories.length > 0 && (
               <VStack gap="md">
-                <SectionHead title={t.categories} />
+                <SectionHead title={t.categories} href="/categories" />
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -104,13 +105,15 @@ export default function HomeScreen() {
             )}
 
             {feed.offers.length > 0 && (
-              <Rail title={t.offers} products={feed.offers} accent />
+              <Rail title={t.offers} products={feed.offers} href="/deals" accent />
             )}
 
             {feed.topRated.length > 0 && <Rail title={t.topRated} products={feed.topRated} />}
 
+            <StoresLink />
+
             <VStack gap="md">
-              <SectionHead title={t.newArrivals} />
+              <SectionHead title={t.newArrivals} href="/products" />
               <ProductGrid products={feed.latest} />
             </VStack>
           </>
@@ -141,18 +144,32 @@ function SectionHead({ title, href }: { title: string; href?: string }) {
 function Rail({
   title,
   products,
+  href,
   accent = false,
 }: {
   title: string;
   products: ProductCard[];
+  href?: string;
   accent?: boolean;
 }) {
   const { c, space } = useTheme();
+  const t = dict();
   return (
     <VStack gap="md">
-      <Row gap="sm">
-        {accent && <Ionicons name="flame" size={16} color={c.coral} />}
-        <Txt variant="heading">{title}</Txt>
+      <Row justify="space-between">
+        <Row gap="sm">
+          {accent && <Ionicons name="flame" size={16} color={c.coral} />}
+          <Txt variant="heading">{title}</Txt>
+        </Row>
+        {href && (
+          <Link href={href as never} asChild>
+            <Pressable>
+              <Txt variant="label" tone="blue">
+                {t.seeAll}
+              </Txt>
+            </Pressable>
+          </Link>
+        )}
       </Row>
       <ScrollView
         horizontal
@@ -164,6 +181,45 @@ function Rail({
         ))}
       </ScrollView>
     </VStack>
+  );
+}
+
+/**
+ * The way into the seller directory.
+ *
+ * A row rather than a rail: the stores are not merchandise, and a shopper who
+ * wants one is looking for a name they already trust. Hidden in Single Company
+ * mode — a "browse our sellers" invitation to a directory of one is noise.
+ */
+function StoresLink() {
+  const { c, space, radius } = useTheme();
+  const t = dict();
+  const config = useStoreConfig();
+  // Until the config lands, show nothing rather than a link that may be about
+  // to vanish — a row that appears then disappears reads as a glitch.
+  if (!config?.multiVendor) return null;
+
+  return (
+    <Link href="/stores" asChild>
+      <Pressable
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: space.md,
+          backgroundColor: c.surface,
+          borderWidth: 1,
+          borderColor: c.line,
+          borderRadius: radius.lg,
+          padding: space.lg,
+        }}
+      >
+        <Ionicons name="storefront-outline" size={20} color={c.blue} />
+        <Txt variant="body" style={{ flex: 1 }}>
+          {t.storesBrowse}
+        </Txt>
+        <Ionicons name="chevron-back" size={18} color={c.ink400} />
+      </Pressable>
+    </Link>
   );
 }
 
