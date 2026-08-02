@@ -10,6 +10,7 @@ import { Card, Row, Screen, Txt, VStack } from "../../src/components/ui";
 import { useGuestOrders } from "../../src/guest-orders";
 import { dict, fill, money, num } from "../../src/i18n";
 import { useSession } from "../../src/session";
+import { useStoreConfig } from "../../src/store-config";
 import { useTheme } from "../../src/theme-context";
 import { useVendorAccess } from "../../src/vendor-access";
 import { useWishlist } from "../../src/wishlist-store";
@@ -114,6 +115,7 @@ export default function AccountScreen() {
                 </Txt>
               </Pressable>
             )}
+            <MoreLinks />
           </View>
         </VStack>
       </Screen>
@@ -202,6 +204,8 @@ export default function AccountScreen() {
           />
         </VStack>
 
+        <MoreLinks />
+
         <Pressable onPress={() => void logOut()} style={{ alignItems: "center", paddingTop: space.lg }}>
           <Txt variant="label" tone="coral">
             {t.signOut}
@@ -274,5 +278,47 @@ function MenuItem({
       {/* Points the way the app moves, which under RTL is leftwards. */}
       <Ionicons name="chevron-back" size={18} color={c.ink400} />
     </Pressable>
+  );
+}
+
+/**
+ * The store's own pages, and the way in for a would-be seller.
+ *
+ * Shown to signed-out visitors too — "من نحن" and the privacy policy are
+ * exactly what someone reads *before* deciding to make an account, and a
+ * marketplace that hides its terms behind a login has the ordering backwards.
+ */
+function MoreLinks() {
+  const { space } = useTheme();
+  const router = useRouter();
+  const t = dict();
+  const config = useStoreConfig();
+  const user = useSession((s) => s.user);
+
+  const links: Array<{ label: string; to: string }> = [
+    // Only a marketplace has sellers to recruit, and only someone who is not
+    // already one needs the invitation.
+    ...(config?.multiVendor && !user?.isVendor ? [{ label: t.sell, to: "/sell" }] : []),
+    { label: t.pgAbout, to: "/about" },
+    { label: t.pgCareers, to: "/careers" },
+    { label: t.pgTerms, to: "/terms" },
+    { label: t.pgPrivacy, to: "/privacy" },
+  ];
+
+  return (
+    <VStack gap="sm" style={{ paddingTop: space.md }}>
+      <Txt variant="caption" tone="faint">
+        {t.more}
+      </Txt>
+      <Row gap="md" style={{ flexWrap: "wrap" }}>
+        {links.map((link) => (
+          <Pressable key={link.to} onPress={() => router.push(link.to as never)} hitSlop={6}>
+            <Txt variant="caption" tone="muted" style={{ textDecorationLine: "underline" }}>
+              {link.label}
+            </Txt>
+          </Pressable>
+        ))}
+      </Row>
+    </VStack>
   );
 }

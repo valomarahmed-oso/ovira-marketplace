@@ -323,6 +323,68 @@ const ar = {
   orderStatus: "حالة الطلب",
   orderMissing: "الطلب مش موجود",
   free: "مجاني",
+
+  // content pages. The fallbacks mirror the storefront's, so a store that has
+  // not filled the CMS in still says the same thing on both clients.
+  more: "المزيد",
+  pgAbout: "من نحن",
+  pgAboutSub: "سوق مصري متعدد البائعين",
+  pgAboutFallback:
+    "<p>أوفيرا ماركت بليس مصري متعدد البائعين، بيجمع آلاف المنتجات من بائعين موثوقين في مكان واحد: إلكترونيات، موضة، مستلزمات المنزل، الجمال، وأكتر.</p>" +
+    "<h3>ليه أوفيرا؟</h3>" +
+    "<ul><li>بائعون مراجَعون ومعتمدون قبل ما ينشروا منتجاتهم.</li>" +
+    "<li>دفع آمن: كاش عند الاستلام أو دفع إلكتروني عبر بوابات معتمدة.</li>" +
+    "<li>إرجاع سهل وخدمة عملاء بتساعدك فعلاً.</li></ul>" +
+    "<h3>للبائعين</h3>" +
+    "<p>لو عندك منتجات وعايز توصل لعملاء أكتر، افتح متجرك على أوفيرا في دقائق من صفحة «ابدأ البيع».</p>",
+
+  pgCareers: "وظائف",
+  pgCareersSub: "اشتغل معانا",
+  pgCareersFallback:
+    "<p>إحنا بنبني سوقًا مصريًا من الصفر، وبندوّر على ناس بتهتم بالتفاصيل.</p>" +
+    "<p>لو مهتم، ابعتلنا سيرتك الذاتية على support@ovira.cloud واكتب في العنوان الوظيفة اللي بتدوّر عليها.</p>",
+
+  pgTerms: "الشروط والأحكام",
+  pgTermsSub: "شروط استخدام المنصّة",
+  pgTermsFallback:
+    "<p>باستخدامك أوفيرا فإنك توافق على الشروط دي.</p>" +
+    "<h3>الطلبات والأسعار</h3>" +
+    "<p>كل الأسعار بالجنيه المصري وبتشمل أو بتضاف عليها الضريبة حسب المعروض في صفحة المنتج. المتجر بيراجع كل طلب قبل التنفيذ.</p>" +
+    "<h3>الإرجاع</h3>" +
+    "<p>تقدر تطلب إرجاع أي طلب اتسلّم من صفحة الطلب، وبتتراجع كل حالة على حدة.</p>" +
+    "<h3>الحسابات</h3>" +
+    "<p>إنت مسؤول عن الحفاظ على بيانات دخولك، وعن أي نشاط بيتم من حسابك.</p>",
+
+  pgPrivacy: "سياسة الخصوصية",
+  pgPrivacySub: "إزاي بنتعامل مع بياناتك",
+  pgPrivacyFallback:
+    "<p>بنجمع الحد الأدنى من البيانات اللازم لتنفيذ طلبك: الاسم، رقم الموبايل، العنوان، والإيميل.</p>" +
+    "<h3>مع مين بنشاركها</h3>" +
+    "<p>بنشارك بيانات التوصيل مع شركة الشحن والبائع المسؤول عن طلبك، وبس.</p>" +
+    "<h3>الدفع</h3>" +
+    "<p>بيانات البطاقة بتروح مباشرة لبوابة الدفع، وإحنا مابنخزّنش أرقام البطاقات على سيرفراتنا إطلاقًا.</p>" +
+    "<h3>حقوقك</h3>" +
+    "<p>تقدر تطلب حذف حسابك أو نسخة من بياناتك في أي وقت على support@ovira.cloud.</p>",
+
+  // become a seller
+  sell: "ابدأ البيع",
+  sellSubtitle: "افتح متجرك على أوفيرا ووصّل منتجاتك لعملاء أكتر.",
+  sellStoreName: "اسم المتجر",
+  sellStoreNameHint: "الاسم اللي هيظهر للعملاء",
+  sellAbout: "نبذة عن متجرك",
+  sellAboutHint: "بتبيع إيه؟ (اختياري)",
+  sellSubmit: "افتح المتجر",
+  sellSubmitted: "طلبك وصلنا",
+  sellPending: "متجرك تحت المراجعة، وهنبلّغك أول ما يتفعّل.",
+  sellActive: "متجرك اتفعّل — تقدر تبدأ ترفع منتجاتك دلوقتي.",
+  sellSignIn: "لازم تسجّل دخولك الأول عشان نربط المتجر بحسابك.",
+  sellAlready: "عندك متجر بالفعل",
+  sellClosed: "التسجيل كبائع مقفول",
+  sellClosedBody: "المتجر ده شغّال كشركة واحدة، مش سوق متعدد البائعين.",
+  sellWhy: "ليه تبيع على أوفيرا؟",
+  sellWhy1: "بتقبض مستحقاتك أول بأول، وكشف حساب واضح بالعمولة.",
+  sellWhy2: "لوحة تحكّم بتوريك مبيعاتك وأكتر منتجاتك مبيعًا.",
+  sellWhy3: "إحنا بنتولّى الشحن والتحصيل — إنت بس جهّز الطلب.",
 };
 
 export type Dict = typeof ar;
@@ -623,6 +685,65 @@ const en: Dict = {
   orderStatus: "Order status",
   orderMissing: "Order not found",
   free: "Free",
+
+  more: "More",
+  pgAbout: "About us",
+  pgAboutSub: "An Egyptian multi-vendor marketplace",
+  pgAboutFallback:
+    "<p>Ovira is an Egyptian multi-vendor marketplace bringing thousands of products from trusted sellers into one place: electronics, fashion, home, beauty and more.</p>" +
+    "<h3>Why Ovira?</h3>" +
+    "<ul><li>Sellers are reviewed and approved before they can publish.</li>" +
+    "<li>Secure payment: cash on delivery or a licensed online gateway.</li>" +
+    "<li>Easy returns and support that actually helps.</li></ul>" +
+    "<h3>For sellers</h3>" +
+    "<p>If you have products and want to reach more customers, open your store in minutes from “Start selling”.</p>",
+
+  pgCareers: "Careers",
+  pgCareersSub: "Work with us",
+  pgCareersFallback:
+    "<p>We are building an Egyptian marketplace from scratch, and we look for people who care about the details.</p>" +
+    "<p>If that sounds like you, send your CV to support@ovira.cloud with the role in the subject line.</p>",
+
+  pgTerms: "Terms & conditions",
+  pgTermsSub: "Terms of use",
+  pgTermsFallback:
+    "<p>By using Ovira you agree to these terms.</p>" +
+    "<h3>Orders and prices</h3>" +
+    "<p>All prices are in Egyptian pounds and either include or add tax as stated on the product page. Every order is reviewed before fulfilment.</p>" +
+    "<h3>Returns</h3>" +
+    "<p>You can request a return on any delivered order from the order page; each case is reviewed individually.</p>" +
+    "<h3>Accounts</h3>" +
+    "<p>You are responsible for keeping your sign-in details safe and for activity on your account.</p>",
+
+  pgPrivacy: "Privacy policy",
+  pgPrivacySub: "How we handle your data",
+  pgPrivacyFallback:
+    "<p>We collect the minimum needed to fulfil your order: name, phone, address and email.</p>" +
+    "<h3>Who we share it with</h3>" +
+    "<p>Delivery details go to the courier and to the seller handling your order, and no further.</p>" +
+    "<h3>Payment</h3>" +
+    "<p>Card details go straight to the payment gateway. We never store card numbers on our servers.</p>" +
+    "<h3>Your rights</h3>" +
+    "<p>You can ask us to delete your account, or send you a copy of your data, at support@ovira.cloud.</p>",
+
+  sell: "Start selling",
+  sellSubtitle: "Open your store on Ovira and reach more customers.",
+  sellStoreName: "Store name",
+  sellStoreNameHint: "The name customers will see",
+  sellAbout: "About your store",
+  sellAboutHint: "What do you sell? (optional)",
+  sellSubmit: "Open my store",
+  sellSubmitted: "We've got your application",
+  sellPending: "Your store is under review — we'll let you know as soon as it's live.",
+  sellActive: "Your store is live — you can start listing products now.",
+  sellSignIn: "Sign in first so we can attach the store to your account.",
+  sellAlready: "You already have a store",
+  sellClosed: "Seller registration is closed",
+  sellClosedBody: "This store runs as a single company, not a multi-vendor marketplace.",
+  sellWhy: "Why sell on Ovira?",
+  sellWhy1: "Regular payouts, with a clear statement of what commission was taken.",
+  sellWhy2: "A dashboard showing your sales and your best-selling products.",
+  sellWhy3: "We handle shipping and collection — you just pack the order.",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };

@@ -32,12 +32,15 @@ export function Txt({
   tone = "ink",
   style,
   numberOfLines,
+  onPress,
 }: {
   children: ReactNode;
   variant?: Variant;
   tone?: Tone;
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
+  /** For text that is itself the target — a link inside a paragraph. */
+  onPress?: () => void;
 }) {
   const { c, typography: scale } = useTheme();
   const colors: Record<Tone, string> = {
@@ -53,6 +56,7 @@ export function Txt({
   return (
     <Text
       numberOfLines={numberOfLines}
+      onPress={onPress}
       style={[
         {
           fontSize: t.fontSize,
