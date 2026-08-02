@@ -19,11 +19,11 @@ const OPEN_STATUSES = new Set(["Pending Payment", "Paid", "Processing"]);
 /**
  * The seller's phone view.
  *
- * Deliberately not a port of the web console. A seller on a phone is standing
- * in a stockroom asking two questions — *what do I owe someone today* and *what
- * am I earning* — and everything else (product editing, coupons, reports,
- * settlement statements) is desk work that a 6-inch screen makes worse. Those
- * stay on the web, one tap away, named as such.
+ * The top of the screen answers the two questions a seller standing in a
+ * stockroom actually has — *what do I owe someone today* and *what am I
+ * earning* — and everything else sits below it in a grid rather than competing
+ * with them. The order of that matters more here than on a desk: a phone shows
+ * one screenful, and this is the screenful.
  */
 export default function VendorHome() {
   const { c, space } = useTheme();
@@ -201,9 +201,11 @@ export default function VendorHome() {
                 </VStack>
               )}
 
-              {/* Named honestly: the rest of the job lives on the web, and
-                  pretending otherwise sends sellers hunting for screens that
-                  are not here. */}
+              <VendorNav />
+
+              {/* The operator console is still the web's — but the seller's own
+                  job is now here, so this is a link out rather than an
+                  admission. */}
               <Pressable
                 onPress={() => void Linking.openURL(`https://${SITE_LABEL}/shop/vendor`)}
                 style={{ alignItems: "center", paddingVertical: space.md }}
@@ -220,5 +222,50 @@ export default function VendorHome() {
         </ScrollView>
       </Screen>
     </>
+  );
+}
+
+/**
+ * The rest of the seller's job.
+ *
+ * A grid rather than a list of links: these are eleven destinations, and a
+ * seller reaching for "coupons" should find it by shape and position, not by
+ * reading eleven rows of Arabic every time.
+ */
+function VendorNav() {
+  const t = dict();
+  const { c, space, radius } = useTheme();
+  const router = useRouter();
+
+  const items: Array<{ icon: keyof typeof Ionicons.glyphMap; label: string; to: string }> = [
+    { icon: "cube-outline", label: t.vpTitle, to: "/vendor/products" },
+    { icon: "document-text-outline", label: t.viTitle, to: "/vendor/products/import" },
+  ];
+
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>
+      {items.map((item) => (
+        <Pressable
+          key={item.to}
+          onPress={() => router.push(item.to as never)}
+          style={{
+            width: "47%",
+            backgroundColor: c.surface,
+            borderWidth: 1,
+            borderColor: c.line,
+            borderRadius: radius.lg,
+            paddingVertical: space.lg,
+            paddingHorizontal: space.md,
+            alignItems: "center",
+            gap: space.sm,
+          }}
+        >
+          <Ionicons name={item.icon} size={22} color={c.blue} />
+          <Txt variant="caption" numberOfLines={1} style={{ textAlign: "center" }}>
+            {item.label}
+          </Txt>
+        </Pressable>
+      ))}
+    </View>
   );
 }

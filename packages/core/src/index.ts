@@ -139,6 +139,24 @@ export type {
   VendorTotals,
 } from "./vendor.js";
 
+export {
+  deleteProduct,
+  exportMyProductsCsv,
+  getMyProduct,
+  importProductsCsv,
+  importTemplate,
+  myProducts,
+  upsertProduct,
+} from "./vendor-products.js";
+export type {
+  ApprovalStatus,
+  ImportResult,
+  ImportRowResult,
+  ProductInput,
+  VendorProduct,
+  VendorProductDetail,
+} from "./vendor-products.js";
+
 export { registerDevice, unregisterDevice } from "./push.js";
 export type { DeviceInfo } from "./push.js";
 
