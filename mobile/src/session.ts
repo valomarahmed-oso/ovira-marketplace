@@ -1,6 +1,7 @@
 import { me, register, signIn, signOut, type SessionUser } from "@ovira/core";
 import { create } from "zustand";
 
+import { syncCart } from "./cart-store";
 import { setCsrfToken } from "./ovira";
 import { syncWishlist } from "./wishlist-store";
 
@@ -12,6 +13,9 @@ function mergeSavedItems(user: SessionUser | null): void {
   if (!user) return;
   void syncWishlist().catch(() => {
     /* the device's list is still correct; the next sign-in retries */
+  });
+  void syncCart().catch(() => {
+    /* likewise — and the cart on this device is never touched by a failure */
   });
 }
 

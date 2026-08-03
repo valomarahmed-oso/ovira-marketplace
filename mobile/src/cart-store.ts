@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { CartLine } from "@ovira/core";
+import { getServerCart, mergeCarts, saveServerCart } from "@ovira/core";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -102,4 +103,28 @@ export const cartKey = keyOf;
 /** Total units, for the tab badge. */
 export function cartCount(lines: CartLine[]): number {
   return lines.reduce((n, l) => n + l.qty, 0);
+}
+
+/**
+ * Reconcile this device's cart with the account's, once, after signing in.
+ *
+ * A union by line, and quantities are **not** added: someone who put two of
+ * something in on their phone and two on the website wants two, not four — the
+ * same intention recorded twice, not two decisions. The larger of the two wins,
+ * which is the reading that never silently inflates an order.
+ */
+export async function syncCart(): Promise<void> {
+  const local = useCart.getState().lines;
+  const remote = await getServerCart();
+  if (!remote.length && !local.length) return;
+  const merged = mergeCarts(local, remote);
+  useCart.setState({ lines: merged });
+  // Only write when the merge actually changed the server's copy — a no-op
+  // POST on every app start is a write the shopper did not ask for.
+  if (merged.length !== remote.length) await saveServerCart(merged);
+}
+
+/** Push the current cart up. Guests no-op server-side. */
+export async function pushCart(): Promise<void> {
+  await saveServerCart(useCart.getState().lines);
 }

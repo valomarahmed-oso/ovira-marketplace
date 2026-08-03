@@ -61,6 +61,11 @@ export { listDeals } from "./deals.js";
 
 export { getServerWishlist, mergeWishlists, saveServerWishlist } from "./wishlist.js";
 
+export { getServerCart, mergeCarts, saveServerCart } from "./cart-sync.js";
+
+export { createPayment, listPaymentMethods, needsRedirect } from "./payment.js";
+export type { PaymentMethod, PaymentStart } from "./payment.js";
+
 export {
   createTicket,
   myTickets,

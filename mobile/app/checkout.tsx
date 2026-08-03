@@ -1,4 +1,4 @@
-import type { BuyerAddress, ShippingMethod, ShippingQuote } from "@ovira/core";
+import type { BuyerAddress, PaymentMethod, ShippingMethod, ShippingQuote } from "@ovira/core";
 import {
   GOVERNORATES,
   cartTotals,
@@ -6,6 +6,9 @@ import {
   listCarriers,
   listShippingMethods,
   myAddresses,
+  createPayment,
+  listPaymentMethods,
+  needsRedirect,
   placeOrder,
   saveAddress,
   shippingQuote,
@@ -14,7 +17,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, View } from "react-native";
+import { KeyboardAvoidingView, Linking, Platform, Pressable, View } from "react-native";
 
 import { useCart } from "../src/cart-store";
 import { ChoiceRow, Field, OptionCard, PrimaryButton, Toggle } from "../src/components/form";
@@ -50,10 +53,11 @@ export default function CheckoutScreen() {
   const [methods, setMethods] = useState<ShippingMethod[]>([]);
   const [method, setMethod] = useState<string | null>(null);
   const [carriers, setCarriers] = useState<string[]>([]);
+  const [manualMethods, setManualMethods] = useState<PaymentMethod[]>([]);
   const [carrier, setCarrier] = useState<string | null>(null);
   const [quote, setQuote] = useState<ShippingQuote | null>(null);
 
-  const [payment, setPayment] = useState<"cod" | "card">("cod");
+  const [payment, setPayment] = useState<"cod" | "card" | "manual">("cod");
   const [coupon, setCoupon] = useState("");
   const [couponApplied, setCouponApplied] = useState<{ code: string; discount: number } | null>(
     null,
@@ -86,6 +90,9 @@ export default function CheckoutScreen() {
       setMethod((current) => current ?? rows.find((m) => m.is_default)?.name ?? rows[0]?.name ?? null);
     });
     void listCarriers().then((rows) => setCarriers(rows.map((r) => r.carrier_name)));
+    // Offline methods the operator turned on. Usually none, which is why the
+    // block renders nothing rather than an empty heading.
+    void listPaymentMethods().then(setManualMethods);
   }, []);
 
   function applyAddress(row: BuyerAddress) {
@@ -186,6 +193,31 @@ export default function CheckoutScreen() {
       // handed back is their only way to look at it again. Kept before the
       // cart is cleared so a failure here cannot lose both.
       if (!user) rememberGuestOrder(order.name, order.token);
+
+      /**
+       * The order exists now, whatever happens next. That ordering is the
+       * point: a gateway that fails, or a shopper who abandons the payment
+       * page, leaves a real order in Pending Payment that someone can chase —
+       * not a lost basket nobody knows about.
+       *
+       * The token goes with it because a guest has no session, and without it
+       * the server would refuse to start a payment for an order it cannot
+       * prove they own.
+       */
+      if (payment === "card") {
+        try {
+          const started = await createPayment(order.name, order.token);
+          if (needsRedirect(started)) {
+            clearCart();
+            await Linking.openURL(started.redirect_url);
+            router.replace({ pathname: "/order/[name]", params: { name: order.name, placed: "1" } });
+            return;
+          }
+        } catch {
+          // The order stands. Falling through to it is more use than an error
+          // screen that hides an order the shopper has already committed to.
+        }
+      }
 
       clearCart();
       router.replace({ pathname: "/order/[name]", params: { name: order.name, placed: "1" } });
@@ -368,6 +400,27 @@ export default function CheckoutScreen() {
                   </Txt>
                 )}
               </OptionCard>
+
+              {/* Whatever offline methods the operator enabled — a bank
+                  transfer, a mobile wallet. They collect nothing online: the
+                  order stays Pending Payment until the operator confirms it,
+                  and the instructions say how to pay. */}
+              {manualMethods.map((option) => (
+                <OptionCard
+                  key={option.name}
+                  selected={payment === "manual"}
+                  onPress={() => setPayment("manual")}
+                >
+                  <VStack gap="xs">
+                    <Txt variant="label">{option.method_name}</Txt>
+                    {!!option.instructions && (
+                      <Txt variant="caption" tone="muted">
+                        {option.instructions}
+                      </Txt>
+                    )}
+                  </VStack>
+                </OptionCard>
+              ))}
             </VStack>
 
             <VStack gap="sm">
