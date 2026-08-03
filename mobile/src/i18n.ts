@@ -631,6 +631,15 @@ const ar = {
   homeForYou: "مختار ليك",
   homeRecent: "شوفتهم قبل كده",
   homeBoughtTogether: "اشتروهم مع بعض",
+
+  // filters
+  filters: "فلترة",
+  filtersClear: "امسح الفلاتر",
+  filterBrand: "الماركة",
+  filterPrice: "نطاق السعر",
+  filterFrom: "من",
+  filterTo: "إلى",
+  filterRating: "التقييم",
 };
 
 export type Dict = typeof ar;
@@ -1224,6 +1233,14 @@ const en: Dict = {
   homeForYou: "Picked for you",
   homeRecent: "Recently viewed",
   homeBoughtTogether: "Bought together",
+
+  filters: "Filters",
+  filtersClear: "Clear filters",
+  filterBrand: "Brand",
+  filterPrice: "Price range",
+  filterFrom: "From",
+  filterTo: "To",
+  filterRating: "Rating",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };
