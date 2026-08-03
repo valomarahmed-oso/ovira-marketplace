@@ -99,8 +99,20 @@ export type { Notification } from "./notifications.js";
 export { buyerReport, reportDate, vendorReport } from "./reports.js";
 export type { BuyerReport, StatusCount, VendorReport } from "./reports.js";
 
-export { getSiteContent, localizeSiteContent, registerVendor } from "./cms.js";
-export type { SiteContent, VendorRegistration } from "./cms.js";
+export {
+  bannerText,
+  getHomepage,
+  getSiteContent,
+  localizeSiteContent,
+  registerVendor,
+} from "./cms.js";
+export type { Banner, Homepage, HomeSection, SiteContent, VendorRegistration } from "./cms.js";
+
+export {
+  frequentlyBoughtTogether,
+  popularProducts,
+  recommendedForYou,
+} from "./recommendations.js";
 
 export { myReturns, orderReturn, requestReturn, RETURN_REASONS } from "./returns.js";
 export type { ReturnReason, ReturnRequest, ReturnStatus } from "./returns.js";

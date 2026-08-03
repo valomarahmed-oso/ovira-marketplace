@@ -625,6 +625,12 @@ const ar = {
   qaAnswer: "أجب على السؤال",
   qaAnswerHint: "اكتب إجابتك",
   qaAnswerSend: "ابعت الإجابة",
+
+  // home & discovery
+  homeDeal: "صفقة اليوم",
+  homeForYou: "مختار ليك",
+  homeRecent: "شوفتهم قبل كده",
+  homeBoughtTogether: "اشتروهم مع بعض",
 };
 
 export type Dict = typeof ar;
@@ -1213,6 +1219,11 @@ const en: Dict = {
   qaAnswer: "Answer this",
   qaAnswerHint: "Write your answer",
   qaAnswerSend: "Post answer",
+
+  homeDeal: "Deal of the day",
+  homeForYou: "Picked for you",
+  homeRecent: "Recently viewed",
+  homeBoughtTogether: "Bought together",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };

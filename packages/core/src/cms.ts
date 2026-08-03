@@ -1,9 +1,74 @@
 /** Operator-editable site chrome and the four content pages. */
 
+import { fileUrl } from "./config.js";
 import { get, post } from "./http.js";
-import type { Locale } from "./types.js";
+import type { Locale, ProductCard } from "./types.js";
 
 const NS = "ovira_marketplace.api";
+
+/** An operator-scheduled banner. `placement` decides where it is allowed to go. */
+export type Banner = {
+  name: string;
+  title?: string | null;
+  title_en?: string | null;
+  subtitle?: string | null;
+  subtitle_en?: string | null;
+  image?: string | null;
+  link?: string | null;
+  cta_label?: string | null;
+  cta_label_en?: string | null;
+  tone?: string | null;
+  placement?: "Hero" | "Promo" | string;
+};
+
+/** A curated rail the operator defined, already resolved to its products. */
+export type HomeSection = { heading: string; link?: string | null; products: ProductCard[] };
+
+export type Homepage = {
+  hero: Banner[];
+  promos: Banner[];
+  /** The featured deal, chosen by the operator or auto-picked by deepest markdown. */
+  deal: ProductCard | null;
+  sections: HomeSection[];
+};
+
+const EMPTY_HOME: Homepage = { hero: [], promos: [], deal: null, sections: [] };
+
+/**
+ * The whole dynamic homepage in one call.
+ *
+ * One request rather than four because this is the first screen: four parallel
+ * round trips on a phone connection is four chances to render half a page.
+ * Every part can legitimately be empty — a store with no banners configured is
+ * the normal state, not a failure — so the caller falls back to its own rails.
+ */
+export async function getHomepage(): Promise<Homepage> {
+  const home = await get<Homepage>(`${NS}.cms.get_homepage`);
+  if (!home) return EMPTY_HOME;
+  const withImage = (b: Banner) => ({ ...b, image: fileUrl(b.image) ?? null });
+  const cards = (rows?: ProductCard[]) =>
+    (rows ?? []).map((p) => ({ ...p, image: fileUrl(p.image) ?? null }));
+  return {
+    hero: (home.hero ?? []).map(withImage),
+    promos: (home.promos ?? []).map(withImage),
+    deal: home.deal ? { ...home.deal, image: fileUrl(home.deal.image) ?? null } : null,
+    sections: (home.sections ?? []).map((s) => ({ ...s, products: cards(s.products) })),
+  };
+}
+
+/** Pick the locale's text off a banner, falling back to the Arabic base. */
+export function bannerText(
+  banner: Banner,
+  locale: Locale,
+): { title: string; subtitle: string; cta: string } {
+  const pick = (base?: string | null, en?: string | null) =>
+    (locale === "en" && en?.trim() ? en : base) ?? "";
+  return {
+    title: pick(banner.title, banner.title_en),
+    subtitle: pick(banner.subtitle, banner.subtitle_en),
+    cta: pick(banner.cta_label, banner.cta_label_en),
+  };
+}
 
 export type SiteContent = {
   brand_name?: string;

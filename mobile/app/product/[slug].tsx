@@ -2,6 +2,7 @@ import type { Product, ProductCard, ProductVariant, ReviewSummary } from "@ovira
 import {
   addReview,
   alertStatus,
+  frequentlyBoughtTogether,
   getProduct,
   listReviews,
   nextTier,
@@ -26,6 +27,7 @@ import { ReviewsSection } from "../../src/components/reviews";
 import { Empty, Loading } from "../../src/components/states";
 import { Card, Pill, Row, Screen, Txt, VStack } from "../../src/components/ui";
 import { dict, fill, money, num } from "../../src/i18n";
+import { useRecentlyViewed } from "../../src/recently-viewed";
 import { useSession } from "../../src/session";
 import { useStoreConfig } from "../../src/store-config";
 import { useTheme } from "../../src/theme-context";
@@ -46,6 +48,8 @@ export default function ProductScreen() {
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const [reviews, setReviews] = useState<ReviewSummary>({ reviews: [], avg: 0, count: 0 });
+  const [bought, setBought] = useState<ProductCard[]>([]);
+  const remember = useRecentlyViewed((s) => s.push);
 
   useEffect(() => {
     let alive = true;
@@ -60,6 +64,9 @@ export default function ProductScreen() {
       }
       setProduct(found);
       setState("ready");
+      // Recorded on a successful load, not on navigation: a slug that 404s is
+      // not something the shopper viewed.
+      remember(found);
       // A variant product has no meaningful price until one is chosen, so the
       // first in-stock option is pre-selected rather than leaving the buy button
       // disabled on arrival.
@@ -67,11 +74,12 @@ export default function ProductScreen() {
       setVariant(options.find((v) => v.stock_qty > 0) ?? options[0] ?? null);
       setRelated(await relatedProducts(key, 8));
       setReviews(await listReviews(key));
+      setBought(await frequentlyBoughtTogether(key, 6));
     })();
     return () => {
       alive = false;
     };
-  }, [slug]);
+  }, [slug, remember]);
 
   const unitBase = variant?.price || product?.price || 0;
   const tiers = product?.price_tiers ?? [];
@@ -305,6 +313,24 @@ export default function ProductScreen() {
               product={product.slug}
               canAnswer={!!user?.isVendor && user.vendor === product.vendor}
             />
+
+            {/* Co-purchase data, not similarity — "people who bought this also
+                bought" is a different and better question than "what looks
+                like this". Empty on a young store, which is normal. */}
+            {bought.length > 0 && (
+              <VStack gap="md">
+                <Txt variant="heading">{t.homeBoughtTogether}</Txt>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: space.md, paddingBottom: space.xs }}
+                >
+                  {bought.map((p) => (
+                    <ProductTile key={p.name} product={p} width={158} />
+                  ))}
+                </ScrollView>
+              </VStack>
+            )}
 
             {related.length > 0 && (
               <VStack gap="md">
