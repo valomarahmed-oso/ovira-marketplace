@@ -167,6 +167,8 @@ export {
   getMyProduct,
   importProductsCsv,
   importTemplate,
+  listCompanies,
+  listWarehouses,
   myProducts,
   upsertProduct,
 } from "./vendor-products.js";
@@ -175,9 +177,14 @@ export type {
   ImportResult,
   ImportRowResult,
   ProductInput,
+  StockLocation,
+  VariantInput,
   VendorProduct,
   VendorProductDetail,
 } from "./vendor-products.js";
+
+export { exportMyOrdersCsv, myProductFunnel } from "./vendor-stats.js";
+export type { FunnelDiagnosis, FunnelRow } from "./vendor-stats.js";
 
 export {
   createMyShipment,

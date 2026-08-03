@@ -640,6 +640,38 @@ const ar = {
   filterFrom: "من",
   filterTo: "إلى",
   filterRating: "التقييم",
+
+  // seller: variants & branches
+  vvTitle: "المنتج له خيارات (مقاسات/ألوان)",
+  vvHint: "لو المنتج بيتباع بأكتر من شكل، فعّل ده وضيف كل خيار بسعره وكميته.",
+  vvOptionName: "اسم الخيار",
+  vvOptionHint: "المقاس، اللون…",
+  vvOptionName2: "خيار تاني",
+  vvValue: "الخيار",
+  vvValueHint: "لارج، أحمر…",
+  vvSamePrice: "نفس السعر",
+  vvAdd: "أضف خيار",
+  vlocTitle: "مخزون الفروع",
+  vlocHint: "لو بتشحن من أكتر من فرع، حدّد كمية كل فرع والمحافظة بتاعته.",
+  vlocAdd: "أضف فرع",
+
+  // seller: funnel
+  vfTitle: "رحلة المنتج",
+  vfIntro: "مين شاف المنتج، مين ضافه للسلة، ومين اشتراه فعلًا.",
+  vfViews: "مشاهدة",
+  vfCarted: "في السلة",
+  vfSold: "اتباع",
+  vfEmpty: "مفيش بيانات كفاية",
+  vfEmptyBody: "لسه مافيش زيارات مسجّلة على منتجاتك في الفترة دي.",
+  vfDiagnosis: {
+    healthy: "تمام",
+    no_data: "مفيش بيانات",
+    unpublished: "مش منشور",
+    unseen: "محدش شايفه",
+    not_tempting: "بيشوفوه ومابيضفوهوش",
+    abandoned: "بيضيفوه ومابيشتروش",
+  } as Record<string, string>,
+  vrExport: "انسخ الطلبات CSV",
 };
 
 export type Dict = typeof ar;
@@ -1241,6 +1273,36 @@ const en: Dict = {
   filterFrom: "From",
   filterTo: "To",
   filterRating: "Rating",
+
+  vvTitle: "This product has options (sizes/colours)",
+  vvHint: "If it sells in more than one form, turn this on and add each with its own price and stock.",
+  vvOptionName: "Option name",
+  vvOptionHint: "Size, colour…",
+  vvOptionName2: "Second option",
+  vvValue: "Option",
+  vvValueHint: "Large, red…",
+  vvSamePrice: "Same price",
+  vvAdd: "Add option",
+  vlocTitle: "Branch stock",
+  vlocHint: "If you ship from more than one branch, set each one's stock and governorate.",
+  vlocAdd: "Add branch",
+
+  vfTitle: "Product funnel",
+  vfIntro: "Who saw it, who added it, and who actually bought it.",
+  vfViews: "Views",
+  vfCarted: "In cart",
+  vfSold: "Sold",
+  vfEmpty: "Not enough data",
+  vfEmptyBody: "No visits recorded on your products in this period.",
+  vfDiagnosis: {
+    healthy: "Healthy",
+    no_data: "No data",
+    unpublished: "Unpublished",
+    unseen: "Nobody sees it",
+    not_tempting: "Seen, not added",
+    abandoned: "Added, not bought",
+  } as Record<string, string>,
+  vrExport: "Copy orders as CSV",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };

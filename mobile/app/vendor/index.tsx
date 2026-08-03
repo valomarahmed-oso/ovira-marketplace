@@ -244,6 +244,7 @@ function VendorNav() {
     { icon: "pricetag-outline", label: t.vcTitle, to: "/vendor/coupons" },
     { icon: "stats-chart-outline", label: t.vaTitle, to: "/vendor/analytics" },
     { icon: "bulb-outline", label: t.viwTitle, to: "/vendor/insights" },
+    { icon: "funnel-outline", label: t.vfTitle, to: "/vendor/funnel" },
     { icon: "document-text-outline", label: t.vrTitle, to: "/vendor/reports" },
     { icon: "swap-vertical-outline", label: t.viTitle, to: "/vendor/products/import" },
     { icon: "settings-outline", label: t.vstTitle, to: "/vendor/settings" },

@@ -32,6 +32,25 @@ export type VendorProduct = {
   image?: string | null;
 };
 
+/** One sellable option: "Large", or "Large × Red" when the seller uses two axes. */
+export type VariantInput = {
+  option_value: string;
+  option_value2?: string | null;
+  price?: number;
+  stock_qty?: number;
+  sku?: string | null;
+};
+
+/** Stock held at one branch, for stores that ship from more than one place. */
+export type StockLocation = {
+  company: string;
+  warehouse: string;
+  /** Lets the router prefer the branch nearest the buyer. */
+  governorate?: string | null;
+  stock_qty?: number;
+  priority?: number;
+};
+
 /** The same product with everything the edit form needs. */
 export type VendorProductDetail = VendorProduct & {
   brand?: string | null;
@@ -41,6 +60,11 @@ export type VendorProductDetail = VendorProduct & {
   images?: string[];
   video_url?: string | null;
   price_tiers?: PriceTier[];
+  has_variants?: 0 | 1;
+  variant_option_name?: string | null;
+  variant_option_name2?: string | null;
+  variants?: VariantInput[];
+  stock_locations?: StockLocation[];
 };
 
 /** What the form sends back. `name` absent means "create". */
@@ -61,7 +85,25 @@ export type ProductInput = {
   images?: string[];
   video_url?: string | null;
   price_tiers?: PriceTier[];
+  has_variants?: 0 | 1;
+  variant_option_name?: string | null;
+  variant_option_name2?: string | null;
+  variants?: VariantInput[];
+  stock_locations?: StockLocation[];
 };
+
+/** ERPNext companies and their warehouses, for the branch-stock picker. */
+export async function listCompanies(): Promise<Array<{ name: string }>> {
+  return (await get<Array<{ name: string }>>(`${NS}.list_companies`)) ?? [];
+}
+
+export async function listWarehouses(
+  company?: string,
+): Promise<Array<{ name: string; company: string }>> {
+  return (
+    (await get<Array<{ name: string; company: string }>>(`${NS}.list_warehouses`, { company })) ?? []
+  );
+}
 
 export async function myProducts(): Promise<VendorProduct[]> {
   const rows = (await get<VendorProduct[]>(`${NS}.my_products`)) ?? [];

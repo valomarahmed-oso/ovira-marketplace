@@ -4,6 +4,7 @@ import {
   updateMyShipment,
   vendorOrders,
   vendorShipmentStatuses,
+  listCarriers,
   SHIPMENT_STATUSES,
   type Shipment,
   type ShipmentStatus,
@@ -14,7 +15,7 @@ import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 
-import { Field, PrimaryButton } from "../../src/components/form";
+import { ChoiceRow, Field, PrimaryButton } from "../../src/components/form";
 import { Empty, Loading } from "../../src/components/states";
 import { Card, Pill, Row, Screen, Txt, VStack } from "../../src/components/ui";
 import { dict, formatDate, money, num } from "../../src/i18n";
@@ -38,6 +39,7 @@ export default function VendorShipmentsScreen() {
 
   const [orders, setOrders] = useState<VendorOrder[]>([]);
   const [statuses, setStatuses] = useState<Record<string, string>>({});
+  const [carrierNames, setCarrierNames] = useState<string[]>([]);
   const [filter, setFilter] = useState<Filter>("todo");
   const [state, setState] = useState<"loading" | "ready">("loading");
 
@@ -46,9 +48,14 @@ export default function VendorShipmentsScreen() {
       setState(access.reason === "loading" ? "loading" : "ready");
       return;
     }
-    const [rows, shipped] = await Promise.all([vendorOrders(100), vendorShipmentStatuses()]);
+    const [rows, shipped, couriers] = await Promise.all([
+      vendorOrders(100),
+      vendorShipmentStatuses(),
+      listCarriers(),
+    ]);
     setOrders(rows);
     setStatuses(shipped);
+    setCarrierNames(couriers.map((r) => r.carrier_name));
     setState("ready");
   }, [access]);
 
@@ -130,6 +137,7 @@ export default function VendorShipmentsScreen() {
                   key={order.name}
                   order={order}
                   shippedStatus={statuses[order.name]}
+                  carriers={carrierNames}
                   onChanged={load}
                 />
               ))}
@@ -144,10 +152,12 @@ export default function VendorShipmentsScreen() {
 function ShipmentCard({
   order,
   shippedStatus,
+  carriers,
   onChanged,
 }: {
   order: VendorOrder;
   shippedStatus?: string;
+  carriers: string[];
   onChanged: () => Promise<void>;
 }) {
   const t = dict();
@@ -241,12 +251,31 @@ function ShipmentCard({
 
             {shipments.length === 0 ? (
               <>
-                <Field
-                  label={t.vendorCarrier}
-                  value={carrier}
-                  onChange={setCarrier}
-                  placeholder={t.vsCarrierHint}
-                />
+                {/* A directory the operator maintains, when there is one.
+                    Free text otherwise, because a seller using their own
+                    courier must still be able to name them. */}
+                {carriers.length > 0 ? (
+                  <VStack gap="sm">
+                    <Txt variant="caption" tone="faint">
+                      {t.vendorCarrier}
+                    </Txt>
+                    <ChoiceRow
+                      options={carriers.map((carrierName) => ({
+                        value: carrierName,
+                        label: carrierName,
+                      }))}
+                      value={carrier || null}
+                      onChange={setCarrier}
+                    />
+                  </VStack>
+                ) : (
+                  <Field
+                    label={t.vendorCarrier}
+                    value={carrier}
+                    onChange={setCarrier}
+                    placeholder={t.vsCarrierHint}
+                  />
+                )}
                 <Field
                   label={t.vendorTracking}
                   value={tracking}

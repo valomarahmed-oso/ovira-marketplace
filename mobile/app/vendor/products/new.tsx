@@ -5,6 +5,8 @@ import {
   type Category,
   type PriceTier,
   type ProductInput,
+  type StockLocation,
+  type VariantInput,
 } from "@ovira/core";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -13,6 +15,7 @@ import { Pressable, View } from "react-native";
 
 import { Field, PrimaryButton } from "../../../src/components/form";
 import { ImageUpload } from "../../../src/components/image-upload";
+import { StockLocationEditor, VariantEditor } from "../../../src/components/variant-editor";
 import { Loading } from "../../../src/components/states";
 import { Card, Row, Screen, Txt, VStack } from "../../../src/components/ui";
 import { dict, num } from "../../../src/i18n";
@@ -55,6 +58,11 @@ export default function ProductFormScreen() {
   const [description, setDescription] = useState("");
   const [tiers, setTiers] = useState<PriceTier[]>([]);
   const [images, setImages] = useState<string[]>([]);
+  const [hasVariants, setHasVariants] = useState(false);
+  const [optionName, setOptionName] = useState("");
+  const [optionName2, setOptionName2] = useState("");
+  const [variants, setVariants] = useState<VariantInput[]>([]);
+  const [locations, setLocations] = useState<StockLocation[]>([]);
 
   useEffect(() => {
     void listCategories().then(setCategories);
@@ -79,6 +87,11 @@ export default function ProductFormScreen() {
       setDescription(doc.description ?? "");
       setTiers(doc.price_tiers ?? []);
       setImages(doc.images ?? []);
+      setHasVariants(!!doc.has_variants);
+      setOptionName(doc.variant_option_name ?? "");
+      setOptionName2(doc.variant_option_name2 ?? "");
+      setVariants(doc.variants ?? []);
+      setLocations(doc.stock_locations ?? []);
       setLoading(false);
     });
     return () => {
@@ -105,6 +118,18 @@ export default function ProductFormScreen() {
         // silently — filtering here means the seller sees what will be kept.
         price_tiers: tiers.filter((tier) => tier.min_qty >= 2 && tier.price > 0),
         images,
+        // Sent as 0/1 rather than omitted: the server reads a falsy
+        // `has_variants` as "turn variant selling off and clear the rows",
+        // which is exactly what unticking the box should do.
+        has_variants: hasVariants ? 1 : 0,
+        variant_option_name: hasVariants ? optionName.trim() || undefined : undefined,
+        variant_option_name2: hasVariants && optionName2.trim() ? optionName2.trim() : undefined,
+        // A row with no value is dropped server-side; filtering here means the
+        // seller sees what will actually be kept.
+        variants: hasVariants
+          ? variants.filter((v) => v.option_value.trim())
+          : [],
+        stock_locations: locations.filter((l) => l.company && l.warehouse),
         // `_apply_gallery` makes the first image primary, but `image` is a
         // separate column the card builder reads. Sending both keeps the tile
         // and the gallery agreeing about which photo is the product.
@@ -131,6 +156,11 @@ export default function ProductFormScreen() {
     description,
     tiers,
     images,
+    hasVariants,
+    optionName,
+    optionName2,
+    variants,
+    locations,
     router,
     t.loadFailed,
   ]);
@@ -262,6 +292,19 @@ export default function ProductFormScreen() {
               />
             </VStack>
           </Card>
+
+          <VariantEditor
+            enabled={hasVariants}
+            onToggle={setHasVariants}
+            optionName={optionName}
+            onOptionName={setOptionName}
+            optionName2={optionName2}
+            onOptionName2={setOptionName2}
+            rows={variants}
+            onRows={setVariants}
+          />
+
+          <StockLocationEditor rows={locations} onRows={setLocations} />
 
           <BulkTiers tiers={tiers} onChange={setTiers} />
 

@@ -1,4 +1,6 @@
-import { reportDate, vendorReport, type VendorReport } from "@ovira/core";
+import { exportMyOrdersCsv, reportDate, vendorReport, type VendorReport } from "@ovira/core";
+import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { Stack } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -28,6 +30,7 @@ export default function VendorReportsScreen() {
   const [days, setDays] = useState<(typeof RANGES)[number]>(30);
   const [report, setReport] = useState<VendorReport | null>(null);
   const [state, setState] = useState<"loading" | "ready">("loading");
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     if (!access.show) {
@@ -190,6 +193,29 @@ export default function VendorReportsScreen() {
                   </VStack>
                 </Card>
               )}
+
+              {/* The seller's own order rows, for a spreadsheet or an
+                  accountant. Copied rather than downloaded: a phone has
+                  nowhere useful to put a .csv, and the clipboard reaches
+                  every app that would open one. */}
+              <Pressable
+                onPress={async () => {
+                  const { csv, count } = await exportMyOrdersCsv();
+                  if (!csv) return;
+                  await Clipboard.setStringAsync(csv);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                  void count;
+                }}
+                style={{ alignItems: "center" }}
+              >
+                <Row gap="xs">
+                  <Ionicons name="copy-outline" size={15} color={c.blue} />
+                  <Txt variant="label" tone="blue">
+                    {copied ? t.viCopied : t.vrExport}
+                  </Txt>
+                </Row>
+              </Pressable>
 
               <Txt variant="caption" tone="faint" style={{ textAlign: "center" }}>
                 {formatDate(report.from_date)} — {formatDate(report.to_date)}
