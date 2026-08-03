@@ -77,6 +77,12 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "نحتاج الوصول لصورك عشان ترفع صور منتجاتك ومتجرك."
+        }
+      ],
+      [
         "expo-local-authentication",
         {
           "faceIDPermission": "نستخدم التعرّف على الوجه عشان نقفل حسابك على تليفونك."

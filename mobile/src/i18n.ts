@@ -584,7 +584,21 @@ const ar = {
   vstFreeOver: "مجاني لو الطلب فوق",
   vstOperatorShipping: "أسعار الشحن بيحددها السوق مركزيًا، مش متجرك.",
   vstSaved: "اتحفظ",
-  vstMediaOnWeb: "لوجو المتجر والبانر بترفعهم من لوحة التحكّم على الموقع.",
+  vstMedia: "صور المتجر",
+  vstLogo: "لوجو المتجر",
+  vstBanner: "بانر المتجر",
+
+  // uploads
+  uplTitle: "الصور",
+  uplImages: "صور المنتج",
+  uplAdd: "أضف",
+  uplReplace: "غيّر",
+  uplPrimary: "الرئيسية",
+  uplPrimaryHint: "أول صورة هي اللي بتظهر للمشتري في القوائم — رتّبهم بالأسهم.",
+  uplFull: "وصلت للحد الأقصى للصور.",
+  uplTooBig: "الصورة كبيرة — الحد الأقصى ٥ ميجابايت.",
+  uplPermission: "محتاجين إذن الوصول لصورك عشان ترفعها.",
+  uplFailed: "تعذّر رفع الصورة، حاول تاني.",
 };
 
 export type Dict = typeof ar;
@@ -1135,7 +1149,20 @@ const en: Dict = {
   vstFreeOver: "Free when the order is over",
   vstOperatorShipping: "Shipping rates are set centrally by the marketplace, not by your store.",
   vstSaved: "Saved",
-  vstMediaOnWeb: "Upload your logo and banner from the dashboard on the website.",
+  vstMedia: "Store images",
+  vstLogo: "Store logo",
+  vstBanner: "Store banner",
+
+  uplTitle: "Images",
+  uplImages: "Product photos",
+  uplAdd: "Add",
+  uplReplace: "Replace",
+  uplPrimary: "Main",
+  uplPrimaryHint: "The first photo is the one shoppers see in listings — reorder with the arrows.",
+  uplFull: "You've reached the image limit.",
+  uplTooBig: "That image is too large — 5 MB maximum.",
+  uplPermission: "We need access to your photos to upload them.",
+  uplFailed: "Couldn't upload that image, try again.",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };

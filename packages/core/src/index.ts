@@ -174,6 +174,9 @@ export type { ShipmentLabel, ShipmentStatus } from "./vendor-shipping.js";
 export { deleteMyCoupon, myCoupons, upsertMyCoupon } from "./vendor-coupons.js";
 export type { Coupon, CouponInput, DiscountType } from "./vendor-coupons.js";
 
+export { MAX_IMAGE_BYTES, uploadImage } from "./uploads.js";
+export type { UploadFile } from "./uploads.js";
+
 export { registerDevice, unregisterDevice } from "./push.js";
 export type { DeviceInfo } from "./push.js";
 

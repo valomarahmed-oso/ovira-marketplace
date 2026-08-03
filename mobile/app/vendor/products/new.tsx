@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { Field, PrimaryButton } from "../../../src/components/form";
+import { ImageUpload } from "../../../src/components/image-upload";
 import { Loading } from "../../../src/components/states";
 import { Card, Row, Screen, Txt, VStack } from "../../../src/components/ui";
 import { dict, num } from "../../../src/i18n";
@@ -53,6 +54,7 @@ export default function ProductFormScreen() {
   const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
   const [tiers, setTiers] = useState<PriceTier[]>([]);
+  const [images, setImages] = useState<string[]>([]);
 
   useEffect(() => {
     void listCategories().then(setCategories);
@@ -76,6 +78,7 @@ export default function ProductFormScreen() {
       setShortDescription(doc.short_description ?? "");
       setDescription(doc.description ?? "");
       setTiers(doc.price_tiers ?? []);
+      setImages(doc.images ?? []);
       setLoading(false);
     });
     return () => {
@@ -101,6 +104,11 @@ export default function ProductFormScreen() {
         // Anything below qty 2 is not a bulk tier, and the server drops it
         // silently — filtering here means the seller sees what will be kept.
         price_tiers: tiers.filter((tier) => tier.min_qty >= 2 && tier.price > 0),
+        images,
+        // `_apply_gallery` makes the first image primary, but `image` is a
+        // separate column the card builder reads. Sending both keeps the tile
+        // and the gallery agreeing about which photo is the product.
+        image: images[0] ?? null,
       };
       await upsertProduct(input);
       router.replace("/vendor/products");
@@ -122,6 +130,7 @@ export default function ProductFormScreen() {
     shortDescription,
     description,
     tiers,
+    images,
     router,
     t.loadFailed,
   ]);
@@ -151,6 +160,13 @@ export default function ProductFormScreen() {
       <Stack.Screen options={{ title: editing ? t.vpEdit : t.vpNew }} />
       <Screen>
         <VStack gap="lg" style={{ paddingBottom: space.xxl }}>
+          {/* First, and deliberately. A product with no photo does not sell,
+              and a form that asks for one last is a form that gets saved
+              without one. */}
+          <Card>
+            <ImageUpload images={images} onChange={setImages} max={8} />
+          </Card>
+
           <Card>
             <VStack gap="md">
               <Field label={t.vpName} value={title} onChange={setTitle} placeholder={t.vpNameHint} />

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
 import { Field, PrimaryButton } from "../../src/components/form";
+import { ImageUpload } from "../../src/components/image-upload";
 import { Empty, Loading } from "../../src/components/states";
 import { Card, Row, Screen, Txt, VStack } from "../../src/components/ui";
 import { dict } from "../../src/i18n";
@@ -43,6 +44,8 @@ export default function VendorSettingsScreen() {
   const [shippingType, setShippingType] = useState<ShippingType>("Flat");
   const [shippingFee, setShippingFee] = useState("");
   const [freeOver, setFreeOver] = useState("");
+  const [logo, setLogo] = useState<string[]>([]);
+  const [banner, setBanner] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     if (!access.show) {
@@ -60,6 +63,8 @@ export default function VendorSettingsScreen() {
       setShippingType((found.shipping_type as ShippingType) || "Flat");
       setShippingFee(String(found.shipping_fee || ""));
       setFreeOver(String(found.shipping_free_over || ""));
+      setLogo(found.logo ? [found.logo] : []);
+      setBanner(found.banner ? [found.banner] : []);
     }
     setState("ready");
   }, [access]);
@@ -81,6 +86,8 @@ export default function VendorSettingsScreen() {
         description: description.trim() || null,
         return_policy: returnPolicy.trim() || null,
         shipping_policy: shippingPolicy.trim() || null,
+        logo: logo[0] ?? null,
+        banner: banner[0] ?? null,
         // Only sent when this store actually sets its own rates.
         ...(perVendorShipping
           ? {
@@ -148,6 +155,14 @@ export default function VendorSettingsScreen() {
                 placeholder={t.vpOptional}
                 multiline
               />
+            </VStack>
+          </Card>
+
+          <Card>
+            <VStack gap="lg">
+              <Txt variant="label">{t.vstMedia}</Txt>
+              <ImageUpload images={logo} onChange={setLogo} single label={t.vstLogo} />
+              <ImageUpload images={banner} onChange={setBanner} single label={t.vstBanner} />
             </VStack>
           </Card>
 
@@ -266,14 +281,6 @@ export default function VendorSettingsScreen() {
             onPress={() => void save()}
           />
 
-          {/* The logo and banner are uploads, and there is no image picker in
-              this build. Said plainly rather than shown as fields that do
-              nothing. */}
-          <View style={{ alignItems: "center" }}>
-            <Txt variant="caption" tone="faint" style={{ textAlign: "center" }}>
-              {t.vstMediaOnWeb}
-            </Txt>
-          </View>
         </VStack>
       </Screen>
     </>
