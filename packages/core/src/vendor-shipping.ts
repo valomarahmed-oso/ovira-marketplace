@@ -5,6 +5,28 @@ import type { Shipment } from "./shipping.js";
 
 const NS = "ovira_marketplace.api.shipping";
 
+/**
+ * Couriers for the **seller's** picker.
+ *
+ * Not `carrier_options`, which is the shopper's list and is deliberately
+ * narrower: a buyer stating a preference has no use for a tracking-URL
+ * template, and that template is exactly what turns a tracking number the
+ * seller types into a link the buyer can open.
+ */
+export async function listVendorCarriers(): Promise<
+  Array<{ carrier_name: string; carrier_name_en?: string | null; tracking_url_template?: string | null }>
+> {
+  return (
+    (await get<
+      Array<{
+        carrier_name: string;
+        carrier_name_en?: string | null;
+        tracking_url_template?: string | null;
+      }>
+    >(`${NS}.list_carriers`)) ?? []
+  );
+}
+
 /** What a vendor or operator may set by hand — the in-flight and terminal ones. */
 export const SHIPMENT_STATUSES = [
   "Created",

@@ -4,7 +4,7 @@ import {
   updateMyShipment,
   vendorOrders,
   vendorShipmentStatuses,
-  listCarriers,
+  listVendorCarriers,
   SHIPMENT_STATUSES,
   type Shipment,
   type ShipmentStatus,
@@ -51,7 +51,7 @@ export default function VendorShipmentsScreen() {
     const [rows, shipped, couriers] = await Promise.all([
       vendorOrders(100),
       vendorShipmentStatuses(),
-      listCarriers(),
+      listVendorCarriers(),
     ]);
     setOrders(rows);
     setStatuses(shipped);
