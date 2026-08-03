@@ -1,4 +1,11 @@
-import { decodeSlug, vendorStorefront, type StoreProfile } from "@ovira/core";
+import {
+  addVendorReview,
+  decodeSlug,
+  listVendorReviews,
+  vendorStorefront,
+  type ReviewSummary,
+  type StoreProfile,
+} from "@ovira/core";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
@@ -6,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 
 import { ProductBrowser } from "../../src/components/product-browser";
+import { ReviewsSection } from "../../src/components/reviews";
 import { Empty, Loading } from "../../src/components/states";
 import { Card, Row, Screen, Txt, VStack } from "../../src/components/ui";
 import { dict, fill, num } from "../../src/i18n";
@@ -25,14 +33,16 @@ export default function StoreScreen() {
   const storeSlug = decodeSlug(String(slug ?? ""));
   const [store, setStore] = useState<StoreProfile | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing">("loading");
+  const [reviews, setReviews] = useState<ReviewSummary>({ reviews: [], avg: 0, count: 0 });
 
   useEffect(() => {
     let alive = true;
     setState("loading");
-    void vendorStorefront(storeSlug).then((found) => {
+    void vendorStorefront(storeSlug).then(async (found) => {
       if (!alive) return;
       setStore(found);
       setState(found ? "ready" : "missing");
+      if (found) setReviews(await listVendorReviews(found.name));
     });
     return () => {
       alive = false;
@@ -55,7 +65,16 @@ export default function StoreScreen() {
           <ProductBrowser
             filter={filter}
             emptyTitle={t.storeNoProducts}
-            header={<StoreHeader store={store} />}
+            header={
+              <StoreHeader
+                store={store}
+                reviews={reviews}
+                onReview={async (rating, body) => {
+                  await addVendorReview(store.name, rating, body);
+                  setReviews(await listVendorReviews(store.name));
+                }}
+              />
+            }
           />
         )}
       </Screen>
@@ -63,7 +82,15 @@ export default function StoreScreen() {
   );
 }
 
-function StoreHeader({ store }: { store: StoreProfile }) {
+function StoreHeader({
+  store,
+  reviews,
+  onReview,
+}: {
+  store: StoreProfile;
+  reviews: ReviewSummary;
+  onReview: (rating: number, body: string) => Promise<void>;
+}) {
   const { c, space, radius } = useTheme();
   const t = dict();
 
@@ -149,6 +176,16 @@ function StoreHeader({ store }: { store: StoreProfile }) {
           </VStack>
         </Card>
       )}
+
+      {/* The seller's own rating, which is not the average of their products.
+          A shop that ships late can sell good things, and a shopper deciding
+          whether to trust this store needs the distinction. */}
+      <ReviewsSection
+        summary={reviews}
+        onSubmit={onReview}
+        title={t.rvStoreTitle}
+        emptyBody={t.rvStoreEmpty}
+      />
 
       <View style={{ height: 1, backgroundColor: c.line, marginTop: space.xs }} />
     </VStack>

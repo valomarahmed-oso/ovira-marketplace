@@ -1,7 +1,9 @@
-import type { Product, ProductCard, ProductVariant } from "@ovira/core";
+import type { Product, ProductCard, ProductVariant, ReviewSummary } from "@ovira/core";
 import {
+  addReview,
   alertStatus,
   getProduct,
+  listReviews,
   nextTier,
   relatedProducts,
   subscribeStockAlert,
@@ -19,9 +21,12 @@ import { Gallery } from "../../src/components/gallery";
 import { Price } from "../../src/components/price";
 import { ProductTile } from "../../src/components/product-card";
 import { Rating } from "../../src/components/rating";
+import { QuestionsSection } from "../../src/components/qa";
+import { ReviewsSection } from "../../src/components/reviews";
 import { Empty, Loading } from "../../src/components/states";
 import { Card, Pill, Row, Screen, Txt, VStack } from "../../src/components/ui";
 import { dict, fill, money, num } from "../../src/i18n";
+import { useSession } from "../../src/session";
 import { useStoreConfig } from "../../src/store-config";
 import { useTheme } from "../../src/theme-context";
 import { inWishlist, pushWishlist, useWishlist } from "../../src/wishlist-store";
@@ -31,6 +36,7 @@ export default function ProductScreen() {
   const { c, space, radius } = useTheme();
   const config = useStoreConfig();
   const addToCart = useCart((s) => s.add);
+  const user = useSession((s) => s.user);
   const t = dict();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -39,6 +45,7 @@ export default function ProductScreen() {
   const [variant, setVariant] = useState<ProductVariant | null>(null);
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
+  const [reviews, setReviews] = useState<ReviewSummary>({ reviews: [], avg: 0, count: 0 });
 
   useEffect(() => {
     let alive = true;
@@ -59,6 +66,7 @@ export default function ProductScreen() {
       const options = found.variants ?? [];
       setVariant(options.find((v) => v.stock_qty > 0) ?? options[0] ?? null);
       setRelated(await relatedProducts(key, 8));
+      setReviews(await listReviews(key));
     })();
     return () => {
       alive = false;
@@ -281,6 +289,22 @@ export default function ProductScreen() {
                 </Row>
               </Card>
             )}
+
+            <ReviewsSection
+              summary={reviews}
+              onSubmit={async (rating, body) => {
+                await addReview(product.slug, rating, body);
+                // Re-read rather than splicing the new review in: the server
+                // decides the verified badge and recomputes the average, and a
+                // locally-inserted row would show neither correctly.
+                setReviews(await listReviews(product.slug));
+              }}
+            />
+
+            <QuestionsSection
+              product={product.slug}
+              canAnswer={!!user?.isVendor && user.vendor === product.vendor}
+            />
 
             {related.length > 0 && (
               <VStack gap="md">

@@ -174,6 +174,17 @@ export type { ShipmentLabel, ShipmentStatus } from "./vendor-shipping.js";
 export { deleteMyCoupon, myCoupons, upsertMyCoupon } from "./vendor-coupons.js";
 export type { Coupon, CouponInput, DiscountType } from "./vendor-coupons.js";
 
+export {
+  addReview,
+  addVendorReview,
+  answerQuestion,
+  askQuestion,
+  listQuestions,
+  listReviews,
+  listVendorReviews,
+} from "./reviews.js";
+export type { Question, Review, ReviewSummary } from "./reviews.js";
+
 export { MAX_IMAGE_BYTES, uploadImage } from "./uploads.js";
 export type { UploadFile } from "./uploads.js";
 

@@ -599,6 +599,32 @@ const ar = {
   uplTooBig: "الصورة كبيرة — الحد الأقصى ٥ ميجابايت.",
   uplPermission: "محتاجين إذن الوصول لصورك عشان ترفعها.",
   uplFailed: "تعذّر رفع الصورة، حاول تاني.",
+
+  // reviews
+  rvTitle: "تقييمات المشترين",
+  rvStoreTitle: "تقييمات المتجر",
+  rvEmpty: "لسه محدش قيّم المنتج ده — كن أول واحد.",
+  rvStoreEmpty: "لسه محدش قيّم المتجر ده.",
+  rvVerified: "شراء موثّق",
+  rvWrite: "اكتب تقييمك",
+  rvEdit: "عدّل تقييمك",
+  rvYour: "تقييمك",
+  rvBodyHint: "إيه رأيك في المنتج؟ (اختياري)",
+  rvSend: "ابعت التقييم",
+  rvThanks: "شكرًا — تقييمك اتسجّل.",
+  rvSignIn: "سجّل دخولك عشان تقدر تقيّم.",
+
+  // questions & answers
+  qaTitle: "أسئلة المشترين",
+  qaEmpty: "مفيش أسئلة لسه — اسأل اللي محتاج تعرفه.",
+  qaAsk: "اسأل عن المنتج",
+  qaAskHint: "اكتب سؤالك عن المنتج",
+  qaSend: "ابعت السؤال",
+  qaSignIn: "سجّل دخولك عشان تسأل.",
+  qaUnanswered: "لسه مفيش إجابة",
+  qaAnswer: "أجب على السؤال",
+  qaAnswerHint: "اكتب إجابتك",
+  qaAnswerSend: "ابعت الإجابة",
 };
 
 export type Dict = typeof ar;
@@ -1163,6 +1189,30 @@ const en: Dict = {
   uplTooBig: "That image is too large — 5 MB maximum.",
   uplPermission: "We need access to your photos to upload them.",
   uplFailed: "Couldn't upload that image, try again.",
+
+  rvTitle: "Customer reviews",
+  rvStoreTitle: "Store reviews",
+  rvEmpty: "Nobody has reviewed this yet — be the first.",
+  rvStoreEmpty: "Nobody has reviewed this store yet.",
+  rvVerified: "Verified purchase",
+  rvWrite: "Write a review",
+  rvEdit: "Edit your review",
+  rvYour: "Your review",
+  rvBodyHint: "What did you think? (optional)",
+  rvSend: "Post review",
+  rvThanks: "Thanks — your review is in.",
+  rvSignIn: "Sign in to leave a review.",
+
+  qaTitle: "Customer questions",
+  qaEmpty: "No questions yet — ask what you need to know.",
+  qaAsk: "Ask about this product",
+  qaAskHint: "What would you like to know?",
+  qaSend: "Post question",
+  qaSignIn: "Sign in to ask a question.",
+  qaUnanswered: "Not answered yet",
+  qaAnswer: "Answer this",
+  qaAnswerHint: "Write your answer",
+  qaAnswerSend: "Post answer",
 };
 
 const dicts: Record<Locale, Dict> = { ar, en };
