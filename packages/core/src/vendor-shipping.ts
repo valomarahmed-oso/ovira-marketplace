@@ -75,6 +75,21 @@ export function updateMyShipment(
   return post(`${NS}.update_my_shipment`, { shipment, ...patch }, "تعذّر تحديث الشحنة.");
 }
 
+/**
+ * Close an order handed over without a recorded shipment.
+ *
+ * Not every parcel goes through a courier. A seller who drove it over had no
+ * way to complete the order, so it sat in `Processing` forever — "being
+ * prepared" to a buyer already holding it. Open to the operator or to a vendor
+ * with a line on the order; the server decides which.
+ */
+export function markDelivered(
+  order: string,
+  note?: string,
+): Promise<{ status: string; already?: boolean }> {
+  return post(`${NS}.mark_delivered`, { order, note }, "تعذّر إقفال الطلب.");
+}
+
 /** Everything a waybill has to carry. */
 export type ShipmentLabel = {
   shipment: string;

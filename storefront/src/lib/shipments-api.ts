@@ -152,6 +152,17 @@ export const updateMyShipment = (
   patch: { carrier?: string; tracking_number?: string; tracking_url?: string; status?: string },
 ) => post<Shipment>("update_my_shipment", { shipment, ...patch });
 
+/**
+ * Close an order handed over without a recorded shipment.
+ *
+ * The seller who drove the parcel over is the person who knows it arrived, and
+ * until this existed such an order sat in Processing forever — "being prepared"
+ * to a buyer already holding it. Open to the operator or to a vendor with a
+ * line on the order; the server enforces which.
+ */
+export const markDelivered = (order: string, note?: string) =>
+  post<{ status: string; already?: boolean }>("mark_delivered", { order, note });
+
 /** Operator: verify delivery with the buyer's one-time code → completes the order. */
 export const confirmDelivery = (order: string, otp: string) =>
   post<{ confirmed: boolean; already?: boolean }>("confirm_delivery", { order, otp });

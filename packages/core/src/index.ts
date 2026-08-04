@@ -189,6 +189,7 @@ export type { FunnelDiagnosis, FunnelRow } from "./vendor-stats.js";
 export {
   createMyShipment,
   listVendorCarriers,
+  markDelivered,
   myOrderShipments,
   shipmentLabel,
   updateMyShipment,

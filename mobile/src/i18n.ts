@@ -489,6 +489,7 @@ const ar = {
   vsAllDone: "مفيش حاجة مستنية شحن",
   vsNone: "مفيش شحنات",
   vsCarrierHint: "بوسطة، أرامكس، مندوبك…",
+  vsHandedOver: "سلّمته بنفسي",
 
   // seller: waybill
   vlTitle: "بوليصة الشحن",
@@ -1136,6 +1137,7 @@ const en: Dict = {
   vsAllDone: "Nothing waiting to ship",
   vsNone: "No shipments",
   vsCarrierHint: "Bosta, Aramex, your own courier…",
+  vsHandedOver: "I delivered it myself",
 
   vlTitle: "Waybill",
   vlMissing: "Shipment not found",

@@ -5,6 +5,7 @@ import {
   vendorOrders,
   vendorShipmentStatuses,
   listVendorCarriers,
+  markDelivered,
   SHIPMENT_STATUSES,
   type Shipment,
   type ShipmentStatus,
@@ -200,6 +201,20 @@ function ShipmentCard({
     }
   };
 
+  const handOver = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await markDelivered(order.name);
+      setOpen(false);
+      await onChanged();
+    } catch (err) {
+      setError((err as Error)?.message ?? t.loadFailed);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const advance = async (shipment: string, status: ShipmentStatus) => {
     setBusy(true);
     setError(null);
@@ -288,6 +303,18 @@ function ShipmentCard({
                   busy={busy}
                   onPress={() => void create()}
                 />
+                {/* Not every parcel goes through a courier. Without this a
+                    seller who handed it over themselves could not close the
+                    order at all, and the buyer saw "being prepared" for
+                    something already in their hands. */}
+                <Pressable onPress={() => void handOver()} style={{ alignItems: "center" }}>
+                  <Row gap="xs">
+                    <Ionicons name="checkmark-circle-outline" size={15} color={c.mint} />
+                    <Txt variant="label" tone="mint">
+                      {t.vsHandedOver}
+                    </Txt>
+                  </Row>
+                </Pressable>
               </>
             ) : (
               shipments.map((shipment) => (

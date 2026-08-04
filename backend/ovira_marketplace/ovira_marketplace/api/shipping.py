@@ -954,3 +954,81 @@ def resend_delivery_otp(order):
     dispatch_delivery_otp(doc, otp, force=True)
     frappe.db.commit()
     return {"sent": True}
+
+
+@frappe.whitelist()
+def mark_delivered(order, note=None):
+    """Close an order that was handed over without a recorded shipment.
+
+    An order could only reach `Completed` two ways: a shipment advanced to
+    Delivered, or an operator confirmed a one-time code. Neither fits the
+    commonest case in a small store — the seller drove the parcel over
+    themselves and never booked a shipment — so those orders sat in
+    `Processing` forever. The buyer saw "being prepared" for something already
+    in their hands, and the operator's own status report counted it as open
+    work.
+
+    Open to the operator, or to a vendor **who has a line on this order**: they
+    are the person who handed it over, and requiring an operator for it is what
+    made the gap permanent.
+
+    Idempotent, and deliberately reuses the same tail as a verified delivery —
+    `delivered_on`, and the COD payment chain — so an order closed this way is
+    indistinguishable downstream from one closed by a courier scan.
+    """
+    doc = frappe.get_doc("Marketplace Order", order)
+
+    if not _is_operator():
+        vendor = frappe.db.get_value("Marketplace Vendor", {"user": frappe.session.user}, "name")
+        if not vendor or not frappe.db.exists(
+            "Marketplace Order Item", {"parent": doc.name, "vendor": vendor}
+        ):
+            frappe.throw(_("You can only close an order you sold on."), frappe.PermissionError)
+
+    if doc.status == "Cancelled":
+        frappe.throw(_("A cancelled order can't be marked delivered."))
+    if doc.status == "Completed":
+        return {"status": doc.status, "already": True}
+
+    doc.status = "Completed"
+    if not doc.get("delivered_on"):
+        doc.delivered_on = now_datetime()
+    doc.flags.ignore_permissions = True
+    doc.save(ignore_permissions=True)
+
+    # Any shipment still open on this order is finished too — leaving one
+    # "In Transit" against a completed order is the same contradiction in the
+    # other direction.
+    for name in frappe.get_all(
+        "Marketplace Shipment",
+        filters={"marketplace_order": doc.name, "status": ["not in", ("Delivered", "Returned", "Cancelled")]},
+        pluck="name",
+    ):
+        try:
+            shipment = frappe.get_doc("Marketplace Shipment", name)
+            shipment.status = "Delivered"
+            shipment.append("events", {
+                "status": "Delivered",
+                "description": note or _("Marked delivered by the seller"),
+                "posted_at": now_datetime(),
+            })
+            shipment.flags.ignore_permissions = True
+            shipment.save(ignore_permissions=True)
+        except Exception:
+            frappe.log_error(title="Ovira: closing shipment on manual delivery failed")
+
+    # Cash on delivery handed over = the money was collected, so book the
+    # invoice + settlement chain exactly as a courier confirmation would.
+    if doc.payment_status != "Paid" and (doc.payment_method or "").strip().lower() in (
+        "cod",
+        "cash on delivery",
+    ):
+        try:
+            from ovira_marketplace.api.payment import record_payment
+
+            record_payment(doc.name)
+        except Exception:
+            frappe.log_error(title="Ovira: COD booking on manual delivery failed")
+
+    frappe.db.commit()
+    return {"status": doc.status, "delivered_on": str(doc.delivered_on or "")}

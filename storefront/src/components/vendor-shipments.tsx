@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Check, ExternalLink, Loader2, PackagePlus, Printer, Save, Truck } from "lucide-react";
+import { AlertCircle, Check, CheckCircle2, ExternalLink, Loader2, PackagePlus, Printer, Save, Truck } from "lucide-react";
 import {
   createMyShipment,
+  markDelivered,
   getMyOrderShipments,
   listCarriers,
   SHIPMENT_STATUSES,
@@ -83,6 +84,20 @@ export function VendorShipments({
     }
   }
 
+  async function handOver() {
+    setBusy(true);
+    setError(null);
+    try {
+      await markDelivered(order);
+      hydrate((await getMyOrderShipments(order)).shipments);
+      onChange?.();
+    } catch (e) {
+      setError(msg(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function saveDetails(name: string) {
     const d = drafts[name];
     if (!d) return;
@@ -143,6 +158,18 @@ export function VendorShipments({
             {t.vshCreate}
           </button>
         )}
+        {/* Not every parcel goes through a courier. A seller who handed it over
+            themselves had no way to close the order at all, so it sat in
+            "being prepared" — to a buyer already holding it. */}
+        <button
+          type="button"
+          onClick={handOver}
+          disabled={busy}
+          className="btn btn-ghost h-8 px-3 text-sm text-mint disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+          {t.vshHandedOver}
+        </button>
       </div>
 
       {error && (
