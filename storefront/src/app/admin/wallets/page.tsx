@@ -38,7 +38,11 @@ export default function AdminWalletsPage() {
     setNotFound(false);
     const w = await getUserWallet(u);
     setWallet(w);
-    setNotFound(!w);
+    // `!w` means the request failed, which is not the same as "no such user" —
+    // saying the second when the first happened is how a broken endpoint looked
+    // like a missing customer for months. The server now answers the question.
+    setNotFound(!!w && w.exists === false);
+    setError(w ? null : t.walletLookupFailed);
     setLoading(false);
   }
 

@@ -145,12 +145,30 @@ function TrackResult({ order }: { order: TrackedOrder }) {
                 <span className="font-tech">−{formatPrice(order.discount_amount, order.currency)}</span>
               </div>
             )}
+            {/* Store credit is why the total can be less than subtotal +
+                shipping. Leaving it out made the arithmetic on this screen look
+                broken — 9,683 + 101 presented as 9,518, with nothing to explain
+                the difference. */}
+            {!!order.wallet_applied && order.wallet_applied > 0 && (
+              <div className="flex justify-between text-sm text-mint">
+                <span>{t.odtWallet}</span>
+                <span className="font-tech">−{formatPrice(order.wallet_applied, order.currency)}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t border-line pt-2 font-medium text-ink">
               <span>{t.odtTotal}</span>
               <span className="font-tech">{formatPrice(order.total, order.currency)}</span>
             </div>
             <div className="pt-1 text-xs text-ink-400">
-              {t.odtPayMethod} {order.payment_method === "cod" ? t.odtCod : order.payment_method || "—"}
+              {/* An order settled entirely from the balance was not paid in
+                  cash, and telling the buyer "Cash on Delivery" invites them to
+                  hand money to a courier for something already paid for. */}
+              {t.odtPayMethod}{" "}
+              {order.total <= 0 && !!order.wallet_applied
+                ? t.odtPaidWallet
+                : order.payment_method === "cod"
+                  ? t.odtCod
+                  : order.payment_method || "—"}
             </div>
           </div>
         </div>

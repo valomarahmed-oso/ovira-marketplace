@@ -306,6 +306,8 @@ const ar = {
   trackLookup: "دوّر على الطلب",
   trackNotFound: "مالقيناش طلب بالبيانات دي.",
   trackDelivery: "عنوان التوصيل",
+  walletApplied: "رصيد المتجر",
+  paidWithWallet: "مدفوع من رصيد المتجر",
   trackDeliveredOn: "اتسلّم في {date}",
 
   // invoice
@@ -956,6 +958,8 @@ const en: Dict = {
   trackLookup: "Find my order",
   trackNotFound: "We couldn't find an order matching those details.",
   trackDelivery: "Delivery address",
+  walletApplied: "Store credit",
+  paidWithWallet: "Paid with store credit",
   trackDeliveredOn: "Delivered on {date}",
 
   invoice: "Invoice",

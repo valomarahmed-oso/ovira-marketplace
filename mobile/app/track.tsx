@@ -225,11 +225,38 @@ function TrackedOrder({ order }: { order: Order }) {
               </Txt>
             </Row>
           )}
+          {/* Store credit is why the total can be less than subtotal +
+              shipping. Leaving it out made the arithmetic look broken. */}
+          {!!order.wallet_applied && order.wallet_applied > 0 && (
+            <Row justify="space-between">
+              <Txt variant="body" tone="muted">
+                {t.walletApplied}
+              </Txt>
+              <Txt variant="body" tone="mint">
+                −{money(order.wallet_applied)}
+              </Txt>
+            </Row>
+          )}
           <View style={{ height: 1, backgroundColor: c.line }} />
           <Row justify="space-between">
             <Txt variant="heading">{t.total}</Txt>
             <Txt variant="heading" tone="blue">
               {money(order.total)}
+            </Txt>
+          </Row>
+          {/* An order settled entirely from the balance was not paid in cash,
+              and saying "Cash on Delivery" invites the buyer to hand money to a
+              courier for something already paid for. */}
+          <Row justify="space-between">
+            <Txt variant="caption" tone="faint">
+              {t.paymentMethod}
+            </Txt>
+            <Txt variant="caption" tone="muted">
+              {order.total <= 0 && !!order.wallet_applied
+                ? t.paidWithWallet
+                : order.payment_method === "cod"
+                  ? t.cod
+                  : order.payment_method || "—"}
             </Txt>
           </Row>
         </VStack>

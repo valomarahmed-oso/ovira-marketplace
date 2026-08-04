@@ -40,6 +40,18 @@ async function errorMessage(res: Response, fallback: string): Promise<string> {
 const opUrl = (method: string, qs?: URLSearchParams) =>
   `${BASE}/api/method/ovira_marketplace.api.operator.${method}${qs ? `?${qs}` : ""}`;
 
+/**
+ * The wallet endpoints live in `api.wallet`, not `api.operator`.
+ *
+ * They were called through `opUrl` for months, which resolved to
+ * `api.operator.user_wallet` — a method that does not exist. Every lookup 404'd,
+ * the client degraded a failed read to `null`, and the screen reported "no user
+ * with that email" for customers who plainly had one. Adjusting a balance was
+ * broken the same way and just as silently.
+ */
+const walletUrl = (method: string, qs?: URLSearchParams) =>
+  `${BASE}/api/method/ovira_marketplace.api.wallet.${method}${qs ? `?${qs}` : ""}`;
+
 export async function listVendors(params: { status?: string; search?: string } = {}): Promise<Vendor[]> {
   if (!BASE) return [];
   const qs = new URLSearchParams();
@@ -633,14 +645,24 @@ export const updateShippingProvider = (body: Record<string, unknown>) =>
 
 // -- store credit (wallet) ----------------------------------------------------
 
-export type UserWallet = { user: string; balance: number; entries: WalletEntry[] };
+export type UserWallet = {
+  user: string;
+  /**
+   * Whether an account with this email exists at all. A zero balance does not
+   * say — a real customer who has never had store credit and a typo'd address
+   * look identical without it.
+   */
+  exists?: boolean;
+  balance: number;
+  entries: WalletEntry[];
+};
 
 /** Operator: look up a user's store-credit balance + ledger by their login email. */
 export async function getUserWallet(user: string): Promise<UserWallet | null> {
   if (!BASE || !user) return null;
   const qs = new URLSearchParams({ user });
   try {
-    const res = await fetch(opUrl("user_wallet", qs), {
+    const res = await fetch(walletUrl("user_wallet", qs), {
       headers: { Accept: "application/json" },
       credentials: "include",
       cache: "no-store",
@@ -663,7 +685,7 @@ export async function adjustWallet(
   direction: "Credit" | "Debit",
   note?: string,
 ): Promise<{ balance: number; entry: string | null }> {
-  const res = await fetch(opUrl("adjust_wallet"), {
+  const res = await fetch(walletUrl("adjust_wallet"), {
     method: "POST",
     headers: writeHeaders(),
     body: JSON.stringify({ user, amount, direction, note }),

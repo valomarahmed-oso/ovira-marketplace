@@ -272,6 +272,26 @@ def place_order(
             reference_name=order.name,
             note=order.name,
         )
+        # Store credit that covers the whole order IS the payment — the money
+        # has already left the customer's balance and there is nothing further
+        # to collect. Without this the order sat `Unpaid` forever: the seller's
+        # dashboard showed "awaiting payment" on a paid order, the buyer's
+        # tracking screen claimed "Cash on Delivery", settlement never ran, and
+        # a courier could be sent to collect cash that was paid weeks ago.
+        #
+        # Booked through `record_payment` rather than by setting the field, so
+        # a wallet-paid order gets the same invoice + Payment Entry + vendor
+        # settlement chain every other paid order gets.
+        if flt(order.total) <= 0:
+            order.db_set("payment_method", "wallet")
+            try:
+                from ovira_marketplace.api.payment import record_payment
+
+                record_payment(order.name, reference="wallet:%s" % order.name)
+            except Exception:
+                # The debit stands and the order is real; a booking hiccup is
+                # for the accounting sweep, not for the shopper's checkout.
+                frappe.log_error(title="Ovira: wallet-paid booking failed")
     if coupon_doc:
         _redeem_coupon(coupon_doc.name)
     if deal_redemptions:

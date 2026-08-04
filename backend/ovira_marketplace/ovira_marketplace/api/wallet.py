@@ -217,7 +217,14 @@ def adjust_wallet(user, amount, direction="Credit", note=None):
 
 @frappe.whitelist()
 def user_wallet(user, limit=50):
-    """Operator: a user's balance + ledger, for the wallet admin view."""
+    """Operator: a user's balance + ledger, for the wallet admin view.
+
+    `exists` is returned because a zero balance has two very different causes —
+    a real customer who has never had store credit, and an email with no
+    account at all — and the admin screen has to be able to say which. Without
+    it the screen has to guess, and it guessed wrong: it reported "no such
+    user" for anyone whose ledger was simply empty.
+    """
     _require_operator()
     entries = frappe.get_all(
         "Marketplace Wallet Entry",
@@ -227,4 +234,9 @@ def user_wallet(user, limit=50):
         limit_page_length=cint(limit) or 50,
         ignore_permissions=True,
     )
-    return {"user": user, "balance": balance(user), "entries": entries}
+    return {
+        "user": user,
+        "exists": bool(frappe.db.exists("User", user)),
+        "balance": balance(user),
+        "entries": entries,
+    }
