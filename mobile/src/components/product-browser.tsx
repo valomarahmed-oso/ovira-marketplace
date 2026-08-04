@@ -7,6 +7,7 @@ import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { dict, money, num } from "../i18n";
 import { useTheme } from "../theme-context";
 import { ProductGrid } from "./product-grid";
+import { SponsoredStrip } from "./sponsored-strip";
 import { Empty, Loading } from "./states";
 import { Row, Txt, VStack } from "./ui";
 
@@ -239,6 +240,9 @@ export function ProductBrowser({
           scrollEventThrottle={200}
         >
           {header}
+          {/* Above the results, as on the web: a paid position is only worth
+              paying for if it is seen, and it is labelled so nobody is misled. */}
+          <SponsoredStrip category={stable.category} />
           {rows.length === 0 ? (
             <Empty
               icon="cube-outline"

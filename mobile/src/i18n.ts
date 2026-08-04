@@ -643,6 +643,8 @@ const ar = {
   filterFrom: "من",
   filterTo: "إلى",
   filterRating: "التقييم",
+  sponsoredHeading: "إعلانات مموّلة",
+  sponsoredTag: "مموّل",
 
   // seller: variants & branches
   vvTitle: "المنتج له خيارات (مقاسات/ألوان)",
@@ -1279,6 +1281,8 @@ const en: Dict = {
   filterFrom: "From",
   filterTo: "To",
   filterRating: "Rating",
+  sponsoredHeading: "Sponsored",
+  sponsoredTag: "Sponsored",
 
   vvTitle: "This product has options (sizes/colours)",
   vvHint: "If it sells in more than one form, turn this on and add each with its own price and stock.",

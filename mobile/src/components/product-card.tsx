@@ -17,7 +17,16 @@ import { Txt } from "./ui";
  * moves a decision, and hiding it behind the same neutral grey as a healthy
  * count wastes the only urgency this store has that is truthful.
  */
-export function ProductTile({ product, width }: { product: Card; width?: number }) {
+export function ProductTile({
+  product,
+  width,
+  sponsored = false,
+}: {
+  product: Card;
+  width?: number;
+  /** Disclose that this position was bought rather than earned. */
+  sponsored?: boolean;
+}) {
   const { c, space, radius, shadow } = useTheme();
   const t = dict();
   const stock = Number(product.stock_qty) || 0;
@@ -69,6 +78,11 @@ export function ProductTile({ product, width }: { product: Card; width?: number 
             </View>
 
             <View style={{ padding: space.md, gap: space.xs }}>
+              {sponsored && (
+                <Txt variant="caption" tone="faint">
+                  {t.sponsoredTag}
+                </Txt>
+              )}
               <Txt variant="label" numberOfLines={2} style={{ minHeight: 40 }}>
                 {product.title}
               </Txt>

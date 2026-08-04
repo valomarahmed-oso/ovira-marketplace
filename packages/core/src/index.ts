@@ -59,6 +59,9 @@ export { listStores, vendorStorefront } from "./stores.js";
 
 export { listDeals } from "./deals.js";
 
+export { recordSponsoredClick, sponsoredProducts } from "./sponsored.js";
+export type { SponsoredCard } from "./sponsored.js";
+
 export { getServerWishlist, mergeWishlists, saveServerWishlist } from "./wishlist.js";
 
 export { getServerCart, mergeCarts, saveServerCart } from "./cart-sync.js";
