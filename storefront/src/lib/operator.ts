@@ -752,3 +752,31 @@ export async function resyncStock(
   if (!res.ok) throw new Error(await errorMessage(res, "تعذّرت إعادة المزامنة."));
   return (await res.json()).message;
 }
+
+/** Put a product on the shelf, or take it off. Approval is a separate question. */
+export async function setProductPublished(name: string, published: boolean) {
+  const res = await fetch(opUrl("set_product_published"), {
+    method: "POST",
+    headers: writeHeaders(),
+    credentials: "include",
+    body: JSON.stringify({ name, published: published ? 1 : 0 }),
+  });
+  if (!res.ok) throw new Error("تعذّر تحديث حالة النشر.");
+  return (await res.json()).message as { name: string; published: number };
+}
+
+/**
+ * Take down every published product belonging to a hidden seller — the exact
+ * thing `/admin/health` reports, in one call, so the finding has a button
+ * instead of only advice.
+ */
+export async function unpublishHiddenVendorProducts() {
+  const res = await fetch(opUrl("unpublish_hidden_vendor_products"), {
+    method: "POST",
+    headers: writeHeaders(),
+    credentials: "include",
+    body: "{}",
+  });
+  if (!res.ok) throw new Error("تعذّر إلغاء النشر.");
+  return (await res.json()).message as { unpublished: number; failed: number };
+}

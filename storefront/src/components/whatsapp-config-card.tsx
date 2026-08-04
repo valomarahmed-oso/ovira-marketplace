@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, Loader2, MessageCircle } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
 import { getWhatsAppConfig, updateWhatsAppConfig, type WhatsAppConfig } from "@/lib/admin";
@@ -8,8 +9,19 @@ import { getWhatsAppConfig, updateWhatsAppConfig, type WhatsAppConfig } from "@/
 const fieldCls =
   "h-11 w-full rounded-xl border border-line bg-white px-4 text-sm outline-none focus:border-blue";
 
-/** Operator card to configure gated WhatsApp Business API notifications. The
- *  access token is write-only — we only show whether one is stored. */
+/**
+ * SUPERSEDED — kept visible, deliberately, rather than deleted.
+ *
+ * WhatsApp now goes through the messaging gateway: `send_whatsapp` in
+ * `notifications/channels.py` calls `_via_hub("whatsapp", …)` and **never
+ * reads these fields**. The only code that still touches them is this screen
+ * reading back its own values, so a store that fills them in gets silence.
+ *
+ * Not deleted because an operator has credentials stored here and removing the
+ * card would take them with it — and because a settings block that vanishes is
+ * a worse answer than one that says where the setting went. It now says so, in
+ * the card, with a link.
+ */
 export function WhatsAppConfigCard() {
   const { t } = useI18n();
   const [cfg, setCfg] = useState<WhatsAppConfig | null>(null);
@@ -17,6 +29,7 @@ export function WhatsAppConfigCard() {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showLegacy, setShowLegacy] = useState(false);
 
   useEffect(() => {
     getWhatsAppConfig().then(setCfg);
@@ -70,6 +83,27 @@ export function WhatsAppConfigCard() {
           {cfg.configured ? t.waActive : t.waInactive}
         </span>
       </div>
+      {/* The honest headline. These fields decide nothing any more, and an
+          operator filling them in and getting silence is the failure this
+          replaces. */}
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+        <p className="font-medium">{t.waSuperseded}</p>
+        <p className="mt-1 text-xs leading-relaxed">{t.waSupersededBody}</p>
+        <Link href="/admin/messaging" className="mt-2 inline-block text-xs font-medium underline">
+          {t.waGoToGateway}
+        </Link>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowLegacy((v) => !v)}
+        className="text-xs text-ink-400 underline"
+      >
+        {showLegacy ? t.waHideLegacy : t.waShowLegacy}
+      </button>
+
+      {showLegacy && (
+      <>
       <p className="text-xs text-ink-400">{t.waHint}</p>
 
       <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-600">
@@ -147,6 +181,8 @@ export function WhatsAppConfigCard() {
         )}
         {error && <span className="text-sm text-coral">{error}</span>}
       </div>
+      </>
+      )}
     </section>
   );
 }

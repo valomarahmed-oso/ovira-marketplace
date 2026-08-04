@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useI18n } from "@/components/i18n-provider";
 import { storeHealth, type Finding, type Severity, type StoreHealth } from "@/lib/health-api";
+import { unpublishHiddenVendorProducts } from "@/lib/operator";
 
 /** The screen that answers "why is my store behaving oddly?".
  *
@@ -82,7 +83,7 @@ export default function AdminHealthPage() {
           </div>
           <div className="space-y-3">
             {(data?.findings ?? []).map((f) => (
-              <FindingCard key={f.code + f.title} finding={f} fixLabel={t.hlthWhereToFix} />
+              <FindingCard key={f.code + f.title} finding={f} fixLabel={t.hlthWhereToFix} onFixed={load} />
             ))}
           </div>
         </>
@@ -114,8 +115,38 @@ function Tally({ tone, n, label }: { tone: Severity; n: number; label: string })
   );
 }
 
-function FindingCard({ finding, fixLabel }: { finding: Finding; fixLabel: string }) {
+function FindingCard({
+  finding,
+  fixLabel,
+  onFixed,
+}: {
+  finding: Finding;
+  fixLabel: string;
+  onFixed?: () => void;
+}) {
   const { card, Icon } = TONE[finding.severity] ?? TONE.info;
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+
+  /**
+   * A finding that can be fixed from here gets a button. Most cannot — they
+   * point at a screen — but "products of hidden sellers are still flagged
+   * published" is a single mechanical action, and telling an operator to go do
+   * it by hand across ten products is how a warning becomes permanent.
+   */
+  async function unpublish() {
+    setBusy(true);
+    try {
+      const r = await unpublishHiddenVendorProducts();
+      setDone(`تم إلغاء نشر ${r.unpublished} منتج${r.failed ? ` · فشل ${r.failed}` : ""}`);
+      onFixed?.();
+    } catch (e) {
+      setDone(e instanceof Error ? e.message : "تعذّر إلغاء النشر.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className={`space-y-2 rounded-2xl border p-4 ${card}`}>
       <div className="flex items-start gap-2">
@@ -130,6 +161,19 @@ function FindingCard({ finding, fixLabel }: { finding: Finding; fixLabel: string
             {fixLabel} {finding.fix}
           </span>
         </p>
+      )}
+      {finding.code === "hidden_vendor_products" && (
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={unpublish}
+            disabled={busy}
+            className="btn btn-primary h-8 px-3 text-sm disabled:opacity-50"
+          >
+            {busy ? "…" : "ألغِ نشرها الآن"}
+          </button>
+          {done && <span className="text-sm text-ink-600">{done}</span>}
+        </div>
       )}
     </div>
   );

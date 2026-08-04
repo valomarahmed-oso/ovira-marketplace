@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, CheckSquare, Loader2, Package, Search, Square } from "lucide-react";
+import { AlertCircle, CheckSquare, Eye, EyeOff, Loader2, Package, Search, Square } from "lucide-react";
 import { useAuth } from "@/lib/auth-store";
 import { useI18n } from "@/components/i18n-provider";
 import {
@@ -9,6 +9,7 @@ import {
   fileUrl,
   listProducts,
   productStatusCounts,
+  setProductPublished,
   setProductStatus,
   type AdminProduct,
   type ProductApprovalStatus,
@@ -93,6 +94,21 @@ export default function AdminProductsPage() {
     if (!ready || !isOperator) return;
     void load();
   }, [ready, isOperator, load]);
+
+  async function togglePublished(product: AdminProduct) {
+    setActingOn(product.name);
+    setError(null);
+    try {
+      const next = await setProductPublished(product.name, !product.published);
+      setProducts((rows) =>
+        rows.map((r) => (r.name === product.name ? { ...r, published: next.published } : r)),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "تعذّر تحديث حالة النشر.");
+    } finally {
+      setActingOn(null);
+    }
+  }
 
   async function act(product: AdminProduct, to: ProductApprovalStatus) {
     let reason: string | undefined;
@@ -307,7 +323,27 @@ export default function AdminProductsPage() {
                   </div>
                 </div>
 
-                <div className="flex shrink-0 gap-2">
+                <div className="flex shrink-0 items-center gap-2">
+                  {/* Publication is a different question from approval, and the
+                      operator had no control over it at all — `/admin/health`
+                      told them to unpublish a seller's products with nothing
+                      anywhere that could. Only offered on an approved product:
+                      publishing a rejected one would be a contradiction. */}
+                  {p.approval_status === "Approved" && (
+                    <button
+                      type="button"
+                      disabled={acting}
+                      onClick={() => togglePublished(p)}
+                      title={p.published ? "منشور — اضغط لإلغاء النشر" : "غير منشور — اضغط للنشر"}
+                      className="btn btn-ghost disabled:opacity-50"
+                    >
+                      {p.published ? (
+                        <Eye className="h-4 w-4 text-mint" />
+                      ) : (
+                        <EyeOff className="h-4 w-4 text-ink-400" />
+                      )}
+                    </button>
+                  )}
                   {actionsFor(p).map((a) => (
                     <button
                       key={a.to + a.label}

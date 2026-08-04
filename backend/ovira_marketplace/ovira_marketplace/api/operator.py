@@ -713,3 +713,62 @@ def update_shipping_provider(provider, enabled=None, **kwargs):
     return _connector_row(
         "Shipping Provider", doc.provider, SHIPPING_PLAIN_FIELDS, SHIPPING_SECRET_FIELDS, SHIPPING_NUMERIC_FIELDS
     )
+
+
+@frappe.whitelist()
+def set_product_published(name, published):
+    """Put a product on the shelf, or take it off.
+
+    Publication and approval are different questions and were conflated: the
+    only operator control was `set_product_status`, which decides whether a
+    product is *allowed* to be sold, and nothing anywhere could decide whether
+    it currently *is*. So `/admin/health` told the operator to "unpublish this
+    seller's products" and there was no way to do it — advice with no button.
+    """
+    _require_operator()
+    product = frappe.get_doc("Marketplace Product", name)
+    product.published = 1 if cint(published) else 0
+    product.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": product.name, "published": cint(product.published)}
+
+
+@frappe.whitelist()
+def unpublish_hidden_vendor_products():
+    """Take down every published product belonging to a hidden seller.
+
+    The exact finding `/admin/health` reports, made actionable in one call.
+    Hidden means suspended, or — in Single Company mode — anyone who is not the
+    owning store. Their products are already invisible to shoppers; the flag
+    left behind is what makes operator reports overstate the catalogue.
+
+    Products are independent: one that refuses to save is logged and counted,
+    the rest still come down. Returns what it did so the screen can say so
+    rather than just claiming success.
+    """
+    _require_operator()
+    from ovira_marketplace.api.catalog import hidden_vendors
+
+    hidden = hidden_vendors()
+    if not hidden:
+        return {"unpublished": 0, "failed": 0}
+
+    names = frappe.get_all(
+        "Marketplace Product",
+        filters=[["vendor", "in", hidden], ["published", "=", 1]],
+        pluck="name",
+        limit_page_length=0,
+        ignore_permissions=True,
+    )
+    done, failed = 0, 0
+    for name in names:
+        try:
+            product = frappe.get_doc("Marketplace Product", name)
+            product.published = 0
+            product.save(ignore_permissions=True)
+            done += 1
+        except Exception:
+            failed += 1
+            frappe.log_error(title="Ovira: unpublish hidden-vendor product failed")
+    frappe.db.commit()
+    return {"unpublished": done, "failed": failed}
