@@ -25,6 +25,11 @@ export type BuyerOrderSummary = {
 };
 
 export type BuyerOrderItem = {
+  /**
+   * The child-row id. Present on `get_order`, absent from public tracking,
+   * which sends a slim projection — and it is what a partial return names.
+   */
+  name?: string;
   marketplace_product?: string;
   title: string;
   vendor?: string;

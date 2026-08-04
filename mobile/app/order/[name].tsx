@@ -9,6 +9,7 @@ import {
   reorderItems,
   requestReturn,
   RETURN_REASONS,
+  type ReturnSelection,
   trackOrder,
 } from "@ovira/core";
 import { Ionicons } from "@expo/vector-icons";
@@ -425,8 +426,13 @@ function ReturnAction({ order }: { order: Order }) {
   const [details, setDetails] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Which lines, and how many of each. Starts empty = the whole order, which
+  // is what most returns are and what every return was before this existed.
+  const [picked, setPicked] = useState<Record<string, number>>({});
 
   const returnable = order.status === "Completed";
+  const lines = order.items ?? [];
+  const whole = Object.keys(picked).length === 0;
 
   useEffect(() => {
     if (!returnable) {
@@ -485,7 +491,17 @@ function ReturnAction({ order }: { order: Order }) {
     setBusy(true);
     setError(null);
     try {
-      setExisting(await requestReturn(order.name, reason, details.trim() || undefined));
+      const selection: ReturnSelection[] = Object.entries(picked)
+        .filter(([, qty]) => qty > 0)
+        .map(([order_item, qty]) => ({ order_item, qty }));
+      setExisting(
+        await requestReturn(
+          order.name,
+          reason,
+          details.trim() || undefined,
+          selection.length ? selection : undefined,
+        ),
+      );
       setOpen(false);
     } catch (err) {
       setError((err as Error)?.message ?? t.loadFailed);
@@ -498,6 +514,74 @@ function ReturnAction({ order }: { order: Order }) {
     <Card>
       <VStack gap="md">
         <Txt variant="label">{t.returnRequest}</Txt>
+
+        {/* Which items. Nothing ticked means the whole order — stated out
+            loud, because an empty list is otherwise indistinguishable from
+            "I forgot to choose". */}
+        {lines.length > 1 && (
+          <VStack gap="sm">
+            <Txt variant="caption" tone="faint">
+              {whole ? t.returnWhole : t.returnPickItems}
+            </Txt>
+            {lines.map((item, index) => {
+              const key = item.name ?? "";
+              const qty = picked[key] ?? 0;
+              const on = qty > 0;
+              return (
+                <Row key={key || index} gap="sm" align="center">
+                  <Pressable
+                    onPress={() =>
+                      setPicked((current) => {
+                        const next = { ...current };
+                        if (on) delete next[key];
+                        else next[key] = item.qty;
+                        return next;
+                      })
+                    }
+                    disabled={!key}
+                    hitSlop={6}
+                  >
+                    <Ionicons
+                      name={on ? "checkbox" : "square-outline"}
+                      size={20}
+                      color={on ? c.blue : c.ink400}
+                    />
+                  </Pressable>
+                  <Txt variant="body" style={{ flex: 1 }} numberOfLines={2}>
+                    {item.title}
+                  </Txt>
+                  {on && item.qty > 1 && (
+                    // Only when there is a choice to make: a line of one has
+                    // exactly one answer and a stepper on it is noise.
+                    <Row gap="sm">
+                      <Pressable
+                        onPress={() =>
+                          setPicked((cur) => ({ ...cur, [key]: Math.max(1, (cur[key] ?? 1) - 1) }))
+                        }
+                        hitSlop={6}
+                      >
+                        <Ionicons name="remove-circle-outline" size={20} color={c.ink600} />
+                      </Pressable>
+                      <Txt variant="label">{num(qty)}</Txt>
+                      <Pressable
+                        onPress={() =>
+                          setPicked((cur) => ({
+                            ...cur,
+                            [key]: Math.min(item.qty, (cur[key] ?? 1) + 1),
+                          }))
+                        }
+                        hitSlop={6}
+                      >
+                        <Ionicons name="add-circle-outline" size={20} color={c.ink600} />
+                      </Pressable>
+                    </Row>
+                  )}
+                </Row>
+              );
+            })}
+          </VStack>
+        )}
+
         <Txt variant="caption" tone="faint">
           {t.returnReason}
         </Txt>

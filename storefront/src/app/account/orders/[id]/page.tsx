@@ -187,7 +187,7 @@ export default function OrderDetailPage() {
 
       <OrderContact order={order.name} />
 
-      <OrderReturn order={order.name} status={order.status} />
+      <OrderReturn order={order.name} status={order.status} items={order.items} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-3 lg:col-span-2">

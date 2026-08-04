@@ -38,6 +38,20 @@ def _to_flat(doc):
         "details": doc.details,
         "operator_note": doc.operator_note,
         "refund_amount": flt(doc.refund_amount),
+        # Empty means the whole order — the shape every return had before
+        # partial returns, and still the common case. A client that shows
+        # "returning: <nothing>" for a full return has misread this.
+        "items": [
+            {
+                "order_item": r.order_item,
+                "product": r.marketplace_product,
+                "title": r.title,
+                "qty": flt(r.qty),
+                "rate": flt(r.rate),
+                "amount": flt(r.amount),
+            }
+            for r in (doc.get("items") or [])
+        ],
         "date": frappe.utils.get_datetime(doc.creation).strftime("%Y-%m-%d"),
     }
 
@@ -55,7 +69,7 @@ def _owned_order(order):
 
 @frappe.whitelist()
 @rate_limit(limit=20, seconds=60 * 60, methods="POST")
-def request_return(order, reason, details=None):
+def request_return(order, reason, details=None, items=None):
     """Open a return request against an order the buyer owns."""
     order_doc = _owned_order(order)
 
@@ -79,6 +93,8 @@ def request_return(order, reason, details=None):
     doc.reason = reason
     doc.details = (details or "").strip()
     doc.status = "Requested"
+    for line in _validated_return_lines(order, items):
+        doc.append("items", line)
     doc.flags.ignore_permissions = True
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
@@ -334,7 +350,7 @@ def _return_delivery_for_so(so_name):
     rdn.submit()
 
 
-def default_refund_amount(order_name):
+def default_refund_amount(order_name, return_name=None):
     """What a return on this order refunds unless the operator says otherwise:
     what the buyer actually paid.
 
@@ -344,13 +360,36 @@ def default_refund_amount(order_name):
     message — silently. The buyer saw an approved return and an empty wallet.
     """
     order = frappe.db.get_value(
-        "Marketplace Order", order_name, ["total", "wallet_applied"], as_dict=True
+        "Marketplace Order", order_name, ["total", "wallet_applied", "subtotal"], as_dict=True
     )
     if not order:
         return 0.0
     # Store credit spent on the order is refunded too — it was real money to the
     # buyer, and `total` is already net of it.
-    return flt(order.get("total")) + flt(order.get("wallet_applied"))
+    paid = flt(order.get("total")) + flt(order.get("wallet_applied"))
+
+    returned = _returned_goods(return_name) if return_name else 0.0
+    if not returned:
+        return paid            # whole order
+
+    # A partial return refunds the same PROPORTION of what was actually paid as
+    # the returned goods are of all the goods. Refunding a line at its sticker
+    # price on a discounted order hands back money that was never taken — see
+    # `totals.partial_refund`.
+    from ovira_marketplace.totals import partial_refund
+
+    return partial_refund(returned, flt(order.get("subtotal")), paid)
+
+
+def _returned_goods(return_name):
+    """The goods value of a return's selected lines; 0 when it is a whole order."""
+    rows = frappe.get_all(
+        "Marketplace Return Item",
+        filters={"parent": return_name, "parenttype": "Marketplace Return"},
+        pluck="amount",
+        ignore_permissions=True,
+    )
+    return sum(flt(a) for a in rows)
 
 
 @frappe.whitelist()
@@ -377,7 +416,13 @@ def set_return_status(name, status, note=None, refund_amount=None, fault=None, n
     if refund_amount is not None:
         doc.refund_amount = flt(refund_amount)
     elif status in ("Approved", "Completed") and flt(doc.refund_amount) <= 0:
-        doc.refund_amount = 0.0 if cint(no_refund) else default_refund_amount(doc.marketplace_order)
+        # `doc.name` matters: without it a return of one item out of five would
+        # default to refunding the entire order.
+        doc.refund_amount = (
+            0.0
+            if cint(no_refund)
+            else default_refund_amount(doc.marketplace_order, doc.name)
+        )
     if fault is not None:
         if fault not in ("Vendor", "Store", "Goodwill"):
             frappe.throw(_("قيمة غير معروفة لسبب الإرجاع."))
@@ -420,3 +465,63 @@ def set_return_status(name, status, note=None, refund_amount=None, fault=None, n
     _notify_return_status(doc)
 
     return _to_flat(doc)
+
+
+def _validated_return_lines(order, items):
+    """Turn a requested selection into return lines, or [] for a whole order.
+
+    Every field is taken from the ORDER, never from the request: a client that
+    posted its own `rate` could name any price it liked and the refund would
+    honour it. The client chooses *which line and how many* and nothing else.
+    """
+    if not items:
+        return []          # whole order — the default, and the common case
+    try:
+        wanted = frappe.parse_json(items) if isinstance(items, str) else items
+    except (ValueError, TypeError):
+        frappe.throw(_("Couldn't read the selected items."))
+    if not isinstance(wanted, list):
+        frappe.throw(_("Couldn't read the selected items."))
+
+    ordered = {
+        r["name"]: r
+        for r in frappe.get_all(
+            "Marketplace Order Item",
+            filters={"parent": order},
+            fields=["name", "marketplace_product", "title", "qty", "rate"],
+            ignore_permissions=True,
+        )
+    }
+
+    lines = []
+    for row in wanted:
+        key = str((row or {}).get("order_item") or "")
+        source = ordered.get(key)
+        if not source:
+            # Silently skipping would let a typo become a return for nothing,
+            # which the buyer only discovers when the refund is short.
+            frappe.throw(_("That item isn't on this order."))
+        qty = flt((row or {}).get("qty"))
+        if qty <= 0:
+            continue
+        if qty > flt(source["qty"]):
+            frappe.throw(
+                _("You can return at most {0} of {1}.").format(
+                    cint(source["qty"]), source["title"]
+                )
+            )
+        rate = flt(source["rate"])
+        lines.append(
+            {
+                "order_item": source["name"],
+                "marketplace_product": source["marketplace_product"],
+                "title": source["title"],
+                "qty": qty,
+                "rate": rate,
+                "amount": round(qty * rate, 2),
+            }
+        )
+
+    if not lines:
+        frappe.throw(_("Choose at least one item to return."))
+    return lines

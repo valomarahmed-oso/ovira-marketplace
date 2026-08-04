@@ -47,3 +47,35 @@ def order_total(subtotal, shipping=0.0, discount=0.0, vendor_discount=0.0,
     means the customer pays nothing, never that the store owes them."""
     goods = goods_total(subtotal, discount, vendor_discount)
     return max(0.0, payable(goods, shipping, extra_tax) - flt(wallet_applied))
+
+
+def partial_refund(returned_goods, goods_total_value, paid_total):
+    """What to refund when only SOME of an order comes back.
+
+    Not the line total. A buyer who paid 800 for 1,000 of goods — a coupon, a
+    deal, store credit against part of it — did not pay full price for any one
+    item, and refunding a line at its sticker price hands back money that was
+    never taken. Over a few returns on a discounted order that is a real loss,
+    and it is invisible because each individual refund looks reasonable.
+
+    So the refund is the same PROPORTION of what was actually paid as the
+    returned goods are of all the goods:
+
+        refund = paid_total × (returned_goods ÷ goods_total)
+
+    Returning everything gives back everything, which is the whole-order case
+    falling out of the same rule rather than being a second code path.
+
+    Shipping is deliberately not in `paid_total`'s share here — the caller
+    decides whether a partial return earns the delivery fee back, because that
+    is a policy question and not arithmetic.
+    """
+    goods_total_value = flt(goods_total_value)
+    returned_goods = max(0.0, flt(returned_goods))
+    paid_total = max(0.0, flt(paid_total))
+    if goods_total_value <= 0 or paid_total <= 0:
+        return 0.0
+    # Capped at the whole: a rounding drift or a bad quantity must never refund
+    # more than the buyer handed over.
+    share = min(1.0, returned_goods / goods_total_value)
+    return round(paid_total * share, 2)

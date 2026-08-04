@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-04 13:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "order_item",
+  "marketplace_product",
+  "title",
+  "column_break_qty",
+  "qty",
+  "rate",
+  "amount"
+ ],
+ "fields": [
+  {
+   "description": "The Marketplace Order Item row this line returns, so the same product ordered twice at different prices stays distinguishable.",
+   "fieldname": "order_item",
+   "fieldtype": "Data",
+   "label": "Order Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "marketplace_product",
+   "fieldtype": "Link",
+   "label": "Product",
+   "options": "Marketplace Product",
+   "read_only": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_qty",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "How many of this line are coming back. Never more than were ordered.",
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty"
+  },
+  {
+   "description": "The unit price as billed, copied from the order so a later price change cannot alter an old refund.",
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "label": "Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-04 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Marketplace",
+ "name": "Marketplace Return Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

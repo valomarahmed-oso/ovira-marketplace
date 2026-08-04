@@ -13,6 +13,7 @@
   "request_section",
   "reason",
   "details",
+  "items",
   "resolution_section",
   "operator_note",
   "fault",
@@ -76,6 +77,13 @@
    "fieldname": "details",
    "fieldtype": "Small Text",
    "label": "Details"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Returned Items",
+   "options": "Marketplace Return Item",
+   "description": "Which lines are coming back. EMPTY means the whole order — the shape every return had before partial returns existed, and still the common case."
   },
   {
    "fieldname": "resolution_section",

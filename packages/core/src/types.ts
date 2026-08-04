@@ -143,6 +143,13 @@ export type OrderStatus =
   | "Cancelled";
 
 export type OrderItem = {
+  /**
+   * The child-row id. Present on `get_order` (which returns the whole
+   * document) and absent from public tracking, which sends a slim projection.
+   * It is what a partial return names, so a screen that offers one needs the
+   * owned-order read, not the tracking read.
+   */
+  name?: string;
   marketplace_product?: string;
   title: string;
   vendor?: string;

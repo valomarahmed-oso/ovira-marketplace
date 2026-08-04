@@ -27,6 +27,8 @@ export type ReturnRequest = {
   admin_fee?: number;
   chargeback_entry?: string;
   refund_reference?: string;
+  /** Empty means the WHOLE order — the common case, not a missing selection. */
+  items?: ReturnLine[];
 };
 
 /** What charging a return back to the vendor would cost them — computed, not booked. */
@@ -131,8 +133,37 @@ export const getOrderReturn = (order: string) =>
 
 export const getMyReturns = () => get<ReturnRequest[]>("my_returns", "", []);
 
-export const requestReturn = (order: string, reason: string, details?: string) =>
-  post<ReturnRequest>("request_return", { order, reason, details });
+/** What the buyer picks: which order line, and how many of it. */
+export type ReturnSelection = { order_item: string; qty: number };
+
+/** One line coming back, priced from the order rather than from the client. */
+export type ReturnLine = {
+  order_item: string;
+  product?: string | null;
+  title: string;
+  qty: number;
+  rate: number;
+  amount: number;
+};
+
+/**
+ * Open a return. `items` picks specific lines; omitting it returns everything.
+ *
+ * Only the line id and a quantity go up — a client that could name its own
+ * `rate` could name any refund it liked.
+ */
+export const requestReturn = (
+  order: string,
+  reason: string,
+  details?: string,
+  items?: ReturnSelection[],
+) =>
+  post<ReturnRequest>("request_return", {
+    order,
+    reason,
+    details,
+    items: items?.length ? JSON.stringify(items) : undefined,
+  });
 
 // -- operator ---------------------------------------------------------------
 

@@ -123,7 +123,13 @@ export {
 } from "./recommendations.js";
 
 export { myReturns, orderReturn, requestReturn, RETURN_REASONS } from "./returns.js";
-export type { ReturnReason, ReturnRequest, ReturnStatus } from "./returns.js";
+export type {
+  ReturnLine,
+  ReturnReason,
+  ReturnRequest,
+  ReturnSelection,
+  ReturnStatus,
+} from "./returns.js";
 
 export {
   alertStatus,

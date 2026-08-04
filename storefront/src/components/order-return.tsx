@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { BuyerOrderItem } from "@/lib/orders-api";
 import { AlertCircle, Loader2, RotateCcw } from "lucide-react";
 import {
   getOrderReturn,
@@ -10,13 +11,23 @@ import {
   RETURN_STATUS_LABEL,
   RETURN_STATUS_STYLE,
   type ReturnRequest,
+  type ReturnSelection,
 } from "@/lib/returns-api";
 
 const RETURNABLE = new Set(["Shipped", "Completed"]);
 
 /** Buyer return panel on the order detail page: shows an existing return's
  * status, or an "open a return" form when the order is eligible. */
-export function OrderReturn({ order, status }: { order: string; status: string }) {
+export function OrderReturn({
+  order,
+  status,
+  items = [],
+}: {
+  order: string;
+  status: string;
+  /** The order's lines, so a buyer can send back only part of it. */
+  items?: BuyerOrderItem[];
+}) {
   const [ret, setRet] = useState<ReturnRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -24,6 +35,9 @@ export function OrderReturn({ order, status }: { order: string; status: string }
   const [details, setDetails] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Empty = the whole order, which is what most returns are and what every
+  // return was before this existed.
+  const [picked, setPicked] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -40,10 +54,19 @@ export function OrderReturn({ order, status }: { order: string; status: string }
     setBusy(true);
     setError(null);
     try {
-      const saved = await requestReturn(order, reason, details.trim() || undefined);
+      const selection: ReturnSelection[] = Object.entries(picked)
+        .filter(([, qty]) => qty > 0)
+        .map(([order_item, qty]) => ({ order_item, qty }));
+      const saved = await requestReturn(
+        order,
+        reason,
+        details.trim() || undefined,
+        selection.length ? selection : undefined,
+      );
       setRet(saved);
       setOpen(false);
       setDetails("");
+      setPicked({});
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذّر إرسال الطلب.");
     } finally {
@@ -81,6 +104,59 @@ export function OrderReturn({ order, status }: { order: string; status: string }
         </div>
       ) : open ? (
         <form onSubmit={submit} className="space-y-3">
+          {/* Which items. Nothing ticked means the whole order — said out loud,
+              because an empty selection is otherwise indistinguishable from
+              "I forgot to choose". */}
+          {items.length > 1 && (
+            <div className="space-y-2 rounded-xl border border-line p-3">
+              <p className="text-xs text-ink-400">
+                {Object.keys(picked).length === 0
+                  ? "هيترجّع الطلب كله — أو اختر منتجات معيّنة"
+                  : "المنتجات اللي هترجّعها"}
+              </p>
+              {items.map((item, i) => {
+                const key = item.name ?? "";
+                const qty = picked[key] ?? 0;
+                const on = qty > 0;
+                return (
+                  <div key={key || i} className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      disabled={!key}
+                      onChange={() =>
+                        setPicked((cur) => {
+                          const next = { ...cur };
+                          if (on) delete next[key];
+                          else next[key] = item.qty;
+                          return next;
+                        })
+                      }
+                      className="h-4 w-4 accent-blue-600"
+                    />
+                    <span className="flex-1 text-ink">{item.title}</span>
+                    {/* Only when there is a choice: a line of one has exactly
+                        one answer and a stepper on it is noise. */}
+                    {on && item.qty > 1 && (
+                      <input
+                        type="number"
+                        min={1}
+                        max={item.qty}
+                        value={qty}
+                        onChange={(e) =>
+                          setPicked((cur) => ({
+                            ...cur,
+                            [key]: Math.max(1, Math.min(item.qty, Number(e.target.value) || 1)),
+                          }))
+                        }
+                        className="h-8 w-16 rounded-lg border border-line px-2 text-center"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
