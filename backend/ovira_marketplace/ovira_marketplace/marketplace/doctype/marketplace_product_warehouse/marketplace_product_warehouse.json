@@ -10,7 +10,8 @@
   "warehouse",
   "governorate",
   "stock_qty",
-  "priority"
+  "priority",
+  "synced_qty"
  ],
  "fields": [
   {
@@ -48,6 +49,15 @@
    "fieldname": "priority",
    "fieldtype": "Int",
    "label": "Priority"
+  },
+  {
+   "fieldname": "synced_qty",
+   "fieldtype": "Float",
+   "label": "Last Synced Qty",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1,
+   "description": "The quantity this branch and ERPNext last agreed on. Written by the stock sync; it is how a Desk sale is told apart from a vendor edit."
   }
  ],
  "index_web_pages_for_search": 0,

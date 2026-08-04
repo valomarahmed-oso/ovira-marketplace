@@ -8,7 +8,7 @@ holding zero and no Delivery Note could ever be made.
 The fixtures below are the real figures from demo.ovira.cloud.
 """
 
-from ovira_marketplace.inventory import reconciliation_targets
+from ovira_marketplace.inventory import reconciliation_targets, settle_quantity
 
 
 def bins(**kwargs):
@@ -90,3 +90,49 @@ class TestEdges:
             {"C - O": 1, "A - O": 1, "B - O": 1}, {}
         )
         assert [w for w, _ in targets] == ["A - O", "B - O", "C - O"]
+
+
+class TestSettleQuantity:
+    """Who moved the stock — the shop, the Desk, or both.
+
+    The bug these guard: a Single Company store invoices from the ERPNext Desk
+    as well as selling online. Every Desk sale used to be undone by the next
+    product save, because the sync pushed the shop's unchanged number back into
+    a warehouse the Desk had just drawn down.
+    """
+
+    def test_no_watermark_keeps_the_shop_as_master(self):
+        # Every product that predates the watermark behaves exactly as before.
+        assert settle_quantity(offered=50, available=41, last_agreed=None) == 50.0
+
+    def test_a_desk_sale_is_kept_not_reversed(self):
+        # 46 agreed; the Desk invoiced 5, so ERPNext is at 41 and the shop has
+        # not been touched. The shop must come DOWN to 41 — the old code pushed
+        # ERPNext back up to 46 and re-created stock that had been sold.
+        assert settle_quantity(offered=46, available=41, last_agreed=46) == 41.0
+
+    def test_a_vendor_restock_still_reaches_erpnext(self):
+        # The vendor typed 60 where 46 was agreed; ERPNext has not moved.
+        assert settle_quantity(offered=60, available=46, last_agreed=46) == 60.0
+
+    def test_both_sides_moving_merges_instead_of_one_winning(self):
+        # Vendor added 4 (46 → 50) and the Desk sold 5 (46 → 41). The truthful
+        # answer is 45: both events happened, and picking a winner loses one.
+        assert settle_quantity(offered=50, available=41, last_agreed=46) == 45.0
+
+    def test_agreement_holds_when_nothing_moved(self):
+        assert settle_quantity(offered=46, available=46, last_agreed=46) == 46.0
+
+    def test_a_marketplace_order_nets_to_no_change(self):
+        # An online order decrements the shop AND reserves in ERPNext, so both
+        # `offered` and `available` fall by the same amount. Netting to zero is
+        # what stops every order posting a pointless Stock Reconciliation.
+        assert settle_quantity(offered=45, available=45, last_agreed=46) == 44.0
+
+    def test_the_result_never_goes_negative(self):
+        # Two systems can disagree past zero. A negative target makes ERPNext
+        # refuse the whole document, taking the other branches down with it.
+        assert settle_quantity(offered=0, available=0, last_agreed=10) == 0.0
+
+    def test_selling_out_from_the_desk_empties_the_shop(self):
+        assert settle_quantity(offered=8, available=0, last_agreed=8) == 0.0

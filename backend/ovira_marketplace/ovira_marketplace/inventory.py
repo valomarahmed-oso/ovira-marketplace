@@ -96,6 +96,102 @@ def desired_distribution(product):
     return {warehouse: flt(product.get("stock_qty"))} if warehouse else {}
 
 
+def _settled_distribution(product, bins):
+    """`desired_distribution`, after reconciling whatever moved externally.
+
+    Writes the settled figures straight back onto the product — the branch rows,
+    `stock_qty`, and the watermarks — so the storefront stops offering units the
+    Desk has already invoiced. Uses `db_set`/direct SQL rather than `doc.save()`
+    because this runs *from* the product's own save hook, and re-saving there
+    recurses.
+    """
+    available = {w: flt(b["actual"]) - flt(b["reserved"]) for w, b in bins.items()}
+    rows = frappe.get_all(
+        CHILD,
+        filters={"parent": product.name, "parenttype": "Marketplace Product"},
+        fields=["name", "warehouse", "stock_qty", "synced_qty"],
+        ignore_permissions=True,
+    )
+
+    if rows:
+        wanted = {}
+        for r in rows:
+            warehouse = r.get("warehouse")
+            if not warehouse:
+                continue
+            settled = settle_quantity(
+                offered=r.get("stock_qty"),
+                available=available.get(warehouse, 0.0),
+                last_agreed=r.get("synced_qty"),
+            )
+            wanted[warehouse] = wanted.get(warehouse, 0.0) + settled
+            if abs(settled - flt(r.get("stock_qty"))) >= 0.001 or r.get("synced_qty") is None:
+                frappe.db.set_value(
+                    CHILD, r["name"],
+                    {"stock_qty": settled, "synced_qty": settled},
+                    update_modified=False,
+                )
+            else:
+                frappe.db.set_value(CHILD, r["name"], "synced_qty", settled, update_modified=False)
+        total = sum(wanted.values())
+        if abs(total - flt(product.get("stock_qty"))) >= 0.001:
+            # The headline number a shopper sees is the sum of the branches.
+            frappe.db.set_value(
+                "Marketplace Product", product.name, "stock_qty", total, update_modified=False
+            )
+        return wanted
+
+    warehouse = resolve_warehouse(settings=None)
+    if not warehouse:
+        return {}
+    settled = settle_quantity(
+        offered=product.get("stock_qty"),
+        available=available.get(warehouse, 0.0),
+        last_agreed=product.get("synced_stock_qty"),
+    )
+    frappe.db.set_value(
+        "Marketplace Product", product.name,
+        {"stock_qty": settled, "synced_stock_qty": settled},
+        update_modified=False,
+    )
+    return {warehouse: settled}
+
+
+def settle_quantity(offered, available, last_agreed):
+    """The quantity BOTH systems should hold, when either of them may have moved.
+
+    The invariant is ``ERPNext available == what the shop offers``. Enforcing it
+    by always pushing the shop's number into ERPNext was right only while the
+    marketplace was the sole thing that sold. It is not: a Single Company store
+    also invoices from the ERPNext Desk, and every one of those sales was
+    **silently reversed** — the Desk removed the units, the next product save
+    posted a Stock Reconciliation putting them back, and the ledger claimed
+    stock that had already left the building.
+
+    Neither number alone says who moved. A watermark — the quantity the two
+    systems last agreed on — turns that into arithmetic:
+
+        new = last_agreed + (offered − last_agreed) + (available − last_agreed)
+
+    so a change on either side is kept, and a change on both is merged rather
+    than one silently winning. `available` (actual − reserved) is the right
+    input because a marketplace order moves both sides equally — the shop
+    decrements and ERPNext reserves — which nets to no change and posts nothing.
+
+    With no watermark (a product that predates this, or a first sync) the shop
+    stays the master, which is the behaviour every existing store already has.
+    """
+    if last_agreed is None:
+        return max(0.0, flt(offered))
+    last_agreed = flt(last_agreed)
+    shop_delta = flt(offered) - last_agreed
+    erp_delta = flt(available) - last_agreed
+    # Floored: two systems can disagree into the negative, but no warehouse
+    # holds less than nothing and a negative target makes ERPNext refuse the
+    # whole reconciliation — taking the rest of the branches down with it.
+    return max(0.0, last_agreed + shop_delta + erp_delta)
+
+
 def reconciliation_targets(wanted, bins):
     """[(warehouse, target actual_qty)] for every warehouse that needs moving.
 
@@ -155,10 +251,13 @@ def sync_product_stock(product):
         return None
 
     settings = frappe.get_cached_doc("Marketplace Settings")
-    wanted = desired_distribution(product)
+    bins = _bins(item)
+    # Settle the two systems against their watermark BEFORE deciding what to
+    # post, so a sale made from the ERPNext Desk pulls the storefront down
+    # instead of being pushed back up and re-created.
+    wanted = _settled_distribution(product, bins)
     if not wanted:
         return None
-    bins = _bins(item)
 
     lines = [
         {

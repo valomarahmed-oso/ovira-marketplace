@@ -32,6 +32,7 @@
   "inventory_section",
   "track_inventory",
   "stock_qty",
+  "synced_stock_qty",
   "column_break_inventory",
   "low_stock_threshold",
   "stock_locations",
@@ -226,6 +227,15 @@
    "fieldtype": "Float",
    "label": "Stock qty",
    "read_only": 1
+  },
+  {
+   "fieldname": "synced_stock_qty",
+   "fieldtype": "Float",
+   "label": "Last Synced Stock Qty",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1,
+   "description": "The quantity the storefront and ERPNext last agreed on, for products with no per-branch rows. Lets a Desk sale be told apart from a vendor edit."
   },
   {
    "fieldname": "column_break_inventory",
