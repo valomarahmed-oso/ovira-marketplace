@@ -121,6 +121,27 @@ It is gated on **two** conditions, and the second is the easy one to forget: the
 person must be a vendor, **and** the store must be running as a marketplace. In
 Single Company mode there are no sellers, and offering "my store" invents one.
 
+## Why there is an `eas-build-pre-install` script
+
+`@ovira/core` is a `file:../packages/core` dependency. EAS **does** upload the
+whole repo, so that path exists on the builder — but npm treats a `file:` dep as
+a symlink and **does not install that package's devDependencies**. It still runs
+its `prepare` script, which is `tsc`. The first cloud build died on exactly that:
+
+```
+npm error path /home/expo/workingdir/build/packages/core
+npm error command sh -c tsc -p tsconfig.build.json
+npm error sh: 1: tsc: not found
+```
+
+`eas-build-pre-install` runs **before** `npm ci` and installs core's own
+dependencies, which both puts `tsc` on the path and builds `dist/` (core's
+`prepare` fires there too). `dist/` is gitignored, so without this the package
+arrives as source that nothing can compile and `main` points at a file that
+does not exist.
+
+Local dev is unaffected — you already run `npm ci` in `packages/core` yourself.
+
 ## The three build profiles
 
 `eas.json` is schema-validated and **rejects `"//"` comment keys**, so the
