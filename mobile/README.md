@@ -121,6 +121,23 @@ It is gated on **two** conditions, and the second is the easy one to forget: the
 person must be a vendor, **and** the store must be running as a marketplace. In
 Single Company mode there are no sellers, and offering "my store" invents one.
 
+## The three build profiles
+
+`eas.json` is schema-validated and **rejects `"//"` comment keys**, so the
+reasoning lives here instead. Three profiles for three different questions:
+
+| profile | the question it answers | output |
+|---|---|---|
+| `development` | does the native code work on my phone? | `.apk` + dev client |
+| `preview` | can I hand this to someone? | `.apk` |
+| `production` | is this what goes to the store? | `.aab` |
+
+**`preview` is the one to build first.** An `.apk` installs by tapping the file —
+no Play Store, no cable, no Android Studio — and unlike Expo Go it contains the
+real native modules, so push, biometrics and the camera actually work.
+
+All three point `EXPO_PUBLIC_FRAPPE_URL` at demo.ovira.cloud.
+
 ## Where this is going
 
 Shipped: the shell, browsing, buying, the native layer (push, biometrics,

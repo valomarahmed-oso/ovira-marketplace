@@ -12,7 +12,15 @@
       "bundleIdentifier": "cloud.ovira.app",
       "associatedDomains": [
         "applinks:demo.ovira.cloud"
-      ]
+      ],
+      "infoPlist": {
+        "ExpoLocalization_supportsRTL": true,
+        "ExpoLocalization_forcesRTL": true,
+        "CFBundleLocalizations": [
+          "ar",
+          "en"
+        ]
+      }
     },
     "android": {
       "package": "cloud.ovira.app",
@@ -28,29 +36,103 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/product/" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/products" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/category/" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/categories" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/deals" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/stores" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/store/" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/track" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/wishlist" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/compare" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/sell" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/about" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/careers" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/terms" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/privacy" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/account" },
-            { "scheme": "https", "host": "demo.ovira.cloud", "pathPrefix": "/shop/vendor" }
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/product/"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/products"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/category/"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/categories"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/deals"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/stores"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/store/"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/track"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/wishlist"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/compare"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/sell"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/about"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/careers"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/terms"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/privacy"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/account"
+            },
+            {
+              "scheme": "https",
+              "host": "demo.ovira.cloud",
+              "pathPrefix": "/shop/vendor"
+            }
           ],
           "category": [
             "BROWSABLE",
             "DEFAULT"
           ]
         }
+      ],
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -121,14 +203,16 @@
     "extra": {
       "eas": {
         "//": "Not a secret — this id ships inside every build and only names the project. `getExpoPushTokenAsync` refuses to mint a token without it, which is why notifications stayed silent until it was set.",
-        "projectId": "34330bf5-b8e9-4228-be04-2896f2f84d36"
-      }
+        "projectId": "9d6f4fa0-a19c-451c-b568-a238a16e42e3"
+      },
+      "router": {}
     },
     "updates": {
-      "url": "https://u.expo.dev/34330bf5-b8e9-4228-be04-2896f2f84d36"
+      "url": "https://u.expo.dev/9d6f4fa0-a19c-451c-b568-a238a16e42e3"
     },
     "runtimeVersion": {
       "policy": "appVersion"
-    }
+    },
+    "owner": "omaralsaads-team"
   }
 }

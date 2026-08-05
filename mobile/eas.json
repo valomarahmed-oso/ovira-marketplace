@@ -4,23 +4,18 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "//": "Three profiles for three different questions. `development` answers 'does the native code work on my phone', `preview` answers 'can I hand this to someone', `production` answers 'is this what goes to the store'.",
-
     "development": {
       "developmentClient": true,
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": { "EXPO_PUBLIC_FRAPPE_URL": "https://demo.ovira.cloud" }
     },
-
     "preview": {
-      "//": "The one to build first. An .apk installs by tapping the file — no Play Store, no cable, no Android Studio — and unlike Expo Go it contains the real native modules, so push, biometrics and the camera actually work.",
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "ios": { "simulator": true },
       "env": { "EXPO_PUBLIC_FRAPPE_URL": "https://demo.ovira.cloud" }
     },
-
     "production": {
       "autoIncrement": true,
       "android": { "buildType": "app-bundle" },
